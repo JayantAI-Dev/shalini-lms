@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="540" height="960" viewBox="0 0 540 960">
+  <image href="confident-smile-thumbnail.jpg" width="540" height="960" preserveAspectRatio="xMidYMid slice"/>
+  <defs>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0e3326"/>
+      <stop offset="1" stop-color="#1f563c"/>
+    </linearGradient>
+  </defs>
+  <path d="M0 0h540v172H0z" fill="url(#panel)"/>
+  <path d="M0 166h540v6H0z" fill="#b9e78c"/>
+  <text x="30" y="37" fill="#c5e8a8" font-family="Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="2.2">SHALINI RATHOD</text>
+  <text x="30" y="82" fill="#ffffff" font-family="Arial, sans-serif" font-size="29" font-weight="800" letter-spacing=".4">LOOK MORE CONFIDENT</text>
+  <text x="30" y="119" fill="#ffffff" font-family="Arial, sans-serif" font-size="25" font-weight="800" letter-spacing=".3">WITH A NATURAL SMILE</text>
+  <rect x="30" y="137" width="213" height="25" rx="12.5" fill="#b9e78c"/>
+  <text x="43" y="154" fill="#123c2b" font-family="Arial, sans-serif" font-size="10" font-weight="700" letter-spacing="1.1">DAY 04 · COMMUNICATION COURSE</text>
+</svg>

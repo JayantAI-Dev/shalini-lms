@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-label="Response under scope pushback donut chart">
+  <title>Response under scope pushback donut chart</title>
+  <circle cx="160" cy="160" r="132" fill="none" stroke="#f1f5f9" stroke-width="34"/>
+  <circle cx="160" cy="160" r="132" fill="none" stroke="#e91e4c" stroke-width="34" stroke-dasharray="497.628 331.752" stroke-dashoffset="0.000" transform="rotate(-90 160 160)"/>
+  <circle cx="160" cy="160" r="132" fill="none" stroke="#f04b0b" stroke-width="34" stroke-dasharray="199.051 630.329" stroke-dashoffset="-497.628" transform="rotate(-90 160 160)"/>
+  <circle cx="160" cy="160" r="132" fill="none" stroke="#059669" stroke-width="34" stroke-dasharray="132.701 696.680" stroke-dashoffset="-696.680" transform="rotate(-90 160 160)"/>
+</svg>

@@ -1,0 +1,404 @@
+{
+  "speakathon": {
+    "title": "21-Day Speakathon Challenge",
+    "description": "Submit your recordings every day for 21 days and receive personalised feedback from Shalini within 24 hours.",
+    "price": 5999,
+    "tags": [
+      "21 challenge videos bundled",
+      "21 assignment PDFs",
+      "2 extra solution videos"
+    ],
+    "includes": [
+      "21 challenge videos and their corresponding PDFs",
+      "Personal feedback from Shalini",
+      "Printable Study Materials",
+      "Certificate on Completion",
+      "30-min Free 1:1 Call (worth ₹3,750)"
+    ],
+    "modules": [
+      {
+        "title": "Week 1 · Find Your Voice",
+        "lessons": [
+          {
+            "id": "day-1",
+            "title": "Day 1 · Get comfortable speaking on camera",
+            "summary": "Camera confidence · one-take recording",
+            "practice": "Read the provided passage and record one natural take. Look at the camera occasionally and continue even if you make mistakes.",
+            "videoUrl": "assets/lms/videos/day-01.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-01.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-2",
+            "title": "Day 2 · Speak naturally without a script",
+            "summary": "Spontaneous speaking · 3–5 minutes",
+            "practice": "Choose a familiar topic and record a 3–5 minute unscripted talk. Review your attempt before watching the separate solution video.",
+            "videoUrl": "assets/lms/videos/day-02.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-02.pdf",
+            "source": "Shalini Rathod Academy · hosted course media",
+            "solutionUrl": "assets/lms/videos/day-02-solution.mp4"
+          },
+          {
+            "id": "day-3",
+            "title": "Day 3 · Retell a story in your own words",
+            "summary": "Story retelling · natural delivery",
+            "practice": "Read the supplied story two or three times, write your own version, then retell it on camera. Repeat two or three times.",
+            "videoUrl": "assets/lms/videos/day-03.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-03.pdf",
+            "source": "Shalini Rathod Academy · hosted course media",
+            "solutionUrl": "assets/lms/videos/day-03-solution.mp4"
+          },
+          {
+            "id": "day-4",
+            "title": "Day 4 · Smile naturally while speaking",
+            "summary": "Smiling · approachability",
+            "practice": "Retell the Dashrath Manjhi story in your own words while keeping a genuine, comfortable smile. Avoid forcing expressions.",
+            "videoUrl": "assets/lms/videos/day-04.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-04.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-5",
+            "title": "Day 5 · Create a captivating introduction",
+            "summary": "First impressions · self-introduction",
+            "practice": "Open with a hook, add a personal detail, keep it concise, and record a short self-introduction.",
+            "videoUrl": "assets/lms/videos/day-05.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-05.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-6",
+            "title": "Day 6 · Practice vocal variety with the Siren Technique",
+            "summary": "Voice pitch · intonation",
+            "practice": "Read aloud from low to high pitch, then from high to low. Work toward smooth, controlled transitions.",
+            "videoUrl": "assets/lms/videos/day-06.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-06.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-7",
+            "title": "Day 7 · Speak with energy and enthusiasm",
+            "summary": "Energy · expressive delivery",
+            "practice": "Visualize your dream life in five years, then describe it aloud for one enthusiastic minute without retakes.",
+            "videoUrl": "assets/lms/videos/day-07.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-07.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          }
+        ]
+      },
+      {
+        "title": "Week 2 · Connect & Communicate",
+        "lessons": [
+          {
+            "id": "day-8",
+            "title": "Day 8 · Structure feelings with the FEEL framework",
+            "summary": "FEEL framework · clear structure",
+            "practice": "Practice Feelings, Explanation, Example, and Loop back to organize a short talk about something important to you.",
+            "videoUrl": "assets/lms/videos/day-08.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-08.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-9",
+            "title": "Day 9 · Use a soft voice for emotional impact",
+            "summary": "Soft voice · emotional connection",
+            "practice": "Tell a personal story gently using steady breathing, relaxed posture and slower pacing. Record it for review.",
+            "videoUrl": "assets/lms/videos/day-09.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-09.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-10",
+            "title": "Day 10 · Master your elevator pitch",
+            "summary": "Elevator pitch · formal and informal",
+            "practice": "Record two 30-second introductions: one for a professional networking event and one for a casual social setting.",
+            "videoUrl": "assets/lms/videos/day-10.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-10.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-11",
+            "title": "Day 11 · Tell stories with the W.I.N.N.E.R. framework",
+            "summary": "Storytelling · W.I.N.N.E.R.",
+            "practice": "Use When, Issue, Notables, Next, End Result and Resolution to tell a meaningful story to your chosen audience.",
+            "videoUrl": "assets/lms/videos/day-11.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-11.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-12",
+            "title": "Day 12 · Express emotions with body language",
+            "summary": "Body language · five emotions",
+            "practice": "Deliver a one-minute speech and express joy, surprise, sadness, anger and curiosity with intentional nonverbal cues.",
+            "videoUrl": "assets/lms/videos/day-12.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-12.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-13",
+            "title": "Day 13 · Open with a powerful hook",
+            "summary": "Audience hooks · compelling opening",
+            "practice": "Craft an opening using a question, surprising anecdote or object; record the story and assess whether your opening engages.",
+            "videoUrl": "assets/lms/videos/day-13.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-13.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-14",
+            "title": "Day 14 · Use props and mini activities",
+            "summary": "Visual storytelling · props",
+            "practice": "Choose a simple prop and a relevant physical action, then weave them naturally into a meaningful short story.",
+            "videoUrl": "assets/lms/videos/day-14.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-14.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          }
+        ]
+      },
+      {
+        "title": "Week 3 · Influence & Reflect",
+        "lessons": [
+          {
+            "id": "day-15",
+            "title": "Day 15 · Engage listeners through questions",
+            "summary": "Audience participation · questions",
+            "practice": "Use engaging questions at the beginning and within a short story to invite reflection and connection.",
+            "videoUrl": "assets/lms/videos/day-15.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-15.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-16",
+            "title": "Day 16 · End with a strong call to action",
+            "summary": "Strong endings · call to action",
+            "practice": "Practice ending a story with a clear moral and a specific invitation that motivates the audience to act or reflect.",
+            "videoUrl": "assets/lms/videos/day-16.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-16.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-17",
+            "title": "Day 17 · Use expressive facial storytelling",
+            "summary": "Facial expressions · storytelling",
+            "practice": "Tell a meaningful story while matching facial expressions to its emotional moments; record, review and refine.",
+            "videoUrl": "assets/lms/videos/day-17.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-17.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-18",
+            "title": "Day 18 · Deliver a heartfelt toast",
+            "summary": "Occasion speaking · toasts",
+            "practice": "Prepare a short wedding or celebration toast combining a light opening, sincere reflection and warm closing.",
+            "videoUrl": "assets/lms/videos/day-18.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-18.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-19",
+            "title": "Day 19 · Give an authentic thank-you speech",
+            "summary": "Gratitude · acceptance speeches",
+            "practice": "Prepare a 60–90 second message of gratitude for a personal achievement or recognition, including what it means to you.",
+            "videoUrl": "assets/lms/videos/day-19.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-19.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-20",
+            "title": "Day 20 · Build fluency and reduce filler words",
+            "summary": "Speech clarity · filler words",
+            "practice": "Combine tongue twisters, diaphragmatic breathing and pace changes in a short speech to improve articulation.",
+            "videoUrl": "assets/lms/videos/day-20.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-20.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          },
+          {
+            "id": "day-21",
+            "title": "Day 21 · Record your 60-second transformation reflection",
+            "summary": "Final reflection · 60-second video",
+            "practice": "Record a sincere one-minute video about what has changed in your confidence, voice and presentation across the 21 days.",
+            "videoUrl": "assets/lms/videos/day-21.mp4",
+            "pdfUrl": "assets/lms/pdfs/day-21.pdf",
+            "source": "Shalini Rathod Academy · hosted course media"
+          }
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "title": "Welcome · Introduction video",
+        "type": "video",
+        "url": "assets/lms/videos/introduction.mp4",
+        "note": "Start here before Day 1"
+      },
+      {
+        "title": "Guide for Course",
+        "type": "image",
+        "url": "assets/lms/resources/course-guide.jpg",
+        "note": "Guide image"
+      },
+      {
+        "title": "Printable Progress Tracker",
+        "type": "pdf",
+        "url": "assets/lms/pdfs/progress-tracker.pdf",
+        "note": "Print and tick off daily practice"
+      },
+      {
+        "title": "Templates",
+        "type": "pdf",
+        "url": "assets/lms/pdfs/templates.pdf",
+        "note": "Additional worksheets"
+      },
+      {
+        "title": "Mastering Posture & Body Language",
+        "type": "pdf",
+        "url": "assets/lms/pdfs/mastering-posture.pdf",
+        "note": "Study resource"
+      },
+      {
+        "title": "Introvert to Influencer · Book",
+        "type": "pdf",
+        "url": "assets/lms/pdfs/introvert-to-influencer.pdf",
+        "note": "Book supplied in Freebies"
+      },
+      {
+        "title": "25 Gems to Influence Anyone · Brochure",
+        "type": "pdf",
+        "url": "assets/lms/pdfs/25-gems.pdf",
+        "note": "Freebie guide"
+      },
+      {
+        "title": "The End · Closing video",
+        "type": "video",
+        "url": "assets/lms/videos/closing.mp4",
+        "note": "Watch after completing Day 21"
+      }
+    ]
+  },
+  "power-dressing": {
+    "title": "Power Dressing / Styling",
+    "description": "Learn body proportion balancing, flattering color palettes, and how to build a 30-piece versatile capsule wardrobe.",
+    "price": 9999,
+    "tags": [
+      "Personal image",
+      "Wardrobe planning",
+      "Self-paced"
+    ],
+    "includes": [
+      "4.9-Star Learner Rating",
+      "7 Curated Modules",
+      "25 Expert-Led Lessons",
+      "Bite-Sized 4–5 Minute Videos",
+      "Exclusive Study Resources",
+      "Complimentary 1:1 Styling Session"
+    ],
+    "modules": [
+      {
+        "title": "Power Dressing / Styling · 7 modules",
+        "lessons": [
+          {
+            "id": "color-palettes",
+            "title": "Flattering color palettes · Lesson awaiting upload"
+          },
+          {
+            "id": "body-proportion",
+            "title": "Body proportion and balance · Lesson awaiting upload"
+          },
+          {
+            "id": "cut-and-fit",
+            "title": "Cut, fit and flattering silhouettes · Lesson awaiting upload"
+          },
+          {
+            "id": "capsule-wardrobe",
+            "title": "Build a 30-piece capsule wardrobe · Lesson awaiting upload"
+          },
+          {
+            "id": "fabric-guide",
+            "title": "Fabric and garment choices · Lesson awaiting upload"
+          },
+          {
+            "id": "smart-shopping",
+            "title": "Smart shopping for a versatile wardrobe · Lesson awaiting upload"
+          },
+          {
+            "id": "accessories-finishing",
+            "title": "Accessories and finishing touches · Lesson awaiting upload"
+          }
+        ]
+      }
+    ]
+  },
+  "dining-etiquette": {
+    "title": "Dining Etiquette",
+    "description": "Build confidence at professional and social meals with practical guidance on table manners, conversation, hosting and guest etiquette.",
+    "price": 3499,
+    "tags": [
+      "Dining etiquette",
+      "Confident conversation",
+      "Hosting and guest manners"
+    ],
+    "includes": [
+      "Formal and everyday table-setting guidance",
+      "Cutlery and course etiquette",
+      "Polite conversation and introductions",
+      "Guest and hosting etiquette for work and social meals"
+    ],
+    "modules": [
+      {
+        "title": "Dine with confidence",
+        "lessons": [
+          {
+            "id": "dining-foundations",
+            "title": "Dining foundations · Lesson awaiting upload",
+            "summary": "Prepare for different table settings and dining occasions."
+          },
+          {
+            "id": "table-manners",
+            "title": "Table manners and cutlery · Lesson awaiting upload",
+            "summary": "Use place settings, cutlery and courses with ease."
+          },
+          {
+            "id": "dining-conversation",
+            "title": "Conversation and introductions · Lesson awaiting upload",
+            "summary": "Make introductions and keep conversation comfortable."
+          },
+          {
+            "id": "hosting-etiquette",
+            "title": "Hosting and guest etiquette · Lesson awaiting upload",
+            "summary": "Feel prepared as a guest or host at work and social meals."
+          }
+        ]
+      }
+    ]
+  },
+  "power-bundle": {
+    "title": "Confidence & Style Power Bundle",
+    "description": "Combine the Speakathon communication challenge and power dressing course in one self-learning track.",
+    "price": 12999,
+    "tags": [
+      "Communication + styling",
+      "Two course tracks",
+      "Bundled learning"
+    ],
+    "includes": [
+      "21-Day Speakathon curriculum",
+      "Power Dressing curriculum",
+      "Bundle learning resources as released",
+      "Optional personal feedback subject to confirmation"
+    ],
+    "modules": [
+      {
+        "title": "Communication and styling",
+        "lessons": [
+          {
+            "id": "speakathon-track",
+            "title": "Speakathon track · See the communication course"
+          },
+          {
+            "id": "styling-track",
+            "title": "Styling track · See the power dressing course"
+          }
+        ]
+      }
+    ]
+  }
+}

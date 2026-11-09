@@ -1,0 +1,31 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const {JSDOM} = require(process.env.SR_LMS_JSDOM_PATH || 'jsdom');
+const template = path.resolve(__dirname, '../../../themes/sr-academy/templates/page-learn.php');
+const html = fs.readFileSync(template, 'utf8');
+const source = fs.readFileSync(path.resolve(__dirname, '../assets/academy-learn.js'), 'utf8');
+async function test() {
+  const dom = new JSDOM(html, {url: 'http://lms.local/learn/?course=speakathon&lesson=1', runScripts: 'outside-only'});
+  const {window} = dom;
+  window.HTMLMediaElement.prototype.pause = () => {};
+  window.HTMLMediaElement.prototype.load = () => {};
+  window.setInterval = () => 1;
+  const progress = {};
+  const completion = {completed: 0, total: 1, percent: 0, eligible: false};
+  const lesson = {id: 'day-1', title: 'Day 1 · Fixture lesson', summary: 'Fixture summary', practice: 'Read the passage aloud.', duration: 100, videoAvailable: true, videoUrl: 'http://lms.local/wp-admin/admin-post.php?action=sr_lms_media&course=speakathon&lesson=day-1&field=videoUrl', pdfUrl: 'http://lms.local/wp-admin/admin-post.php?action=sr_lms_media&course=speakathon&lesson=day-1&field=pdfUrl'};
+  window.SR_LMS = {restUrl: 'http://lms.local/wp-json/sr-lms/v1/', nonce: 'test', state: {slug: 'speakathon', course: {title: 'Test Course', modules: [{title: 'Week 1', lessons: [lesson]}], resources: []}, progress, completion, certificateUrl: 'http://lms.local/wp-admin/admin-post.php?action=sr_lms_certificate'}};
+  window.fetch = async () => ({ok: true, json: async () => ({lesson: {ranges: [], position: 0, practice: false, complete: false}, completion})});
+  assert.doesNotThrow(() => window.eval(source), 'player initializes against the real theme classroom DOM');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(window.document.getElementById('lesson-title').textContent, 'Fixture lesson');
+  assert.equal(window.document.getElementById('lesson-practice').textContent, lesson.practice);
+  assert.equal(window.document.getElementById('lesson-media').src, lesson.videoUrl);
+  assert.equal(window.document.getElementById('lesson-media').controls, true, 'native video controls provide keyboard and pointer seeking');
+  assert.equal(window.document.querySelectorAll('.learn-day-btn').length, 1);
+  assert.equal(window.document.querySelector('.sr-lms-certificate').hidden, true, 'ineligible certificate stays hidden');
+  assert.equal(window.document.getElementById('sr-lms-practice').disabled, false);
+  dom.window.close();
+  console.log('PASS: 8 classroom DOM assertions');
+}
+test().catch(error => {console.error(error);process.exitCode = 1;});

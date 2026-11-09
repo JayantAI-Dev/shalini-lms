@@ -1,0 +1,66 @@
+<?php
+/** Scoped, configurable account notifications. Transport remains WordPress wp_mail. */
+if (!defined('ABSPATH')) exit;
+function sr_lms_email_defaults(): array {
+    $templates=[];
+    foreach([
+        'welcome'=>['Welcome to {brand}','Welcome, {name}','Your student account is ready. Explore your learning dashboard.','Open dashboard'],
+        'verification'=>['Confirm your {brand} email','Confirm your email address','Please confirm this email address to activate your student account and access your learning dashboard. This link expires in 48 hours.','Confirm email address'],
+        'login'=>['New sign-in to {brand}','You signed in','Your account was just used to sign in. If this was not you, reset your password or contact support.','Open dashboard'],
+        'password_reset'=>['Reset your {brand} password','Reset your password','A password reset was requested for your account. Use the button below to choose a new password. If you did not request this, ignore this email.','Reset password'],
+        'enrollment'=>['Your course access is ready','You are enrolled','You now have access to {offer_title}. Visit your dashboard to start learning.','Start learning'],
+        'purchase'=>['Your {brand} purchase receipt','Thank you for your purchase','Your purchase of {offer_title} is complete. Amount: {amount}. Payment reference: {payment_id}. Order reference: {order_id}. Your learning access is ready.','Start learning'],
+    ] as $type=>$values)$templates[$type]=array_combine(['subject','heading','body','cta'],$values)+['enabled'=>true];
+    return ['brand'=>'Shalini Rathod Academy','sender_name'=>'Shalini Rathod Academy','sender_email'=>sanitize_email(get_option('admin_email')),'reply_to'=>sanitize_email(get_option('admin_email')),'support_url'=>home_url('/contact/'),'logo_url'=>'','color'=>'#125c45','templates'=>$templates];
+}
+function sr_lms_email_settings(): array { $saved=get_option('sr_lms_email_settings',[]);return array_replace_recursive(sr_lms_email_defaults(),is_array($saved)?$saved:[]); }
+function sr_lms_email_sanitize_settings(array $input): array {
+    $old=sr_lms_email_settings();$out=$old;
+    foreach(['brand','sender_name','sender_email','reply_to','support_url','logo_url','color'] as $key){
+        if(!isset($input[$key])||!is_string($input[$key]))continue;$value=trim(wp_unslash($input[$key]));
+        if($value===''&&$key!=='logo_url')continue;
+        if(in_array($key,['sender_email','reply_to'],true)){$value=preg_match('/[\r\n]/',$value)?'':sanitize_email($value);if(!is_email($value))continue;}
+        elseif(in_array($key,['support_url','logo_url'],true))$value=esc_url_raw($value,['https','http']);
+        elseif($key==='color'){$value=sanitize_hex_color($value);if(!$value)continue;}
+        else $value=sanitize_text_field($value);
+        $out[$key]=$value;
+    }
+    foreach($old['templates'] as $type=>$template){$row=$input['templates'][$type]??null;if(!is_array($row))continue;$out['templates'][$type]['enabled']=!empty($row['enabled'])&&is_scalar($row['enabled']);foreach(['subject','heading','body','cta'] as $key)if(isset($row[$key])&&is_string($row[$key])&&trim($row[$key])!=='')$out['templates'][$type][$key]=$key==='body'?sanitize_textarea_field(wp_unslash($row[$key])):sanitize_text_field(wp_unslash($row[$key]));}
+    return $out;
+}
+function sr_lms_email_safe_cta(string $url): string {
+    $parts=wp_parse_url($url);$home=wp_parse_url(home_url());$network=wp_parse_url(network_site_url());
+    return $parts&&in_array(strtolower($parts['scheme']??''),['http','https'],true)&&in_array(strtolower($parts['host']??''),array_map('strtolower',[$home['host']??'',$network['host']??'']),true)&&empty($parts['user'])&&empty($parts['pass'])?$url:home_url('/dashboard/');
+}
+function sr_lms_email_render(string $type,object $user,array $context=[]): array {
+    $settings=sr_lms_email_settings();if(!isset($settings['templates'][$type]))return [];$template=$settings['templates'][$type];
+    $values=['{brand}'=>$settings['brand'],'{name}'=>$user->display_name,'{offer_title}'=>'your course','{amount}'=>'','{payment_id}'=>'','{order_id}'=>''];
+    foreach(['offer_title','amount','payment_id','order_id'] as $key)if(isset($context[$key])&&is_scalar($context[$key]))$values['{'.$key.'}']=(string)$context[$key];
+    $subject=sanitize_text_field(strtr($template['subject'],$values));$heading=esc_html(strtr($template['heading'],$values));$body=nl2br(esc_html(strtr($template['body'],$values)));
+    $url=$type==='password_reset'?($context['reset_url']??''):($type==='verification'?($context['verify_url']??''):($context['cta_url']??home_url('/dashboard/')));$url=sr_lms_email_safe_cta(is_string($url)?$url:'');
+    $logo=$settings['logo_url']?'<img src="'.esc_url($settings['logo_url']).'" alt="'.esc_attr($settings['brand']).'" style="max-width:200px;height:auto;margin-bottom:20px">':'';
+    $html='<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta charset="UTF-8"></head><body style="margin:0;background:#f2f6f3;font-family:Arial,sans-serif;color:#18382c"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:28px 12px"><table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#fff;border-radius:16px"><tr><td style="padding:36px">'.$logo.'<p style="font-size:14px;color:'.esc_attr($settings['color']).'">'.esc_html($settings['brand']).'</p><h1 style="font-size:28px;line-height:1.25">'.$heading.'</h1><p style="font-size:16px;line-height:1.7">'.$body.'</p><p style="margin:28px 0"><a href="'.esc_url($url).'" style="display:inline-block;padding:15px 24px;border-radius:7px;background:'.esc_attr($settings['color']).';color:#fff;text-decoration:none">'.esc_html($template['cta']).'</a></p><p style="font-size:12px;line-height:1.6;color:#66766e">Need help? <a href="'.esc_url($settings['support_url']).'">Contact support</a><br>'.esc_html($settings['brand']).'<br>This is an account notification. We will never ask you to share your password.</p></td></tr></table></td></tr></table></body></html>';
+    return ['subject'=>$subject,'message'=>$html,'headers'=>['Content-Type: text/html; charset=UTF-8','From: '.sanitize_text_field($settings['sender_name']).' <'.$settings['sender_email'].'>','Reply-To: '.$settings['reply_to']]];
+}
+function sr_lms_send_email(string $type,int $user_id,array $context=[]): bool {
+    $settings=sr_lms_email_settings();if($type!=='verification'&&empty($settings['templates'][$type]['enabled']))return false;$user=get_userdata($user_id);if(!$user||!is_email($user->user_email))return false;$mail=sr_lms_email_render($type,$user,$context);if(!$mail)return false;
+    return wp_mail($user->user_email,$mail['subject'],$mail['message'],$mail['headers']);
+}
+add_action('sr_lms_enrollment_granted',static function($user_id,$offer,$origin){if(str_starts_with((string)$origin,'pay:'))return;$offers=sr_lms_offers();sr_lms_send_email('enrollment',(int)$user_id,['offer_title'=>$offers[$offer]['title']??$offer]);},10,3);
+add_filter('retrieve_password_notification_email',static function($email,$key,$login,$user){
+    $settings=sr_lms_email_settings();if(empty($settings['templates']['password_reset']['enabled']))return $email;
+    $url=network_site_url('wp-login.php?action=rp&key='.rawurlencode($key).'&login='.rawurlencode($login),'login');$mail=sr_lms_email_render('password_reset',$user,['reset_url'=>$url]);return array_merge($email,$mail);
+},10,4);
+add_action('wp_mail_failed',static function($error){update_option('sr_lms_email_last_error',['time'=>gmdate('c'),'code'=>sanitize_key($error->get_error_code())],false);});
+add_action('admin_menu',static function(){add_submenu_page('sr-academy-lms','Emails','Emails','manage_options','sr-lms-emails','sr_lms_email_screen');});
+function sr_lms_email_screen(): void {
+    if(!current_user_can('manage_options'))return;$settings=sr_lms_email_settings();echo '<div class="wrap"><h1>Academy emails</h1><p>Account notifications use WordPress mail. Configure SMTP through your preferred mail plugin if required. Plain text placeholders: {name}, {brand}, {offer_title}, {amount}, {payment_id}, {order_id}. Passwords are never included.</p>';
+    if(isset($_GET['email_result']))echo '<div class="notice notice-info"><p>'.esc_html(($_GET['email_result']==='saved')?'Settings saved.':(($_GET['email_result']==='sent')?'Test accepted by mail transport.':'Mail was not accepted by transport.')).'</p></div>';
+    $error=get_option('sr_lms_email_last_error');if(is_array($error))echo '<p>Last transport failure: '.esc_html($error['time'].' ('.$error['code'].')').'. Check your mail transport configuration.</p>';
+    echo '<form action="'.esc_url(admin_url('admin-post.php')).'" method="post"><input type="hidden" name="action" value="sr_lms_email_settings">';wp_nonce_field('sr_lms_email_settings');
+    foreach(['brand'=>'Brand name','sender_name'=>'Sender name','sender_email'=>'Sender email','reply_to'=>'Reply-to email','support_url'=>'Support URL','logo_url'=>'Logo URL','color'=>'Brand color'] as $key=>$label)echo '<p><label>'.esc_html($label).' <input class="regular-text" name="settings['.$key.']" value="'.esc_attr($settings[$key]).'"></label></p>';
+    foreach($settings['templates'] as $type=>$template){echo '<fieldset style="border:1px solid #ccd0d4;padding:16px;margin:16px 0"><legend><strong>'.esc_html(ucwords(str_replace('_',' ',$type))).'</strong></legend>';if($type==='verification')echo '<input type="hidden" name="settings[templates][verification][enabled]" value="1"><p><label><input type="checkbox" checked disabled> Required for student access</label></p>';else echo '<p><label><input type="checkbox" name="settings[templates]['.$type.'][enabled]" value="1" '.checked($template['enabled'],true,false).'> Enable branded notification</label></p>';foreach(['subject','heading','body','cta'] as $key){$name='settings[templates]['.$type.']['.$key.']';echo '<p><label>'.esc_html(ucfirst($key)).'<br>';echo $key==='body'?'<textarea rows="4" cols="90" name="'.$name.'">'.esc_textarea($template[$key]).'</textarea>':'<input class="large-text" name="'.$name.'" value="'.esc_attr($template[$key]).'">';echo '</label></p>';}echo '</fieldset>';}
+    echo '<p>Disabling branded password reset preserves WordPress’s native password reset email.</p><button class="button button-primary">Save email settings</button></form><h2>Preview and test</h2><form action="'.esc_url(admin_url('admin-post.php')).'" method="post"><input type="hidden" name="action" value="sr_lms_email_test">';wp_nonce_field('sr_lms_email_test');echo '<select name="type">';foreach(array_keys($settings['templates']) as $type)echo '<option value="'.esc_attr($type).'">'.esc_html($type).'</option>';echo '</select> <input type="email" name="recipient" placeholder="Explicit test recipient"> <button class="button" name="operation" value="preview">Preview</button> <button class="button" name="operation" value="send">Send test email</button></form></div>';
+}
+add_action('admin_post_sr_lms_email_settings',static function(){if(!current_user_can('manage_options'))wp_die('Administrator permission required.',403);check_admin_referer('sr_lms_email_settings');$input=$_POST['settings']??[];if(!is_array($input))wp_die('Invalid settings');update_option('sr_lms_email_settings',sr_lms_email_sanitize_settings($input));wp_safe_redirect(admin_url('admin.php?page=sr-lms-emails&email_result=saved'));exit;});
+add_action('admin_post_sr_lms_email_test',static function(){if(!current_user_can('manage_options'))wp_die('Administrator permission required.',403);check_admin_referer('sr_lms_email_test');$type=isset($_POST['type'])&&is_string($_POST['type'])?sanitize_key($_POST['type']):'';$mail=sr_lms_email_render($type,(object)['display_name'=>'Example student'],['offer_title'=>'Example course','amount'=>'INR 499.00','payment_id'=>'sample-payment','order_id'=>'sample-order','reset_url'=>home_url('/wp-login.php?action=lostpassword')]);if(!$mail)wp_die('Invalid email type');if(($_POST['operation']??'')==='preview'){header('Content-Type: text/html; charset=UTF-8');header("Content-Security-Policy: default-src 'none'; img-src https: http:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'");echo $mail['message'];exit;}$recipient=isset($_POST['recipient'])&&is_string($_POST['recipient'])?trim(wp_unslash($_POST['recipient'])):'';if(preg_match('/[\r\n]/',$recipient)||!is_email($recipient))wp_die('Enter one valid test recipient.');$sent=wp_mail($recipient,$mail['subject'],$mail['message'],$mail['headers']);wp_safe_redirect(admin_url('admin.php?page=sr-lms-emails&email_result='.($sent?'sent':'failed')));exit;});

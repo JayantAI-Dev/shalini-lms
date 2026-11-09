@@ -1,0 +1,7 @@
+Portrait images used on about.html were copied from the website supplied by the user:
+https://powderblue-jaguar-375966.hostingersite.com/index.html
+
+Original asset URLs:
+- https://powderblue-jaguar-375966.hostingersite.com/assets/images/hero-reading.webp
+- https://powderblue-jaguar-375966.hostingersite.com/assets/images/hero-close.webp
+- https://powderblue-jaguar-375966.hostingersite.com/assets/images/hero-seated.webp

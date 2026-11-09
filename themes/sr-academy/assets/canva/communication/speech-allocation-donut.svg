@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-label="Speech allocation donut chart">
+  <title>Speech allocation donut chart</title>
+  <circle cx="160" cy="160" r="132" fill="none" stroke="#f1f5f9" stroke-width="34"/>
+  <circle cx="160" cy="160" r="132" fill="none" stroke="#2563eb" stroke-width="34" stroke-dasharray="431.278 398.103" stroke-dashoffset="0.000" transform="rotate(-90 160 160)"/>
+  <circle cx="160" cy="160" r="132" fill="none" stroke="#e27b00" stroke-width="34" stroke-dasharray="149.288 680.092" stroke-dashoffset="-431.278" transform="rotate(-90 160 160)"/>
+  <circle cx="160" cy="160" r="132" fill="none" stroke="#94a3b8" stroke-width="34" stroke-dasharray="132.701 696.680" stroke-dashoffset="-580.566" transform="rotate(-90 160 160)"/>
+  <circle cx="160" cy="160" r="132" fill="none" stroke="#059669" stroke-width="34" stroke-dasharray="116.113 713.267" stroke-dashoffset="-713.267" transform="rotate(-90 160 160)"/>
+</svg>

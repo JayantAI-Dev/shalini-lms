@@ -1,0 +1,15 @@
+# This repository lives at wp-content, but tracks only first-party LMS source.
+/**
+!/themes/
+/themes/*
+!/themes/sr-academy/
+!/themes/sr-academy/**
+!/plugins/
+/plugins/*
+!/plugins/sr-academy-lms/
+!/plugins/sr-academy-lms/**
+!/.github/
+!/.github/workflows/
+!/.github/workflows/deploy-hostinger.yml
+!/README-GIT-DEPLOY.md
+!/.gitignore

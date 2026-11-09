@@ -1,0 +1,1 @@
+<?php defined('ABSPATH') || exit; get_header(); ?><main id="main-content" class="sr-wp-content"><h1>Page not found</h1><p>This page may have moved. Find a course or return to the Academy home page.</p><a class="academy-btn academy-btn-dark" href="<?php echo esc_url(home_url('/')); ?>">Return home</a><?php get_search_form(); ?></main><?php get_footer();

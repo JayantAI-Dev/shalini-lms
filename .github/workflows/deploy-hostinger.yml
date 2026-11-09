@@ -1,0 +1,64 @@
+name: Deploy LMS code to Hostinger staging
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'themes/sr-academy/**'
+      - 'plugins/sr-academy-lms/**'
+      - '.github/workflows/deploy-hostinger.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hostinger-staging-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy theme and LMS plugin
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Check deployment settings
+        env:
+          WP_CONTENT_DIR: ${{ vars.HOSTINGER_WP_CONTENT_DIR }}
+          FTP_SERVER: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+        run: |
+          test -n "$WP_CONTENT_DIR" || { echo "Set the HOSTINGER_WP_CONTENT_DIR repository variable."; exit 1; }
+          test -n "$FTP_SERVER" || { echo "Set the HOSTINGER_FTP_SERVER repository secret."; exit 1; }
+          test -n "$FTP_USERNAME" || { echo "Set the HOSTINGER_FTP_USERNAME repository secret."; exit 1; }
+          test -n "$FTP_PASSWORD" || { echo "Set the HOSTINGER_FTP_PASSWORD repository secret."; exit 1; }
+
+      - name: Deploy SR Academy theme
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          protocol: ftps
+          port: ${{ vars.HOSTINGER_FTP_PORT || 21 }}
+          local-dir: themes/sr-academy/
+          server-dir: ${{ vars.HOSTINGER_WP_CONTENT_DIR }}/themes/sr-academy/
+          state-name: .ftp-deploy-theme-state.json
+          dangerous-clean-slate: false
+
+      - name: Deploy SR Academy LMS plugin
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          protocol: ftps
+          port: ${{ vars.HOSTINGER_FTP_PORT || 21 }}
+          local-dir: plugins/sr-academy-lms/
+          server-dir: ${{ vars.HOSTINGER_WP_CONTENT_DIR }}/plugins/sr-academy-lms/
+          state-name: .ftp-deploy-plugin-state.json
+          dangerous-clean-slate: false
