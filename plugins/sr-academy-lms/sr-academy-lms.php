@@ -6,6 +6,27 @@
  * Requires PHP: 8.0
  */
 if (!defined('ABSPATH')) exit;
+
+/**
+ * Temporary containment for a stray PHP-like payload currently appearing in
+ * the hosted site's HTML response. This only removes the exact displayed text;
+ * it does not replace locating and removing its source from the hosting account.
+ */
+if (!function_exists('sr_lms_filter_known_injected_text')) {
+    function sr_lms_filter_known_injected_text($buffer) {
+        if (!is_string($buffer) || stripos($buffer, '<') === false) {
+            return $buffer;
+        }
+
+        return preg_replace(
+            '/\s*\$__aevatdzjjo\s*=\s*[\'\"]bwsgupymfq[\'\"]\s*;\s*\$__dywkserrlj\s*=\s*4568\s*;\s*/',
+            '',
+            $buffer
+        );
+    }
+}
+ob_start('sr_lms_filter_known_injected_text');
+
 define('SR_LMS_VERSION','1.1.0');
 define('SR_LMS_DIR',plugin_dir_path(__FILE__));
 define('SR_LMS_URL',plugin_dir_url(__FILE__));
