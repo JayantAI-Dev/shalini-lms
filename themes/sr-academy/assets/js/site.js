@@ -897,11 +897,14 @@ if (bookingModal) {
   bookingModal.addEventListener('wpcf7mailsent', (event) => {
     if (event.target !== bookingForm) return;
     if (confirmationName) confirmationName.textContent = bookingName?.value.trim() || 'there';
-    if (confirmationSummary) confirmationSummary.textContent = `${getOffering().fullLabel} · ${getReadableDateTime()} · request received`;
+    const scheduled = getOffering().needsSchedule;
+    if (confirmationSummary) confirmationSummary.textContent = `${getOffering().fullLabel} · ${getReadableDateTime()} · ${scheduled ? 'confirmed' : 'request received'}`;
     const kicker = bookingModal.querySelector('.booking-confirmation-kicker');
-    if (kicker) kicker.textContent = 'REQUEST RECEIVED';
+    if (kicker) kicker.textContent = scheduled ? 'BOOKING CONFIRMED' : 'REQUEST RECEIVED';
     const finalMsg = bookingModal.querySelector('.booking-step-three > p:not(.booking-confirmation-kicker)');
-    if (finalMsg) finalMsg.textContent = 'We have emailed you a confirmation. Our team will contact you to confirm availability and next steps. This is not a confirmed booking or payment.';
+    if (finalMsg) finalMsg.textContent = scheduled
+      ? 'Your Zoom meeting is scheduled. We have emailed your joining link and sent calendar invitations to you and the Academy team.'
+      : 'We have emailed you a confirmation. The Academy team will contact you with the next steps.';
     if (sendRequest) sendRequest.hidden = true;
     const copyBtn = bookingModal.querySelector('#booking-copy-request');
     if (copyBtn) copyBtn.hidden = true;
