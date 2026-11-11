@@ -174,6 +174,22 @@ function sr_lms_google_create_calendar_event(array $event) {
     return $data;
 }
 
+function sr_lms_google_delete_calendar_event(string $event_id) {
+    $token = sr_lms_google_access_token();
+    if (is_wp_error($token)) return $token;
+    $config = sr_lms_google_calendar_config();
+    $url = 'https://www.googleapis.com/calendar/v3/calendars/' . rawurlencode($config['calendar_id']) . '/events/' . rawurlencode($event_id);
+    $response = wp_remote_request($url, ['method'=>'DELETE','timeout'=>20,'headers'=>['Authorization'=>'Bearer '.$token]]);
+    if (is_wp_error($response)) return $response;
+    $status = wp_remote_retrieve_response_code($response);
+    if ($status < 200 || $status >= 300) {
+        $data = json_decode(wp_remote_retrieve_body($response), true);
+        $message = is_array($data) ? sanitize_text_field((string) ($data['error']['message'] ?? '')) : '';
+        return new WP_Error('google_event_delete_failed', 'Google Calendar test-event cleanup failed (HTTP '.$status.').'.($message ? ' '.$message : ''));
+    }
+    return true;
+}
+
 function sr_lms_booking_slot_from_request(array $data) {
     $date = sanitize_text_field((string) ($data['booking_date'] ?? ''));
     $time = sanitize_text_field((string) ($data['booking_time'] ?? ''));
@@ -345,9 +361,11 @@ function sr_lms_google_calendar_admin_screen(): void {
     if (isset($_GET['saved'])) echo '<div class="notice notice-success"><p>Google Calendar settings saved.</p></div>';
     if (isset($_GET['connected'])) echo '<div class="notice notice-success"><p>Google Calendar connected successfully.</p></div>';
     if (isset($_GET['tested'])) echo '<div class="notice notice-success"><p>Google Calendar access works and free/busy data was returned for today.</p></div>';
+    if (isset($_GET['flow_tested'])) echo '<div class="notice notice-success"><p>Full booking integration verified: Google free/busy and event write passed, and Zoom meeting create/delete passed. Temporary test records were removed.</p></div>';
+    if (isset($_GET['flow_error'])) echo '<div class="notice notice-error"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['flow_error']))) . '</p></div>';
     if (isset($_GET['disconnected'])) echo '<div class="notice notice-success"><p>Google Calendar disconnected.</p></div>';
     if (isset($_GET['google_error'])) echo '<div class="notice notice-error"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['google_error']))) . '</p></div>';
-    echo '<h2>Google Calendar</h2><p>The existing read-only connection must be reauthorized once to add the <code>calendar.events</code> permission, which lets the site create private events and send attendee invitations. Free/busy access remains enabled.</p><ol><li>Keep the Google Calendar API enabled and the same OAuth redirect URI:<br><code>' . esc_html($redirect_uri) . '</code></li><li>Enter the OAuth client credentials and calendar ID below, save, then reconnect and approve the expanded calendar permissions.</li></ol><p>Requested scopes: <code>' . esc_html(SR_LMS_GOOGLE_CALENDAR_SCOPE) . '</code>.</p>';
+    echo '<h2>Google Calendar</h2><p>The connected Google account is used to check availability and create private calendar events for confirmed bookings. Requested scopes: <code>' . esc_html(SR_LMS_GOOGLE_CALENDAR_SCOPE) . '</code>.</p><p>OAuth redirect URI (must match your Google Cloud OAuth client):<br><code>' . esc_html($redirect_uri) . '</code></p>';
     echo '<form id="sr-lms-google-settings" method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     wp_nonce_field('sr_lms_google_save'); echo '<input type="hidden" name="action" value="sr_lms_google_save">';
     echo '<table class="form-table"><tr><th><label for="google-client-id">OAuth Client ID</label></th><td><input class="regular-text" id="google-client-id" name="client_id" value="' . esc_attr($config['client_id']) . '" autocomplete="off"></td></tr>';
@@ -362,6 +380,11 @@ function sr_lms_google_calendar_admin_screen(): void {
     if ($connected) {
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">'; wp_nonce_field('sr_lms_google_test');
         echo '<input type="hidden" name="action" value="sr_lms_google_test"><p><button class="button button-secondary">Test calendar access</button></p></form>';
+    }
+    if ($connected && sr_lms_zoom_ready()) {
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" onsubmit="return confirm(\'Run a full integration check? It briefly creates and then removes a private Google Calendar test event and a Zoom test meeting. No invitations are sent.\')">';
+        wp_nonce_field('sr_lms_booking_flow_test');
+        echo '<input type="hidden" name="action" value="sr_lms_booking_flow_test"><p><button class="button button-primary">Verify full booking setup</button> <span class="description">Checks free/busy, Google event write access, and Zoom meeting create/delete. Temporary test items are removed immediately.</span></p></form>';
     }
     if ($connected) {
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">'; wp_nonce_field('sr_lms_google_disconnect');
@@ -485,3 +508,64 @@ function sr_lms_google_calendar_test(): void {
     }
     wp_safe_redirect(admin_url('admin.php?page=sr-lms-zoom-calendar&tested=1')); exit;
 }
+
+function sr_lms_booking_flow_test(): void {
+    if (!current_user_can('manage_options')) wp_die('Administrator permission required.', 'Forbidden', ['response' => 403]);
+    check_admin_referer('sr_lms_booking_flow_test');
+    $page = admin_url('admin.php?page=sr-lms-zoom-calendar');
+    if (!sr_lms_google_calendar_ready() || !sr_lms_zoom_ready()) {
+        wp_safe_redirect(add_query_arg('flow_error', rawurlencode('Save and connect both Google Calendar and Zoom before running the full check.'), $page)); exit;
+    }
+
+    $config = sr_lms_google_calendar_config();
+    $zone = new DateTimeZone($config['timezone'] ?: 'Asia/Kolkata');
+    $start = (new DateTimeImmutable('now', $zone))->modify('+1 day')->setTime(12, 0, 0);
+    $end = $start->modify('+15 minutes');
+    $busy = sr_lms_google_freebusy($config['calendar_id'], $start, $end, $zone->getName());
+    if (is_wp_error($busy)) {
+        wp_safe_redirect(add_query_arg('flow_error', rawurlencode('Google availability check failed: '.$busy->get_error_message()), $page)); exit;
+    }
+
+    $zoom = sr_lms_zoom_api('POST', '/users/'.rawurlencode(sr_lms_zoom_config()['host_email']).'/meetings', [
+        'topic' => 'Temporary LMS integration check',
+        'type' => 2,
+        'start_time' => $start->format('Y-m-d\TH:i:s'),
+        'duration' => 15,
+        'timezone' => $zone->getName(),
+        'agenda' => 'Temporary test meeting; automatically removed.',
+        'settings' => ['waiting_room'=>true,'join_before_host'=>false,'approval_type'=>2,'meeting_authentication'=>false],
+    ]);
+    if (is_wp_error($zoom)) {
+        wp_safe_redirect(add_query_arg('flow_error', rawurlencode('Zoom meeting creation failed: '.$zoom->get_error_message()), $page)); exit;
+    }
+    $meeting_id = sanitize_text_field((string) ($zoom['id'] ?? ''));
+    if (!$meeting_id) {
+        wp_safe_redirect(add_query_arg('flow_error', rawurlencode('Zoom did not return a test meeting ID, so meeting-write permission could not be verified.'), $page)); exit;
+    }
+
+    $google_event = sr_lms_google_create_calendar_event([
+        'summary' => 'Temporary LMS integration check',
+        'description' => 'Temporary private test event; automatically removed.',
+        'start' => ['dateTime'=>$start->format(DateTimeInterface::RFC3339),'timeZone'=>$zone->getName()],
+        'end' => ['dateTime'=>$end->format(DateTimeInterface::RFC3339),'timeZone'=>$zone->getName()],
+        'visibility' => 'private',
+        'transparency' => 'transparent',
+    ]);
+    if (is_wp_error($google_event)) {
+        $zoom_cleanup = sr_lms_zoom_api('DELETE', '/meetings/'.rawurlencode($meeting_id));
+        $message = 'Google event creation failed: '.$google_event->get_error_message();
+        if (is_wp_error($zoom_cleanup)) $message .= ' Temporary Zoom test meeting may remain; remove meeting ID '.$meeting_id.' manually.';
+        wp_safe_redirect(add_query_arg('flow_error', rawurlencode($message), $page)); exit;
+    }
+
+    $cleanup_errors = [];
+    $google_cleanup = sr_lms_google_delete_calendar_event(sanitize_text_field((string) ($google_event['id'] ?? '')));
+    if (is_wp_error($google_cleanup)) $cleanup_errors[] = 'Google test event '.$google_event['id'].' could not be removed.';
+    $zoom_cleanup = sr_lms_zoom_api('DELETE', '/meetings/'.rawurlencode($meeting_id));
+    if (is_wp_error($zoom_cleanup)) $cleanup_errors[] = 'Zoom test meeting '.$meeting_id.' could not be removed.';
+    if ($cleanup_errors) {
+        wp_safe_redirect(add_query_arg('flow_error', rawurlencode('Access checks passed, but cleanup needs attention: '.implode(' ', $cleanup_errors)), $page)); exit;
+    }
+    wp_safe_redirect(add_query_arg('flow_tested', '1', $page)); exit;
+}
+add_action('admin_post_sr_lms_booking_flow_test', 'sr_lms_booking_flow_test');
