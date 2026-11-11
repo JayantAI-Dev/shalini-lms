@@ -111,7 +111,14 @@ function sr_lms_payment_webhook($r) {
  $key=hash('sha256',$mode.'|'.($r->get_header('X-Razorpay-Event-Id')?:$raw));$events=sr_lms_table('payment_events');if($wpdb->get_var($wpdb->prepare("SELECT id FROM $events WHERE event_key=%s",$key)))return ['duplicate'=>true];
  $p=$j['payload']['payment']['entity']??[];$payment=$p['id']??($j['payload']['refund']['entity']['payment_id']??'');
  if(!preg_match('/^pay_[A-Za-z0-9]+$/D',$payment))return new WP_Error('event','Missing payment.',['status'=>400]);
- $p=sr_lms_payment_api($mode,'payments/'.$payment);if(is_wp_error($p))return $p;$id=$wpdb->get_var($wpdb->prepare('SELECT id FROM '.sr_lms_table('payments').' WHERE mode=%s AND gateway_order=%s',$mode,$p['order_id']??''));if(!$id)return ['ignored'=>true];
+ $p=sr_lms_payment_api($mode,'payments/'.$payment);if(is_wp_error($p))return $p;
+ $consultation_order=$wpdb->get_var($wpdb->prepare('SELECT gateway_order FROM '.sr_lms_table('consultation_bookings').' WHERE mode=%s AND gateway_order=%s',$mode,$p['order_id']??''));
+ if($consultation_order&&function_exists('sr_lms_consultation_verify')){
+  $request=new WP_REST_Request('POST','/');$request->set_param('razorpay_order_id',$consultation_order);$request->set_param('razorpay_payment_id',$payment);$request->set_param('razorpay_signature',hash_hmac('sha256',$consultation_order.'|'.$payment,$c['secret']));
+  $result=sr_lms_consultation_verify($request);if(is_wp_error($result))return $result;
+  if($wpdb->query($wpdb->prepare("INSERT IGNORE INTO $events (event_key,created_at) VALUES (%s,%s)",$key,current_time('mysql',true)))===false)return new WP_Error('storage','Please retry webhook.');return $result;
+ }
+ $id=$wpdb->get_var($wpdb->prepare('SELECT id FROM '.sr_lms_table('payments').' WHERE mode=%s AND gateway_order=%s',$mode,$p['order_id']??''));if(!$id)return ['ignored'=>true];
  $result=sr_lms_payment_reconcile((int)$id,$payment);if(is_wp_error($result))return $result;
  if($wpdb->query($wpdb->prepare("INSERT IGNORE INTO $events (event_key,created_at) VALUES (%s,%s)",$key,current_time('mysql',true)))===false)return new WP_Error('storage','Please retry webhook.');return $result;
 }

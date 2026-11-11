@@ -466,6 +466,18 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
     if (!preg_match('/^order_[A-Za-z0-9]+$/D', $order_id) || !preg_match('/^pay_[A-Za-z0-9]+$/D', $payment_id)) return new WP_Error('payment_reference', 'Payment reference is invalid.', ['status'=>400]);
     $key = 'sr_lms_consultation_' . $order_id;
     $booking = get_transient($key);
+    if (!is_array($booking)) {
+        $stored = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . sr_lms_table('consultation_bookings') . ' WHERE gateway_order=%s', $order_id), ARRAY_A);
+        $service_names = ['comm-call'=>'1:1 Communication & Confidence','style-call'=>'1:1 Image Styling & Confidence','color-call'=>'Personalised Colour Analysis Consultation','occasion-call'=>'Personalised Occasion Styling'];
+        if ($stored && isset($service_names[$stored['offer']])) {
+            $booking = ['order_id'=>$order_id,'mode'=>$stored['mode'],'amount'=>(int)$stored['amount'],'offer'=>$stored['offer'],'duration'=>(int)$stored['duration'],'name'=>$stored['customer_name'],'email'=>$stored['customer_email'],'phone'=>$stored['customer_phone'],'challenge'=>$stored['challenge'],'date'=>$stored['booking_date'],'time'=>$stored['booking_time'],'service'=>$service_names[$stored['offer']],'status'=>$stored['status']==='confirmed'?'complete':'pending'];
+            if ($booking['status']==='complete') {
+                $slot = sr_lms_booking_slot_from_request(['booking_date'=>$booking['date'],'booking_time'=>$booking['time'],'booking_duration'=>$booking['duration']]);
+                if (!is_wp_error($slot)) $booking['date_label'] = wp_date('j F Y', $slot['start']->getTimestamp(), $slot['start']->getTimezone()) . ' · ' . $slot['start']->format('g:i A') . ' – ' . $slot['end']->format('g:i A') . ' ' . $slot['timezone'];
+            }
+            set_transient($key, $booking, DAY_IN_SECONDS);
+        }
+    }
     if (!is_array($booking) || ($booking['order_id'] ?? '') !== $order_id) return new WP_Error('booking_expired', 'This checkout expired. If you were charged, contact the Academy before paying again.', ['status'=>410]);
     $credentials = sr_lms_payment_credentials((string) $booking['mode']);
     if (!sr_lms_payment_signature($order_id . '|' . $payment_id, $signature, $credentials['secret'])) return new WP_Error('payment_signature', 'Payment could not be verified. Contact the Academy if you were charged.', ['status'=>400]);
