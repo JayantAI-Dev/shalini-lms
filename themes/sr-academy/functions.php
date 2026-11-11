@@ -61,10 +61,23 @@ function sr_theme_enqueue(): void {
     $script_version = is_file($script_file) ? (string) filemtime($script_file) : $version;
     wp_enqueue_style('sr-fonts', sr_theme_asset('assets/fonts/fonts.css'), [], $version);
     wp_enqueue_style('sr-academy', get_stylesheet_uri(), ['sr-fonts'], $style_version);
-    wp_enqueue_script('sr-site', sr_theme_asset('assets/js/site.js'), [], $script_version, true);
+    $site_dependencies = [];
+    if (in_array(sr_theme_slug(), ['home','services'], true) && function_exists('sr_lms_payment_ready') && sr_lms_payment_ready()) {
+        wp_enqueue_script('sr-lms-razorpay-checkout', 'https://checkout.razorpay.com/v1/checkout.js', [], null, true);
+        $site_dependencies[] = 'sr-lms-razorpay-checkout';
+    }
+    wp_enqueue_script('sr-site', sr_theme_asset('assets/js/site.js'), $site_dependencies, $script_version, true);
     $pages = [];
     foreach (sr_theme_pages() as $filename=>$slug) { $pages[$filename] = sr_theme_url($filename); }
     $config = ['pages'=>$pages,'home'=>home_url('/'),'assetBase'=>trailingslashit(get_template_directory_uri()),'calendarAvailabilityUrl'=>rest_url('sr-lms/v1/calendar-availability')];
+    if (in_array(sr_theme_slug(), ['home','services'], true) && function_exists('sr_lms_payment_ready')) {
+        $config['consultationCheckout'] = [
+            'enabled' => sr_lms_payment_ready() && function_exists('sr_lms_google_calendar_ready') && sr_lms_google_calendar_ready() && function_exists('sr_lms_zoom_ready') && sr_lms_zoom_ready(),
+            'api' => rest_url('sr-lms/v1/consultations/'),
+            'key' => sr_lms_payment_credentials((string) (sr_lms_payment_settings()['mode'] ?? 'test'))['key'] ?? '',
+            'test' => (sr_lms_payment_settings()['mode'] ?? 'test') === 'test',
+        ];
+    }
     wp_add_inline_script('sr-site', 'window.SR_THEME=' . wp_json_encode($config, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) . ';' . <<<'JS'
 window.SR_THEME.url=function(source){const input=new URL(source,'https://sr-source.invalid/');const name=input.pathname.split('/').pop();const target=new URL(this.pages[name]||this.home,location.href);input.searchParams.forEach((value,key)=>target.searchParams.set(key,value));target.hash=input.hash;return target.href;};
 window.SR_THEME.asset=function(path){return this.assetBase+path.replace(/^\/+/, '');};

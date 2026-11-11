@@ -6,6 +6,41 @@ const SR_LMS_GOOGLE_CALENDAR_OPTION = 'sr_lms_google_calendar';
 const SR_LMS_GOOGLE_CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.freebusy https://www.googleapis.com/auth/calendar.events';
 const SR_LMS_ZOOM_OPTION = 'sr_lms_zoom_meetings';
 
+function sr_lms_consultation_install(): void {
+    if (get_option('sr_lms_consultation_schema') === '1') return;
+    global $wpdb;
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    $charset = $wpdb->get_charset_collate();
+    dbDelta('CREATE TABLE ' . sr_lms_table('consultation_bookings') . " (
+        id bigint unsigned NOT NULL AUTO_INCREMENT,
+        gateway_order varchar(100) NOT NULL,
+        gateway_payment varchar(100) DEFAULT NULL,
+        mode varchar(8) NOT NULL,
+        amount bigint unsigned NOT NULL,
+        currency varchar(3) NOT NULL DEFAULT 'INR',
+        status varchar(24) NOT NULL DEFAULT 'created',
+        offer varchar(40) NOT NULL,
+        duration smallint unsigned NOT NULL,
+        booking_date date NOT NULL,
+        booking_time varchar(40) NOT NULL,
+        customer_name varchar(190) NOT NULL,
+        customer_email varchar(190) NOT NULL,
+        customer_phone varchar(40) NOT NULL,
+        challenge text NOT NULL,
+        zoom_meeting varchar(80) DEFAULT NULL,
+        google_event varchar(190) DEFAULT NULL,
+        created_at datetime NOT NULL,
+        updated_at datetime NOT NULL,
+        PRIMARY KEY  (id),
+        UNIQUE KEY gateway_order (gateway_order),
+        UNIQUE KEY gateway_payment (gateway_payment),
+        KEY customer_email (customer_email),
+        KEY status (status)
+    ) ENGINE=InnoDB $charset;");
+    update_option('sr_lms_consultation_schema', '1', false);
+}
+add_action('init', 'sr_lms_consultation_install', 12);
+
 function sr_lms_google_calendar_config(): array {
     $saved = get_option(SR_LMS_GOOGLE_CALENDAR_OPTION, []);
     $saved = is_array($saved) ? $saved : [];
@@ -216,6 +251,15 @@ function sr_lms_process_consultation_booking($contact_form, &$abort, $submission
     $data = $submission->get_posted_data();
     // The same CF7 form also accepts course/package enquiries without a scheduled slot.
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($data['booking_date'] ?? ''))) return;
+    // Paid coaching sessions must go through Razorpay's verified checkout endpoint.
+    // Do not allow a direct CF7 POST to create a meeting without payment.
+    $service_check = strtolower(trim((string) ($data['booking_service'] ?? '')));
+    $paid_services = array_map('strtolower', ['1:1 Communication & Confidence','1:1 Image Styling & Confidence','Personalised Colour Analysis Consultation','Personalised Occasion Styling']);
+    if (in_array($service_check, $paid_services, true)) {
+        $abort = true;
+        $submission->set_response($contact_form->filter_message('Please complete the secure checkout to confirm this scheduled session.'));
+        return;
+    }
     $fail = static function (string $message) use ($contact_form, $submission, &$abort): void {
         $abort = true;
         $submission->set_response($contact_form->filter_message($message));
@@ -287,6 +331,183 @@ function sr_lms_process_consultation_booking($contact_form, &$abort, $submission
     }
 }
 add_action('wpcf7_before_send_mail', 'sr_lms_process_consultation_booking', 10, 3);
+
+/** Authoritative pricing for one-session consultation checkout (amounts in paise). */
+function sr_lms_consultation_price(string $offer, int $duration): int {
+    $prices = [
+        'comm-call' => [30 => 375000, 60 => 799900],
+        'style-call' => [30 => 375000, 60 => 799900],
+        'color-call' => [60 => 799900, 90 => 1399900],
+        'occasion-call' => [30 => 375000, 60 => 799900],
+    ];
+    return (int) ($prices[$offer][$duration] ?? 0);
+}
+
+function sr_lms_consultation_order(WP_REST_Request $request) {
+    if (!sr_lms_payment_ready()) return new WP_Error('checkout_unavailable', 'Secure checkout is not available right now.', ['status' => 503]);
+    if (!sr_lms_google_calendar_ready() || !sr_lms_zoom_ready()) return new WP_Error('booking_unavailable', 'Online booking is not fully configured yet.', ['status' => 503]);
+    $ip = sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    $rate_key = 'sr_lms_consult_order_rate_' . hash('sha256', $ip);
+    $hits = (int) get_transient($rate_key);
+    if ($hits >= 10) return new WP_Error('rate_limited', 'Please wait before starting another checkout.', ['status'=>429]);
+    set_transient($rate_key, $hits + 1, HOUR_IN_SECONDS);
+    $offer = sanitize_key((string) $request->get_param('offer'));
+    $duration = absint($request->get_param('duration'));
+    $amount = sr_lms_consultation_price($offer, $duration);
+    $name = sanitize_text_field((string) $request->get_param('name'));
+    $email = sanitize_email((string) $request->get_param('email'));
+    $phone = sanitize_text_field((string) $request->get_param('phone'));
+    $challenge = sanitize_textarea_field((string) $request->get_param('challenge'));
+    $date = sanitize_text_field((string) $request->get_param('date'));
+    $time = sanitize_text_field((string) $request->get_param('time'));
+    $service_names = [
+        'comm-call' => '1:1 Communication & Confidence',
+        'style-call' => '1:1 Image Styling & Confidence',
+        'color-call' => 'Personalised Colour Analysis Consultation',
+        'occasion-call' => 'Personalised Occasion Styling',
+    ];
+    if (!$amount || !$name || !is_email($email) || !$phone || !isset($service_names[$offer])) return new WP_Error('booking_details', 'Please complete all required booking details.', ['status' => 400]);
+    $slot = sr_lms_booking_slot_from_request(['booking_date'=>$date,'booking_time'=>$time,'booking_duration'=>$duration]);
+    if (is_wp_error($slot)) return new WP_Error($slot->get_error_code(), $slot->get_error_message(), ['status' => 400]);
+    $busy = sr_lms_google_freebusy(sr_lms_google_calendar_config()['calendar_id'], $slot['start'], $slot['end'], $slot['timezone']);
+    if (is_wp_error($busy)) return new WP_Error('availability_unavailable', 'We could not verify this time slot. Please try again.', ['status' => 503]);
+    foreach ($busy as $period) {
+        $busy_start = strtotime($period['start'] ?? ''); $busy_end = strtotime($period['end'] ?? '');
+        if ($busy_start && $busy_end && $slot['start']->getTimestamp() < $busy_end && $slot['end']->getTimestamp() > $busy_start) return new WP_Error('slot_unavailable', 'That time has just become unavailable. Please choose another slot.', ['status' => 409]);
+    }
+    $mode = (string) (sr_lms_payment_settings()['mode'] ?? 'test');
+    $gateway = sr_lms_payment_api($mode, 'orders', [
+        'amount' => $amount,
+        'currency' => 'INR',
+        'receipt' => 'consult-' . wp_generate_password(12, false, false),
+        'notes' => ['service' => $offer, 'session_minutes' => (string) $duration],
+    ], 'POST');
+    if (is_wp_error($gateway)) return $gateway;
+    if (!preg_match('/^order_[A-Za-z0-9]+$/D', (string) ($gateway['id'] ?? '')) || (int) ($gateway['amount'] ?? 0) !== $amount || ($gateway['currency'] ?? '') !== 'INR') return new WP_Error('gateway_order', 'Secure checkout could not be started. Please retry.', ['status' => 502]);
+    $payload = [
+        'order_id' => $gateway['id'], 'mode' => $mode, 'amount' => $amount, 'offer' => $offer,
+        'duration' => $duration, 'name' => $name, 'email' => $email, 'phone' => $phone,
+        'challenge' => $challenge, 'date' => $date, 'time' => $time,
+        'service' => $service_names[$offer], 'created' => time(), 'status' => 'pending',
+    ];
+    global $wpdb;
+    $now = current_time('mysql', true);
+    $saved = $wpdb->insert(sr_lms_table('consultation_bookings'), [
+        'gateway_order'=>$gateway['id'], 'mode'=>$mode, 'amount'=>$amount, 'status'=>'created',
+        'offer'=>$offer, 'duration'=>$duration, 'booking_date'=>$date, 'booking_time'=>$time,
+        'customer_name'=>$name, 'customer_email'=>$email, 'customer_phone'=>$phone, 'challenge'=>$challenge,
+        'created_at'=>$now, 'updated_at'=>$now,
+    ]);
+    if (!$saved) return new WP_Error('booking_storage', 'Could not save the booking request. Please retry before paying.', ['status'=>500]);
+    set_transient('sr_lms_consultation_' . $gateway['id'], $payload, DAY_IN_SECONDS);
+    return new WP_REST_Response([
+        'order_id' => $gateway['id'], 'key' => sr_lms_payment_credentials($mode)['key'],
+        'amount' => $amount, 'currency' => 'INR', 'name' => 'Shalini Rathod Academy',
+        'description' => $service_names[$offer] . ' · ' . $duration . ' minutes',
+        'test' => $mode === 'test',
+    ]);
+}
+
+/** Creates Zoom + Google Calendar records after verified payment. */
+function sr_lms_create_paid_consultation(array $booking) {
+    $slot = sr_lms_booking_slot_from_request(['booking_date'=>$booking['date'],'booking_time'=>$booking['time'],'booking_duration'=>$booking['duration']]);
+    if (is_wp_error($slot)) return $slot;
+    $busy = sr_lms_google_freebusy(sr_lms_google_calendar_config()['calendar_id'], $slot['start'], $slot['end'], $slot['timezone']);
+    if (is_wp_error($busy)) return $busy;
+    foreach ($busy as $period) {
+        $busy_start = strtotime($period['start'] ?? ''); $busy_end = strtotime($period['end'] ?? '');
+        if ($busy_start && $busy_end && $slot['start']->getTimestamp() < $busy_end && $slot['end']->getTimestamp() > $busy_start) return new WP_Error('slot_unavailable', 'The selected time has just been booked.');
+    }
+    $lock = 'sr_lms_slot_' . md5($slot['start']->format('c'));
+    if (!add_option($lock, time(), '', false)) return new WP_Error('slot_unavailable', 'The selected time is currently being booked.');
+    $meeting_id = ''; $event_id = '';
+    try {
+        $zoom = sr_lms_zoom_api('POST', '/users/' . rawurlencode(sr_lms_zoom_config()['host_email']) . '/meetings', [
+            'topic' => $booking['service'] . ' — ' . $booking['name'], 'type' => 2,
+            'start_time' => $slot['start']->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z'),
+            'duration' => $slot['duration'], 'timezone' => $slot['timezone'],
+            'agenda' => 'Consultation booked through Shalini Rathod Academy.',
+            'settings' => ['waiting_room'=>true,'join_before_host'=>false,'approval_type'=>2,'meeting_authentication'=>false],
+        ]);
+        if (is_wp_error($zoom)) return $zoom;
+        $meeting_id = sanitize_text_field((string) ($zoom['id'] ?? ''));
+        $join_url = esc_url_raw((string) ($zoom['join_url'] ?? ''));
+        if (!$meeting_id || !$join_url) return new WP_Error('zoom_meeting', 'Zoom did not return meeting details.');
+        $config = sr_lms_zoom_config();
+        $attendees = [['email'=>$booking['email'],'displayName'=>$booking['name']]];
+        if (is_email($config['admin_email']) && strtolower($config['admin_email']) !== strtolower($booking['email'])) $attendees[] = ['email'=>$config['admin_email']];
+        $event = sr_lms_google_create_calendar_event([
+            'summary' => $booking['service'] . ' — ' . $booking['name'],
+            'description' => "Consultation with {$booking['name']}.\n\nZoom meeting link: {$join_url}\nMeeting ID: {$meeting_id}",
+            'start' => ['dateTime'=>$slot['start']->format(DateTimeInterface::RFC3339),'timeZone'=>$slot['timezone']],
+            'end' => ['dateTime'=>$slot['end']->format(DateTimeInterface::RFC3339),'timeZone'=>$slot['timezone']],
+            'attendees' => $attendees, 'visibility'=>'private', 'guestsCanModify'=>false, 'guestsCanInviteOthers'=>false,
+        ]);
+        if (is_wp_error($event)) return $event;
+        $event_id = (string) ($event['id'] ?? '');
+        $when = wp_date('j F Y', $slot['start']->getTimestamp(), $slot['start']->getTimezone()) . ' · ' . $slot['start']->format('g:i A') . ' – ' . $slot['end']->format('g:i A') . ' ' . $slot['timezone'];
+        $subject = 'Consultation confirmed: ' . $booking['service'];
+        $headers = ['Content-Type: text/html; charset=UTF-8'];
+        $html = '<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#20372d"><h2>Consultation confirmed</h2><p>Hello '.esc_html($booking['name']).',</p><p>Your payment is confirmed and your consultation is scheduled.</p><p><strong>'.esc_html($booking['service']).'</strong><br>'.esc_html($when).'</p><p><a href="'.esc_url($join_url).'" style="display:inline-block;background:#174b38;color:#fff;padding:14px 22px;border-radius:8px;text-decoration:none">Join your Zoom meeting</a></p><p>A Google Calendar invitation has been sent to you and the Academy team.</p><p>Warmly,<br>Shalini Rathod Academy</p></div>';
+        $sent_user = wp_mail($booking['email'], $subject, $html, $headers);
+        $sent_admin = !is_email($config['admin_email']) || wp_mail($config['admin_email'], 'New paid consultation: ' . $booking['service'], '<p>Booking for '.esc_html($booking['name']).' ('.esc_html($booking['email']).') · '.esc_html($when).'</p><p>Payment: INR '.esc_html(number_format($booking['amount']/100,2)).' · '.esc_html($booking['order_id']).'</p><p>Zoom: <a href="'.esc_url($join_url).'">Join meeting</a></p>', $headers);
+        if (!$sent_user || !$sent_admin) error_log('[SR Academy] Paid consultation email delivery failed for order ' . sanitize_text_field($booking['order_id']));
+        return ['meeting_id'=>$meeting_id,'event_id'=>$event_id,'date_label'=>$when,'join_url'=>$join_url];
+    } finally {
+        if (!$event_id) { if ($meeting_id) sr_lms_zoom_api('DELETE','/meetings/'.rawurlencode($meeting_id)); delete_option($lock); }
+    }
+}
+
+function sr_lms_consultation_verify(WP_REST_Request $request) {
+    global $wpdb;
+    $order_id = sanitize_text_field((string) $request->get_param('razorpay_order_id'));
+    $payment_id = sanitize_text_field((string) $request->get_param('razorpay_payment_id'));
+    $signature = (string) $request->get_param('razorpay_signature');
+    if (!preg_match('/^order_[A-Za-z0-9]+$/D', $order_id) || !preg_match('/^pay_[A-Za-z0-9]+$/D', $payment_id)) return new WP_Error('payment_reference', 'Payment reference is invalid.', ['status'=>400]);
+    $key = 'sr_lms_consultation_' . $order_id;
+    $booking = get_transient($key);
+    if (!is_array($booking) || ($booking['order_id'] ?? '') !== $order_id) return new WP_Error('booking_expired', 'This checkout expired. If you were charged, contact the Academy before paying again.', ['status'=>410]);
+    $credentials = sr_lms_payment_credentials((string) $booking['mode']);
+    if (!sr_lms_payment_signature($order_id . '|' . $payment_id, $signature, $credentials['secret'])) return new WP_Error('payment_signature', 'Payment could not be verified. Contact the Academy if you were charged.', ['status'=>400]);
+    if (($booking['status'] ?? '') === 'complete') return ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service'],'date_label'=>$booking['date_label']];
+    $payment = sr_lms_payment_api((string) $booking['mode'], 'payments/' . $payment_id);
+    if (is_wp_error($payment)) return $payment;
+    if (($payment['order_id'] ?? '') !== $order_id || (int) ($payment['amount'] ?? 0) !== (int) $booking['amount'] || ($payment['currency'] ?? '') !== 'INR') return new WP_Error('payment_mismatch', 'Payment details do not match this booking.', ['status'=>400]);
+    if (($payment['status'] ?? '') !== 'captured') return new WP_Error('payment_pending', 'Payment is not captured yet. Please wait and retry verification.', ['status'=>409]);
+    $table = sr_lms_table('consultation_bookings');
+    $now = current_time('mysql',true);
+    $claimed = $wpdb->query($wpdb->prepare("UPDATE $table SET gateway_payment=%s,status='processing',updated_at=%s WHERE gateway_order=%s AND (status IN ('created','paid') OR (status='processing' AND updated_at < %s))", $payment_id, $now, $order_id, gmdate('Y-m-d H:i:s', time()-300)));
+    if ($claimed !== 1) {
+        $current = $wpdb->get_row($wpdb->prepare("SELECT status FROM $table WHERE gateway_order=%s", $order_id), ARRAY_A);
+        if (($current['status'] ?? '') === 'confirmed' && !empty($booking['date_label'])) return ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service'],'date_label'=>$booking['date_label']];
+        return new WP_Error('booking_processing', 'Your payment is verified and the booking is being completed. Please wait a moment before retrying.', ['status'=>409]);
+    }
+    $booking['processing'] = true; set_transient($key, $booking, DAY_IN_SECONDS);
+    $result = sr_lms_create_paid_consultation($booking);
+    if (is_wp_error($result)) {
+        $booking['processing'] = false; set_transient($key, $booking, DAY_IN_SECONDS);
+        error_log('[SR Academy] Paid consultation fulfillment failed for order ' . $order_id . ': ' . $result->get_error_message());
+        $refund = sr_lms_payment_api((string) $booking['mode'], 'payments/' . $payment_id . '/refunds', ['amount'=>(int) $booking['amount']], 'POST');
+        if (is_wp_error($refund)) {
+            $wpdb->update($table, ['status'=>'refund_required','updated_at'=>current_time('mysql',true)], ['gateway_order'=>$order_id]);
+            $admin_email = sr_lms_zoom_config()['admin_email'];
+            if (is_email($admin_email)) wp_mail($admin_email, 'Action required: consultation refund', 'A verified consultation payment could not be booked or refunded automatically. Order: '.esc_html($order_id).'; payment: '.esc_html($payment_id).'. Please review it in Razorpay and contact the customer.');
+            return new WP_Error('booking_refund_required', 'Payment was received, but the slot could not be confirmed or refunded automatically. Do not pay again; the Academy team has been alerted to arrange your refund.', ['status'=>502]);
+        }
+        $booking['status'] = 'refund_requested'; set_transient($key, $booking, DAY_IN_SECONDS);
+        $wpdb->update($table, ['status'=>'refund_requested','updated_at'=>current_time('mysql',true)], ['gateway_order'=>$order_id]);
+        return new WP_Error('booking_refunded', 'The selected time could not be confirmed, so a full refund has been requested. Please choose another slot.', ['status'=>409]);
+    }
+    $booking['status'] = 'complete'; $booking['processing'] = false; $booking['date_label'] = $result['date_label'];
+    set_transient($key, $booking, DAY_IN_SECONDS);
+    $wpdb->update($table, ['status'=>'confirmed','zoom_meeting'=>$result['meeting_id'],'google_event'=>$result['event_id'],'updated_at'=>current_time('mysql',true)], ['gateway_order'=>$order_id]);
+    return ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service'],'date_label'=>$result['date_label']];
+}
+
+add_action('rest_api_init', static function (): void {
+    register_rest_route('sr-lms/v1', '/consultations/order', ['methods'=>'POST','permission_callback'=>'__return_true','callback'=>'sr_lms_consultation_order']);
+    register_rest_route('sr-lms/v1', '/consultations/verify', ['methods'=>'POST','permission_callback'=>'__return_true','callback'=>'sr_lms_consultation_verify']);
+});
 
 function sr_lms_google_calendar_slots(WP_REST_Request $request) {
     $date = (string) $request->get_param('date');

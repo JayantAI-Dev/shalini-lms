@@ -465,7 +465,7 @@
               </select>
             </label>
           </div>
-          <p class="booking-schedule-note" id="booking-schedule-note">* Private Zoom link provided upon confirmation; reschedule anytime with 24 hours notice.</p>
+          <p class="booking-schedule-note" id="booking-schedule-note">Live availability is checked with Google Calendar. Paid 1:1 sessions are confirmed after payment; discovery and package requests are confirmed separately.</p>
         </div>
 
         <div class="booking-step-footer">

@@ -688,7 +688,7 @@ if (bookingModal) {
       }
       availabilityState = available.size && Array.from(available.values()).some(Boolean) ? 'ready' : 'none';
       if (note) note.textContent = availabilityState === 'ready'
-        ? 'Live availability checked with Google Calendar. Your request is not reserved until the team confirms it.'
+        ? 'Live availability checked with Google Calendar. Paid 1:1 slots are confirmed after successful payment; discovery and package requests are confirmed separately.'
         : 'No available times for this date. Choose another date.';
     } catch (error) {
       if (requestId !== availabilityRequest) return;
@@ -746,7 +746,9 @@ if (bookingModal) {
     if (confirmLabel) {
       confirmLabel.value = offering.type === 'course'
         ? `Continue Enrollment (${formatMoney(price)})`
-        : `Send request · ${formatMoney(price)}`;
+        : offering.type === 'call'
+          ? `Pay securely · ${formatMoney(price)}`
+          : `Send request · ${formatMoney(price)}`;
     }
   };
 
@@ -883,16 +885,116 @@ if (bookingModal) {
     offeringSelect?.focus();
   });
 
-  bookingForm?.addEventListener('submit', () => {
+  bookingForm?.addEventListener('submit', (event) => {
     const offering = getOffering();
+    if (offering.type === 'call') {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (bookingForm.dataset.checkoutBusy === 'true') return;
+      const config = window.SR_THEME?.consultationCheckout;
+      const status = bookingForm.querySelector('.booking-payment-status') || (() => {
+        const message = document.createElement('p');
+        message.className = 'booking-payment-status';
+        message.setAttribute('role', 'status');
+        message.setAttribute('aria-live', 'polite');
+        bookingForm.append(message);
+        return message;
+      })();
+      if (!config?.enabled) {
+        status.textContent = 'Secure online booking is unavailable right now. Please contact the Academy team.';
+        return;
+      }
+      if (!window.Razorpay) {
+        status.textContent = 'Secure checkout could not load. Please reload and try again.';
+        return;
+      }
+      if (!bookingForm.reportValidity()) return;
+      bookingForm.dataset.checkoutBusy = 'true';
+      if (confirmLabel) { confirmLabel.disabled = true; confirmLabel.value = 'Preparing secure checkout…'; }
+      status.textContent = 'Checking the selected slot and preparing secure checkout…';
+      const bookingPayload = {
+        offer: offeringSelect?.value || '',
+        duration: Number(selectedDuration),
+        date: bookingDate?.value || '',
+        time: bookingTime?.value || '',
+        name: bookingName?.value.trim() || '',
+        email: bookingEmail?.value.trim() || '',
+        phone: bookingPhone?.value.trim() || '',
+        challenge: bookingChallenge?.value.trim() || ''
+      };
+      const post = async (route, data) => {
+        const response = await fetch(config.api + route, {
+          method: 'POST', credentials: 'same-origin',
+          headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
+        });
+        const text = await response.text();
+        let result;
+        try { result = JSON.parse(text); } catch (_) { throw new Error('The booking service returned an unexpected response. Please retry or contact the Academy.'); }
+        if (!response.ok) throw new Error(result.message || 'Checkout could not continue. Please try again.');
+        return result;
+      };
+      post('order', bookingPayload).then((order) => {
+        status.textContent = order.test ? 'Test checkout · no live charge will be made.' : 'Complete your payment in Razorpay to confirm this booking.';
+        let paymentReceived = false;
+        const checkout = new window.Razorpay({
+          key: order.key || config.key,
+          order_id: order.order_id,
+          amount: order.amount,
+          currency: order.currency,
+          name: order.name,
+          description: order.description,
+          prefill: {name: bookingPayload.name, email: bookingPayload.email, contact: bookingPayload.phone},
+          theme: {color:'#174b38'},
+          handler: async (payment) => {
+            paymentReceived = true;
+            if (confirmLabel) confirmLabel.value = 'Verifying payment…';
+            status.textContent = 'Payment received. Confirming the booking and creating your Zoom meeting…';
+            try {
+              const confirmed = await post('verify', payment);
+              if (confirmationName) confirmationName.textContent = confirmed.name || bookingPayload.name;
+              if (confirmationSummary) confirmationSummary.textContent = `${confirmed.service || offering.fullLabel} · ${confirmed.date_label || getReadableDateTime()} · confirmed`;
+              const kicker = bookingModal.querySelector('.booking-confirmation-kicker');
+              if (kicker) kicker.textContent = 'BOOKING CONFIRMED';
+              const finalMsg = bookingModal.querySelector('.booking-step-three > p:not(.booking-confirmation-kicker)');
+              if (finalMsg) finalMsg.textContent = 'Your payment is confirmed. We have emailed your Zoom joining details and sent calendar invitations to you and the Academy team.';
+              if (sendRequest) sendRequest.hidden = true;
+              const copyBtn = bookingModal.querySelector('#booking-copy-request');
+              if (copyBtn) copyBtn.hidden = true;
+              setBookingStep(3);
+            } catch (error) {
+              status.textContent = `${error.message} Do not pay again if your payment was successful; contact the Academy with your Razorpay payment reference.`;
+              if (confirmLabel) confirmLabel.value = 'Payment needs assistance';
+            }
+          },
+          modal: {ondismiss: () => {
+            if (paymentReceived) return;
+            bookingForm.dataset.checkoutBusy = 'false';
+            if (confirmLabel) { confirmLabel.disabled = false; confirmLabel.value = `Pay securely · ${formatMoney(getPrice())}`; }
+            status.textContent = 'Checkout was closed. Your booking is not confirmed yet.';
+          }}
+        });
+        checkout.on('payment.failed', () => {
+          bookingForm.dataset.checkoutBusy = 'false';
+          if (confirmLabel) { confirmLabel.disabled = false; confirmLabel.value = `Pay securely · ${formatMoney(getPrice())}`; }
+          status.textContent = 'Payment was unsuccessful. Check the payment status before trying again.';
+        });
+        checkout.open();
+      }).catch((error) => {
+        bookingForm.dataset.checkoutBusy = 'false';
+        if (confirmLabel) { confirmLabel.disabled = false; confirmLabel.value = `Pay securely · ${formatMoney(getPrice())}`; }
+        status.textContent = error.message;
+      });
+      return;
+    }
+    const offeringDetails = getOffering();
     const hidden = (name, value) => { const field = bookingForm.querySelector(`[name=\"${name}\"]`); if (field) field.value = value; };
-    hidden('booking_service', offering.fullLabel);
-    hidden('booking_duration', offering.type === 'call' ? `${selectedDuration} minutes` : String(offering.duration || ''));
+    hidden('booking_service', offeringDetails.fullLabel);
+    hidden('booking_duration', offeringDetails.type === 'call' ? `${selectedDuration} minutes` : String(offeringDetails.duration || ''));
     hidden('booking_date', bookingDate?.value || 'To arrange');
     hidden('booking_time', bookingTime?.value || 'To arrange');
     hidden('booking_price', formatMoney(getPrice()));
     if (confirmLabel) confirmLabel.value = 'Sending request…';
-  });
+  }, true);
 
   bookingModal.addEventListener('wpcf7mailsent', (event) => {
     if (event.target !== bookingForm) return;

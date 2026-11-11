@@ -49,7 +49,7 @@ function sr_lms_payment_credentials(string $mode): array {
 function sr_lms_payment_ready(): bool {$s=sr_lms_payment_settings();$m=$s['mode']??'test';$c=sr_lms_payment_credentials($m);return !empty($s['enabled'])&&!empty($c['secret'])&&!empty($c['key'])&&str_starts_with($c['key'],'rzp_'.$m.'_');}
 function sr_lms_payment_signature(string $raw,string $signature,string $secret): bool {return $secret!==''&&preg_match('/^[a-f0-9]{64}$/D',$signature)&&hash_equals(hash_hmac('sha256',$raw,$secret),$signature);}
 function sr_lms_payment_api(string $mode,string $path,array $data=[],$method='GET') {
- if(!preg_match('~^(?:orders(?:/order_[A-Za-z0-9]+/payments)?|payments/pay_[A-Za-z0-9]+)$~D',$path))return new WP_Error('gateway','Invalid gateway resource.');
+ if(!preg_match('~^(?:orders(?:/order_[A-Za-z0-9]+/payments)?|payments/pay_[A-Za-z0-9]+(?:/refunds)?)$~D',$path))return new WP_Error('gateway','Invalid gateway resource.');
  $c=sr_lms_payment_credentials($mode);if(empty($c['key'])||empty($c['secret']))return new WP_Error('gateway','Gateway credentials unavailable.');
  $args=['method'=>$method,'timeout'=>20,'redirection'=>0,'headers'=>['Authorization'=>'Basic '.base64_encode($c['key'].':'.$c['secret']),'Content-Type'=>'application/json']];if($data)$args['body']=wp_json_encode($data);
  $r=wp_remote_request('https://api.razorpay.com/v1/'.$path,$args);if(is_wp_error($r))return new WP_Error('gateway','Gateway could not be reached. Please retry.');
