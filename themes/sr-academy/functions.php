@@ -61,6 +61,11 @@ function sr_theme_enqueue(): void {
     $script_version = is_file($script_file) ? (string) filemtime($script_file) : $version;
     wp_enqueue_style('sr-fonts', sr_theme_asset('assets/fonts/fonts.css'), [], $version);
     wp_enqueue_style('sr-academy', get_stylesheet_uri(), ['sr-fonts'], $style_version);
+    if (sr_theme_slug() === 'enroll' && sr_theme_is_coaching_offer()) {
+        $booking_style = get_template_directory() . '/assets/css/package-booking.css';
+        $booking_style_version = is_file($booking_style) ? (string) filemtime($booking_style) : $version;
+        wp_enqueue_style('sr-package-booking', sr_theme_asset('assets/css/package-booking.css'), ['sr-academy'], $booking_style_version);
+    }
     $site_dependencies = [];
     if ((in_array(sr_theme_slug(), ['home','services'], true) || (sr_theme_slug() === 'enroll' && sr_theme_is_coaching_offer())) && function_exists('sr_lms_payment_ready') && sr_lms_payment_ready()) {
         wp_enqueue_script('sr-lms-razorpay-checkout', 'https://checkout.razorpay.com/v1/checkout.js', [], null, true);
