@@ -346,6 +346,45 @@ function sr_lms_consultation_price(string $offer, int $duration): int {
     return (int) ($prices[$offer][$duration] ?? 0);
 }
 
+function sr_lms_consultation_normalize_phone(string $phone): string {
+    $digits = preg_replace('/\D+/', '', $phone);
+    if (strlen($digits) > 10 && str_starts_with($digits, '91')) $digits = substr($digits, 2);
+    return $digits;
+}
+
+function sr_lms_consultation_purchased_offers(string $email, string $phone, string $mode): array {
+    global $wpdb;
+    $wanted_phone = sr_lms_consultation_normalize_phone($phone);
+    if (!$wanted_phone) return [];
+    $rows = $wpdb->get_results($wpdb->prepare(
+        'SELECT offer, customer_phone FROM ' . sr_lms_table('consultation_bookings') . " WHERE LOWER(customer_email)=LOWER(%s) AND mode=%s AND status='confirmed' AND booking_time='PACKAGE'",
+        $email, $mode
+    ), ARRAY_A);
+    $package_offers = ['comm-core', 'comm-presence', 'comm-commanding'];
+    $purchased = [];
+    foreach ((array)$rows as $row) {
+        if (sr_lms_consultation_normalize_phone((string)($row['customer_phone'] ?? '')) !== $wanted_phone) continue;
+        $offer = sanitize_key((string)($row['offer'] ?? ''));
+        if (in_array($offer, $package_offers, true)) $purchased[] = $offer;
+    }
+    return array_values(array_unique($purchased));
+}
+
+function sr_lms_consultation_purchases(WP_REST_Request $request) {
+    $ip = sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    $rate_key = 'sr_lms_package_lookup_rate_' . hash('sha256', $ip);
+    $hits = (int)get_transient($rate_key);
+    if ($hits >= 30) return new WP_Error('rate_limited', 'Please wait before checking package availability again.', ['status'=>429]);
+    set_transient($rate_key, $hits + 1, HOUR_IN_SECONDS);
+    $email = sanitize_email((string)$request->get_param('email'));
+    $phone = sanitize_text_field((string)$request->get_param('phone'));
+    $digits = sr_lms_consultation_normalize_phone($phone);
+    if (!is_email($email) || strlen($digits) < 7 || strlen($digits) > 15) return new WP_Error('purchase_lookup_details', 'Enter your email and phone number to check past package purchases.', ['status'=>400]);
+    $mode = (string)(sr_lms_payment_settings()['mode'] ?? 'test');
+    $response = new WP_REST_Response(['offers'=>sr_lms_consultation_purchased_offers($email, $phone, $mode)]);
+    $response->header('Cache-Control', 'private, no-store');
+    return $response;
+}
 function sr_lms_consultation_order(WP_REST_Request $request) {
     if (!sr_lms_payment_ready()) return new WP_Error('checkout_unavailable', 'Secure checkout is not available right now.', ['status'=>503]);
     $offer = sanitize_key((string) $request->get_param('offer'));
@@ -387,6 +426,7 @@ function sr_lms_consultation_order(WP_REST_Request $request) {
         }
     }
     $mode = (string) (sr_lms_payment_settings()['mode'] ?? 'test');
+    if ($is_package && in_array($offer, sr_lms_consultation_purchased_offers($email, $phone, $mode), true)) return new WP_Error('already_purchased', 'This package has already been purchased with these contact details. Choose another package.', ['status'=>409]);
     $gateway = sr_lms_payment_api($mode, 'orders', [
         'amount'=>$amount, 'currency'=>'INR', 'receipt'=>($is_package ? 'package-' : 'consult-') . wp_generate_password(12, false, false),
         'notes'=>['service'=>$offer, 'session_minutes'=>$is_package ? '0' : (string)$duration],
@@ -578,6 +618,7 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
 }
 
 add_action('rest_api_init', static function (): void {
+    register_rest_route('sr-lms/v1', '/consultations/purchases', ['methods'=>'POST','permission_callback'=>'__return_true','callback'=>'sr_lms_consultation_purchases']);
     register_rest_route('sr-lms/v1', '/consultations/order', ['methods'=>'POST','permission_callback'=>'__return_true','callback'=>'sr_lms_consultation_order']);
     register_rest_route('sr-lms/v1', '/consultations/verify', ['methods'=>'POST','permission_callback'=>'__return_true','callback'=>'sr_lms_consultation_verify']);
 });
