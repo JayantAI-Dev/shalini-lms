@@ -7,6 +7,11 @@
   const dateInput = form.elements.date;
   const dates = form.querySelector('[data-date-options]');
   const success = document.querySelector('[data-booking-success]');
+  const packageGroup = form.querySelector('.package-booking-package-group');
+  const modeTabs = form.closest('.package-booking-section')?.querySelectorAll('[data-booking-mode]') || [];
+  const bookingNote = form.querySelector('[data-booking-note]');
+  const submitButton = form.querySelector('[type="submit"]');
+  let bookingMode = 'package';
   let selectedPlan = '';
   let selectedTime = '';
   const readJsonResponse = async (response) => {
@@ -22,6 +27,7 @@
     if (!choice) return;
     event.preventDefault(); event.stopImmediatePropagation();
     const plan = choice.dataset.comparisonPlan;
+    if (choice.hasAttribute('data-discovery-booking')) setBookingMode('discovery');
     if (plan) {
       const button = Array.from(document.querySelectorAll('[data-plan]')).find((item) => item.textContent.trim().startsWith(plan));
       button?.click();
@@ -29,6 +35,20 @@
     document.querySelector('#package-booking')?.scrollIntoView({behavior:'smooth',block:'start'});
   }, true);
   const say = (message) => { status.textContent = message; };
+  const setBookingMode = (mode) => {
+    bookingMode = mode;
+    modeTabs.forEach((tab) => {
+      const active = tab.dataset.bookingMode === mode;
+      tab.classList.toggle('is-selected', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
+    if (packageGroup) packageGroup.hidden = mode !== 'package';
+    if (bookingNote) bookingNote.textContent = mode === 'package' ? 'Razorpay test mode · no live charge' : 'Secure reservation · Free 24h reschedule';
+    if (submitButton) submitButton.textContent = mode === 'package' ? 'Continue to test payment' : 'CONFIRM FREE DISCOVERY';
+    say('');
+    if (dateInput.value) dateInput.dispatchEvent(new Event('change', {bubbles:true}));
+  };
+  modeTabs.forEach((tab) => tab.addEventListener('click', () => setBookingMode(tab.dataset.bookingMode)));
   const api = async (path, body) => {
     const response = await fetch(config.api + path, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
     const data = await readJsonResponse(response);
@@ -66,7 +86,7 @@
     slots.replaceChildren(Object.assign(document.createElement('p'), {className:'package-booking-unavailable', textContent:'Checking live availability…'}));
     try {
       const url = new URL(window.SR_THEME.calendarAvailabilityUrl);
-      url.searchParams.set('date', dateInput.value); url.searchParams.set('duration', '60');
+      url.searchParams.set('date', dateInput.value); url.searchParams.set('duration', bookingMode === 'discovery' ? '15' : '60');
       const response = await fetch(url);
       const data = await readJsonResponse(response);
       if (!response.ok) throw new Error(data.message || 'Calendar availability is unavailable.');
@@ -82,10 +102,15 @@
   dateButtons[0]?.click();
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (!config.enabled || !config.test) { say('Test checkout is unavailable. Please contact the Academy.'); return; }
     if (!form.reportValidity()) return;
+    if (bookingMode === 'discovery') {
+      if (!selectedTime) { say('Choose an available time before continuing.'); return; }
+      say('Your free discovery call request is ready. The team will follow up to confirm availability.');
+      return;
+    }
+    if (!config.enabled || !config.test) { say('Test checkout is unavailable. Please contact the Academy.'); return; }
     if (!selectedPlan || !selectedTime) { say('Choose a package, date, and available time before continuing.'); return; }
-    const submit = form.querySelector('[type="submit"]'); submit.disabled = true; say('Preparing secure test checkout…');
+    const submit = submitButton; submit.disabled = true; say('Preparing secure test checkout…');
     try {
       const details = Object.fromEntries(new FormData(form));
       const order = await api('order', {offer:selectedPlan, duration:60, name:details.name, email:details.email, phone:details.phone, date:details.date, time:selectedTime});
