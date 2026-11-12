@@ -7,7 +7,7 @@ const SR_LMS_GOOGLE_CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.f
 const SR_LMS_ZOOM_OPTION = 'sr_lms_zoom_meetings';
 
 function sr_lms_consultation_install(): void {
-    if (get_option('sr_lms_consultation_schema') === '1') return;
+    if (version_compare((string) get_option('sr_lms_consultation_schema', '0'), '2', '>=')) return;
     global $wpdb;
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
     $charset = $wpdb->get_charset_collate();
@@ -20,9 +20,9 @@ function sr_lms_consultation_install(): void {
         currency varchar(3) NOT NULL DEFAULT 'INR',
         status varchar(24) NOT NULL DEFAULT 'created',
         offer varchar(40) NOT NULL,
-        duration smallint unsigned NOT NULL,
-        booking_date date NOT NULL,
-        booking_time varchar(40) NOT NULL,
+        duration smallint unsigned NOT NULL DEFAULT 0,
+        booking_date date DEFAULT NULL,
+        booking_time varchar(40) DEFAULT NULL,
         customer_name varchar(190) NOT NULL,
         customer_email varchar(190) NOT NULL,
         customer_phone varchar(40) NOT NULL,
@@ -37,7 +37,7 @@ function sr_lms_consultation_install(): void {
         KEY customer_email (customer_email),
         KEY status (status)
     ) ENGINE=InnoDB $charset;");
-    update_option('sr_lms_consultation_schema', '1', false);
+    update_option('sr_lms_consultation_schema', '2', false);
 }
 add_action('init', 'sr_lms_consultation_install', 12);
 
@@ -347,71 +347,71 @@ function sr_lms_consultation_price(string $offer, int $duration): int {
 }
 
 function sr_lms_consultation_order(WP_REST_Request $request) {
-    if (!sr_lms_payment_ready()) return new WP_Error('checkout_unavailable', 'Secure checkout is not available right now.', ['status' => 503]);
-    if (in_array(sanitize_key((string) $request->get_param('offer')), ['comm-core','comm-presence','comm-commanding'], true) && (sr_lms_payment_settings()['mode'] ?? 'test') !== 'test') return new WP_Error('test_mode_required', 'Package checkout is currently available in test mode only.', ['status'=>503]);
-    if (!sr_lms_google_calendar_ready() || !sr_lms_zoom_ready()) return new WP_Error('booking_unavailable', 'Online booking is not fully configured yet.', ['status' => 503]);
+    if (!sr_lms_payment_ready()) return new WP_Error('checkout_unavailable', 'Secure checkout is not available right now.', ['status'=>503]);
+    $offer = sanitize_key((string) $request->get_param('offer'));
+    $package_offers = ['comm-core','comm-presence','comm-commanding'];
+    $is_package = in_array($offer, $package_offers, true);
+    if ($is_package && (sr_lms_payment_settings()['mode'] ?? 'test') !== 'test') return new WP_Error('test_mode_required', 'Package checkout is currently available in test mode only.', ['status'=>503]);
+    if (!$is_package && (!sr_lms_google_calendar_ready() || !sr_lms_zoom_ready())) return new WP_Error('booking_unavailable', 'Online booking is not fully configured yet.', ['status'=>503]);
     $ip = sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? 'unknown');
     $rate_key = 'sr_lms_consult_order_rate_' . hash('sha256', $ip);
     $hits = (int) get_transient($rate_key);
     if ($hits >= 10) return new WP_Error('rate_limited', 'Please wait before starting another checkout.', ['status'=>429]);
     set_transient($rate_key, $hits + 1, HOUR_IN_SECONDS);
-    $offer = sanitize_key((string) $request->get_param('offer'));
-    $duration = absint($request->get_param('duration'));
+    $duration = $is_package ? 60 : absint($request->get_param('duration'));
     $amount = sr_lms_consultation_price($offer, $duration);
     $name = sanitize_text_field((string) $request->get_param('name'));
     $email = sanitize_email((string) $request->get_param('email'));
     $phone = sanitize_text_field((string) $request->get_param('phone'));
     $challenge = sanitize_textarea_field((string) $request->get_param('challenge'));
-    $date = sanitize_text_field((string) $request->get_param('date'));
-    $time = sanitize_text_field((string) $request->get_param('time'));
+    $date = $is_package ? '' : sanitize_text_field((string) $request->get_param('date'));
+    $time = $is_package ? '' : sanitize_text_field((string) $request->get_param('time'));
     $service_names = [
-        'comm-call' => '1:1 Communication & Confidence',
-        'comm-core' => 'Core Communication Package',
-        'comm-presence' => 'Powerful Presence Package',
-        'comm-commanding' => 'Commanding Presence Package',
-        'style-call' => '1:1 Image Styling & Confidence',
-        'color-call' => 'Personalised Colour Analysis Consultation',
-        'occasion-call' => 'Personalised Occasion Styling',
+        'comm-call'=>'1:1 Communication & Confidence',
+        'comm-core'=>'Core Communication Package',
+        'comm-presence'=>'Powerful Presence Package',
+        'comm-commanding'=>'Commanding Presence Package',
+        'style-call'=>'1:1 Image Styling & Confidence',
+        'color-call'=>'Personalised Colour Analysis Consultation',
+        'occasion-call'=>'Personalised Occasion Styling',
     ];
-    if (!$amount || !$name || !is_email($email) || !$phone || !isset($service_names[$offer])) return new WP_Error('booking_details', 'Please complete all required booking details.', ['status' => 400]);
-    $slot = sr_lms_booking_slot_from_request(['booking_date'=>$date,'booking_time'=>$time,'booking_duration'=>$duration]);
-    if (is_wp_error($slot)) return new WP_Error($slot->get_error_code(), $slot->get_error_message(), ['status' => 400]);
-    $busy = sr_lms_google_freebusy(sr_lms_google_calendar_config()['calendar_id'], $slot['start'], $slot['end'], $slot['timezone']);
-    if (is_wp_error($busy)) return new WP_Error('availability_unavailable', 'We could not verify this time slot. Please try again.', ['status' => 503]);
-    foreach ($busy as $period) {
-        $busy_start = strtotime($period['start'] ?? ''); $busy_end = strtotime($period['end'] ?? '');
-        if ($busy_start && $busy_end && $slot['start']->getTimestamp() < $busy_end && $slot['end']->getTimestamp() > $busy_start) return new WP_Error('slot_unavailable', 'That time has just become unavailable. Please choose another slot.', ['status' => 409]);
+    if (!$amount || !$name || !is_email($email) || !$phone || !isset($service_names[$offer])) return new WP_Error('booking_details', 'Please complete all required booking details.', ['status'=>400]);
+    if (!$is_package) {
+        $slot = sr_lms_booking_slot_from_request(['booking_date'=>$date,'booking_time'=>$time,'booking_duration'=>$duration]);
+        if (is_wp_error($slot)) return new WP_Error($slot->get_error_code(), $slot->get_error_message(), ['status'=>400]);
+        $busy = sr_lms_google_freebusy(sr_lms_google_calendar_config()['calendar_id'], $slot['start'], $slot['end'], $slot['timezone']);
+        if (is_wp_error($busy)) return new WP_Error('availability_unavailable', 'We could not verify this time slot. Please try again.', ['status'=>503]);
+        foreach ($busy as $period) {
+            $busy_start = strtotime($period['start'] ?? ''); $busy_end = strtotime($period['end'] ?? '');
+            if ($busy_start && $busy_end && $slot['start']->getTimestamp() < $busy_end && $slot['end']->getTimestamp() > $busy_start) return new WP_Error('slot_unavailable', 'That time has just become unavailable. Please choose another slot.', ['status'=>409]);
+        }
     }
     $mode = (string) (sr_lms_payment_settings()['mode'] ?? 'test');
     $gateway = sr_lms_payment_api($mode, 'orders', [
-        'amount' => $amount,
-        'currency' => 'INR',
-        'receipt' => 'consult-' . wp_generate_password(12, false, false),
-        'notes' => ['service' => $offer, 'session_minutes' => (string) $duration],
+        'amount'=>$amount, 'currency'=>'INR', 'receipt'=>($is_package ? 'package-' : 'consult-') . wp_generate_password(12, false, false),
+        'notes'=>['service'=>$offer, 'session_minutes'=>$is_package ? '0' : (string)$duration],
     ], 'POST');
     if (is_wp_error($gateway)) return $gateway;
-    if (!preg_match('/^order_[A-Za-z0-9]+$/D', (string) ($gateway['id'] ?? '')) || (int) ($gateway['amount'] ?? 0) !== $amount || ($gateway['currency'] ?? '') !== 'INR') return new WP_Error('gateway_order', 'Secure checkout could not be started. Please retry.', ['status' => 502]);
+    if (!preg_match('/^order_[A-Za-z0-9]+$/D', (string)($gateway['id'] ?? '')) || (int)($gateway['amount'] ?? 0) !== $amount || ($gateway['currency'] ?? '') !== 'INR') return new WP_Error('gateway_order', 'Secure checkout could not be started. Please retry.', ['status'=>502]);
     $payload = [
-        'order_id' => $gateway['id'], 'mode' => $mode, 'amount' => $amount, 'offer' => $offer,
-        'duration' => $duration, 'name' => $name, 'email' => $email, 'phone' => $phone,
-        'challenge' => $challenge, 'date' => $date, 'time' => $time,
-        'service' => $service_names[$offer], 'created' => time(), 'status' => 'pending',
+        'order_id'=>$gateway['id'], 'mode'=>$mode, 'amount'=>$amount, 'offer'=>$offer, 'duration'=>$is_package ? 0 : $duration,
+        'name'=>$name, 'email'=>$email, 'phone'=>$phone, 'challenge'=>$challenge, 'date'=>$date, 'time'=>$time,
+        'service'=>$service_names[$offer], 'package'=>$is_package, 'created'=>time(), 'status'=>'pending',
     ];
     global $wpdb;
     $now = current_time('mysql', true);
     $saved = $wpdb->insert(sr_lms_table('consultation_bookings'), [
-        'gateway_order'=>$gateway['id'], 'mode'=>$mode, 'amount'=>$amount, 'status'=>'created',
-        'offer'=>$offer, 'duration'=>$duration, 'booking_date'=>$date, 'booking_time'=>$time,
+        'gateway_order'=>$gateway['id'], 'mode'=>$mode, 'amount'=>$amount, 'status'=>'created', 'offer'=>$offer,
+        'duration'=>$is_package ? 0 : $duration, 'booking_date'=>$is_package ? null : $date, 'booking_time'=>$is_package ? null : $time,
         'customer_name'=>$name, 'customer_email'=>$email, 'customer_phone'=>$phone, 'challenge'=>$challenge,
         'created_at'=>$now, 'updated_at'=>$now,
     ]);
-    if (!$saved) return new WP_Error('booking_storage', 'Could not save the booking request. Please retry before paying.', ['status'=>500]);
+    if (!$saved) return new WP_Error('booking_storage', 'Could not save the purchase request. Please retry before paying.', ['status'=>500]);
     set_transient('sr_lms_consultation_' . $gateway['id'], $payload, DAY_IN_SECONDS);
     return new WP_REST_Response([
-        'order_id' => $gateway['id'], 'key' => sr_lms_payment_credentials($mode)['key'],
-        'amount' => $amount, 'currency' => 'INR', 'name' => 'Shalini Rathod Academy',
-        'description' => $service_names[$offer] . ' · ' . $duration . ' minutes',
-        'test' => $mode === 'test',
+        'order_id'=>$gateway['id'], 'key'=>sr_lms_payment_credentials($mode)['key'], 'amount'=>$amount, 'currency'=>'INR',
+        'name'=>'Shalini Rathod Academy', 'description'=>$service_names[$offer] . ($is_package ? ' · Package' : ' · ' . $duration . ' minutes'),
+        'test'=>$mode==='test',
     ]);
 }
 
@@ -465,11 +465,24 @@ function sr_lms_create_paid_consultation(array $booking) {
     }
 }
 
+function sr_lms_send_package_confirmation(array $purchase): array {
+    $config = sr_lms_zoom_config();
+    $headers = ['Content-Type: text/html; charset=UTF-8'];
+    $subject = 'Package purchase received: ' . $purchase['service'];
+    $html = '<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#20372d"><h2>Thank you for your purchase</h2><p>Hello ' . esc_html($purchase['name']) . ',</p><p>Your test payment has been verified for <strong>' . esc_html($purchase['service']) . '</strong>.</p><p>Our team will contact you within 48 hours to help you get started.</p><p>Warmly,<br>Shalini Rathod Academy</p></div>';
+    $sent_user = wp_mail($purchase['email'], $subject, $html, $headers);
+    $admin_email = $config['admin_email'];
+    $admin_html = '<p>New package purchase: <strong>' . esc_html($purchase['service']) . '</strong></p><p>Name: ' . esc_html($purchase['name']) . '<br>Email: ' . esc_html($purchase['email']) . '<br>Phone: ' . esc_html($purchase['phone']) . '</p><p>Amount: INR ' . esc_html(number_format($purchase['amount']/100, 2)) . '<br>Razorpay order: ' . esc_html($purchase['order_id']) . '</p><p>Please contact the customer within 48 hours.</p>';
+    $sent_admin = !is_email($admin_email) || strtolower($admin_email) === strtolower($purchase['email']) || wp_mail($admin_email, 'New package purchase: ' . $purchase['service'], $admin_html, $headers);
+    if (!$sent_user || !$sent_admin) error_log('[SR Academy] Package purchase email delivery failed for order ' . sanitize_text_field($purchase['order_id']));
+    return ['package'=>true];
+}
+
 function sr_lms_consultation_verify(WP_REST_Request $request) {
     global $wpdb;
-    $order_id = sanitize_text_field((string) $request->get_param('razorpay_order_id'));
-    $payment_id = sanitize_text_field((string) $request->get_param('razorpay_payment_id'));
-    $signature = (string) $request->get_param('razorpay_signature');
+    $order_id = sanitize_text_field((string)$request->get_param('razorpay_order_id'));
+    $payment_id = sanitize_text_field((string)$request->get_param('razorpay_payment_id'));
+    $signature = (string)$request->get_param('razorpay_signature');
     if (!preg_match('/^order_[A-Za-z0-9]+$/D', $order_id) || !preg_match('/^pay_[A-Za-z0-9]+$/D', $payment_id)) return new WP_Error('payment_reference', 'Payment reference is invalid.', ['status'=>400]);
     $key = 'sr_lms_consultation_' . $order_id;
     $booking = get_transient($key);
@@ -477,8 +490,9 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
         $stored = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . sr_lms_table('consultation_bookings') . ' WHERE gateway_order=%s', $order_id), ARRAY_A);
         $service_names = ['comm-call'=>'1:1 Communication & Confidence','comm-core'=>'Core Communication Package','comm-presence'=>'Powerful Presence Package','comm-commanding'=>'Commanding Presence Package','style-call'=>'1:1 Image Styling & Confidence','color-call'=>'Personalised Colour Analysis Consultation','occasion-call'=>'Personalised Occasion Styling'];
         if ($stored && isset($service_names[$stored['offer']])) {
-            $booking = ['order_id'=>$order_id,'mode'=>$stored['mode'],'amount'=>(int)$stored['amount'],'offer'=>$stored['offer'],'duration'=>(int)$stored['duration'],'name'=>$stored['customer_name'],'email'=>$stored['customer_email'],'phone'=>$stored['customer_phone'],'challenge'=>$stored['challenge'],'date'=>$stored['booking_date'],'time'=>$stored['booking_time'],'service'=>$service_names[$stored['offer']],'status'=>$stored['status']==='confirmed'?'complete':'pending'];
-            if ($booking['status']==='complete') {
+            $is_package = in_array($stored['offer'], ['comm-core','comm-presence','comm-commanding'], true);
+            $booking = ['order_id'=>$order_id,'mode'=>$stored['mode'],'amount'=>(int)$stored['amount'],'offer'=>$stored['offer'],'duration'=>(int)$stored['duration'],'name'=>$stored['customer_name'],'email'=>$stored['customer_email'],'phone'=>$stored['customer_phone'],'challenge'=>$stored['challenge'],'date'=>$stored['booking_date'],'time'=>$stored['booking_time'],'service'=>$service_names[$stored['offer']],'package'=>$is_package,'status'=>$stored['status']==='confirmed'?'complete':'pending'];
+            if ($booking['status']==='complete' && !$is_package) {
                 $slot = sr_lms_booking_slot_from_request(['booking_date'=>$booking['date'],'booking_time'=>$booking['time'],'booking_duration'=>$booking['duration']]);
                 if (!is_wp_error($slot)) $booking['date_label'] = wp_date('j F Y', $slot['start']->getTimestamp(), $slot['start']->getTimezone()) . ' · ' . $slot['start']->format('g:i A') . ' – ' . $slot['end']->format('g:i A') . ' ' . $slot['timezone'];
             }
@@ -486,41 +500,55 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
         }
     }
     if (!is_array($booking) || ($booking['order_id'] ?? '') !== $order_id) return new WP_Error('booking_expired', 'This checkout expired. If you were charged, contact the Academy before paying again.', ['status'=>410]);
-    $credentials = sr_lms_payment_credentials((string) $booking['mode']);
+    $is_package = !empty($booking['package']) || in_array($booking['offer'] ?? '', ['comm-core','comm-presence','comm-commanding'], true);
+    $credentials = sr_lms_payment_credentials((string)$booking['mode']);
     if (!sr_lms_payment_signature($order_id . '|' . $payment_id, $signature, $credentials['secret'])) return new WP_Error('payment_signature', 'Payment could not be verified. Contact the Academy if you were charged.', ['status'=>400]);
-    if (($booking['status'] ?? '') === 'complete') return ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service'],'date_label'=>$booking['date_label']];
-    $payment = sr_lms_payment_api((string) $booking['mode'], 'payments/' . $payment_id);
+    if (($booking['status'] ?? '') === 'complete') {
+        $response = ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service']];
+        if ($is_package) $response['follow_up'] = 'Our team will contact you within 48 hours.';
+        else $response['date_label'] = $booking['date_label'] ?? '';
+        return $response;
+    }
+    $payment = sr_lms_payment_api((string)$booking['mode'], 'payments/' . $payment_id);
     if (is_wp_error($payment)) return $payment;
-    if (($payment['order_id'] ?? '') !== $order_id || (int) ($payment['amount'] ?? 0) !== (int) $booking['amount'] || ($payment['currency'] ?? '') !== 'INR') return new WP_Error('payment_mismatch', 'Payment details do not match this booking.', ['status'=>400]);
+    if (($payment['order_id'] ?? '') !== $order_id || (int)($payment['amount'] ?? 0) !== (int)$booking['amount'] || ($payment['currency'] ?? '') !== 'INR') return new WP_Error('payment_mismatch', 'Payment details do not match this booking.', ['status'=>400]);
     if (($payment['status'] ?? '') !== 'captured') return new WP_Error('payment_pending', 'Payment is not captured yet. Please wait and retry verification.', ['status'=>409]);
     $table = sr_lms_table('consultation_bookings');
-    $now = current_time('mysql',true);
+    $now = current_time('mysql', true);
     $claimed = $wpdb->query($wpdb->prepare("UPDATE $table SET gateway_payment=%s,status='processing',updated_at=%s WHERE gateway_order=%s AND (status IN ('created','paid') OR (status='processing' AND updated_at < %s))", $payment_id, $now, $order_id, gmdate('Y-m-d H:i:s', time()-300)));
     if ($claimed !== 1) {
         $current = $wpdb->get_row($wpdb->prepare("SELECT status FROM $table WHERE gateway_order=%s", $order_id), ARRAY_A);
-        if (($current['status'] ?? '') === 'confirmed' && !empty($booking['date_label'])) return ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service'],'date_label'=>$booking['date_label']];
-        return new WP_Error('booking_processing', 'Your payment is verified and the booking is being completed. Please wait a moment before retrying.', ['status'=>409]);
+        if (($current['status'] ?? '') === 'confirmed') return ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service'],'follow_up'=>$is_package ? 'Our team will contact you within 48 hours.' : '', 'date_label'=>$booking['date_label'] ?? ''];
+        return new WP_Error('booking_processing', 'Your payment is verified and the request is being completed. Please wait a moment before retrying.', ['status'=>409]);
     }
-    $booking['processing'] = true; set_transient($key, $booking, DAY_IN_SECONDS);
-    $result = sr_lms_create_paid_consultation($booking);
+    $booking['processing'] = true;
+    set_transient($key, $booking, DAY_IN_SECONDS);
+    $result = $is_package ? sr_lms_send_package_confirmation($booking) : sr_lms_create_paid_consultation($booking);
     if (is_wp_error($result)) {
-        $booking['processing'] = false; set_transient($key, $booking, DAY_IN_SECONDS);
+        $booking['processing'] = false;
+        set_transient($key, $booking, DAY_IN_SECONDS);
         error_log('[SR Academy] Paid consultation fulfillment failed for order ' . $order_id . ': ' . $result->get_error_message());
-        $refund = sr_lms_payment_api((string) $booking['mode'], 'payments/' . $payment_id . '/refunds', ['amount'=>(int) $booking['amount']], 'POST');
+        $refund = sr_lms_payment_api((string)$booking['mode'], 'payments/' . $payment_id . '/refunds', ['amount'=>(int)$booking['amount']], 'POST');
         if (is_wp_error($refund)) {
             $wpdb->update($table, ['status'=>'refund_required','updated_at'=>current_time('mysql',true)], ['gateway_order'=>$order_id]);
             $admin_email = sr_lms_zoom_config()['admin_email'];
             if (is_email($admin_email)) wp_mail($admin_email, 'Action required: consultation refund', 'A verified consultation payment could not be booked or refunded automatically. Order: '.esc_html($order_id).'; payment: '.esc_html($payment_id).'. Please review it in Razorpay and contact the customer.');
             return new WP_Error('booking_refund_required', 'Payment was received, but the slot could not be confirmed or refunded automatically. Do not pay again; the Academy team has been alerted to arrange your refund.', ['status'=>502]);
         }
-        $booking['status'] = 'refund_requested'; set_transient($key, $booking, DAY_IN_SECONDS);
+        $booking['status'] = 'refund_requested';
+        set_transient($key, $booking, DAY_IN_SECONDS);
         $wpdb->update($table, ['status'=>'refund_requested','updated_at'=>current_time('mysql',true)], ['gateway_order'=>$order_id]);
         return new WP_Error('booking_refunded', 'The selected time could not be confirmed, so a full refund has been requested. Please choose another slot.', ['status'=>409]);
     }
-    $booking['status'] = 'complete'; $booking['processing'] = false; $booking['date_label'] = $result['date_label'];
+    $booking['status'] = 'complete';
+    $booking['processing'] = false;
+    if (!$is_package) $booking['date_label'] = $result['date_label'];
     set_transient($key, $booking, DAY_IN_SECONDS);
-    $wpdb->update($table, ['status'=>'confirmed','zoom_meeting'=>$result['meeting_id'],'google_event'=>$result['event_id'],'updated_at'=>current_time('mysql',true)], ['gateway_order'=>$order_id]);
-    return ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service'],'date_label'=>$result['date_label']];
+    $wpdb->update($table, ['status'=>'confirmed','zoom_meeting'=>$result['meeting_id'] ?? null,'google_event'=>$result['event_id'] ?? null,'updated_at'=>current_time('mysql',true)], ['gateway_order'=>$order_id]);
+    $response = ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service']];
+    if ($is_package) $response['follow_up'] = 'Our team will contact you within 48 hours.';
+    else $response['date_label'] = $result['date_label'];
+    return $response;
 }
 
 add_action('rest_api_init', static function (): void {
