@@ -349,7 +349,6 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
           <h3 id="package-booking-success-title">Thank you for your purchase!</h3>
           <p class="package-booking-success-plan" data-confirmation-details></p>
           <p id="package-booking-success-description">Our team will contact you within 48 hours to help you get started.</p>
-          <p class="package-booking-email-status" data-booking-email-status role="status" aria-live="polite"></p>
           <button class="package-booking-submit package-booking-success-done" type="button" data-close-booking-success>Done</button>
         </section>
       </div>
