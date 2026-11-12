@@ -239,7 +239,7 @@ function sr_lms_booking_slot_from_request(array $data, bool $enforce_notice = tr
     if ($hour < 1 || $hour > 12 || $minute > 59) return new WP_Error('invalid_booking_slot', 'Please select a valid time slot.');
     if ($ampm === 'AM') { if ($hour === 12) $hour = 0; } else { if ($hour !== 12) $hour += 12; }
     $start_minutes = $hour * 60 + $minute;
-    if ($enforce_notice && ($start_minutes < 600 || $start_minutes % 30 !== 0 || $start_minutes + $duration > 1140)) return new WP_Error('invalid_booking_slot', 'Please choose a slot between 10:00 AM and 7:00 PM IST.');
+    if ($enforce_notice && (!in_array($start_minutes, [600, 675, 795, 915, 1035], true) || $start_minutes + $duration > 1140)) return new WP_Error('invalid_booking_slot', 'Please choose a slot between 10:00 AM and 7:00 PM IST.');
     $start = DateTimeImmutable::createFromFormat('!Y-m-d H:i', $date.' '.sprintf('%02d:%02d',$hour,$minute), $zone);
     if (!$start || $start->format('Y-m-d') !== $date || $start <= new DateTimeImmutable('now', $zone) || $start > (new DateTimeImmutable('now', $zone))->modify('+180 days')) {
         return new WP_Error('invalid_booking_slot', 'Please choose a future date within the next six months.');
@@ -403,6 +403,7 @@ function sr_lms_consultation_order(WP_REST_Request $request) {
     if ($hits >= 10) return new WP_Error('rate_limited', 'Please wait before starting another checkout.', ['status'=>429]);
     set_transient($rate_key, $hits + 1, HOUR_IN_SECONDS);
     $duration = $is_package ? 60 : absint($request->get_param('duration'));
+    if (!$is_package && $duration !== 60) return new WP_Error('invalid_duration', 'Please select a 60-minute consultation.', ['status'=>400]);
     $amount = sr_lms_consultation_price($offer, $duration);
     $name = sanitize_text_field((string) $request->get_param('name'));
     $email = sanitize_email((string) $request->get_param('email'));
@@ -657,7 +658,7 @@ function sr_lms_google_calendar_slots(WP_REST_Request $request) {
     $busy_periods = array_map(static function ($period) {
         return [strtotime($period['start'] ?? ''), strtotime($period['end'] ?? '')];
     }, $busy);
-    $starts = range(600, 1140 - $duration, 30);
+    $starts = array_filter([600, 675, 795, 915, 1035], static fn($minutes) => $minutes + $duration <= 1140);
     $slots = [];
     foreach ($starts as $minutes) {
         $slot_start = $local_start->setTime(intdiv($minutes, 60), $minutes % 60);
