@@ -7,7 +7,6 @@
   const dateInput = form.elements.date;
   const dates = form.querySelector('[data-date-options]');
   const success = document.querySelector('[data-booking-success]');
-  const emailStatus = success?.querySelector('[data-booking-email-status]');
   const dismissedConfirmation = document.querySelector('[data-booking-success-dismissed]');
   const packageGroup = form.querySelector('.package-booking-package-group');
   const scheduleGroups = form.querySelectorAll('[data-booking-schedule]');
@@ -149,13 +148,6 @@
           if (!confirmed.confirmed) throw new Error('Payment is not confirmed yet. Please contact the Academy before retrying.');
           form.hidden = true;
           success.querySelector('[data-confirmation-details]').textContent = confirmed.service;
-          emailStatus.textContent = confirmed.email_sent && confirmed.team_notified
-            ? `Confirmation email sent to ${details.email}. The Academy team has been notified and will contact you within 48 hours.`
-            : confirmed.email_sent
-              ? `Confirmation email sent to ${details.email}, but the Academy team was not notified. Please contact the Academy; do not pay again.`
-              : confirmed.team_notified
-                ? 'The Academy team has been notified and will contact you within 48 hours, but the confirmation email could not be sent. Please contact the Academy if you need a receipt; do not pay again.'
-                : 'Payment is confirmed, but the site could not send the confirmation email or notify the Academy team. Please contact the Academy; do not pay again.';
           success.hidden = false;
           document.body.style.overflow = 'hidden';
           success.focus();
