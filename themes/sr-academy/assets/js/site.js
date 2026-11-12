@@ -929,7 +929,12 @@ if (bookingModal) {
         });
         const text = await response.text();
         let result;
-        try { result = JSON.parse(text); } catch (_) { throw new Error('The booking service returned an unexpected response. Please retry or contact the Academy.'); }
+        try {
+          const start = text.indexOf('{');
+          const end = text.lastIndexOf('}');
+          if (start < 0 || end < start) throw new Error('Invalid response');
+          result = JSON.parse(text.slice(start, end + 1));
+        } catch (_) { throw new Error('The booking service returned an unexpected response. Please retry or contact the Academy.'); }
         if (!response.ok) throw new Error(result.message || 'Checkout could not continue. Please try again.');
         return result;
       };
