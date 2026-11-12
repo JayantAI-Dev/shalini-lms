@@ -8,6 +8,8 @@
   const dates = form.querySelector('[data-date-options]');
   const emailInput = form.elements.email;
   const packageOptions = Array.from(form.querySelectorAll('[data-plan]'));
+  const packagePriceLabel = form.closest('.package-booking-section')?.querySelector('[data-booking-price]');
+  if (packagePriceLabel) packagePriceLabel.textContent = 'FROM ₹49,999';
   const purchasedPackageStorageKey = 'sr-academy-package-purchases-v1';
   let serverPurchasedPackages = new Set();
   const packageGroup = form.querySelector('.package-booking-package-group');
