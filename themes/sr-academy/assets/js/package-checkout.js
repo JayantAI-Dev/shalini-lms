@@ -6,14 +6,11 @@
   const slots = form.querySelector('[data-slot-options]');
   const dateInput = form.elements.date;
   const dates = form.querySelector('[data-date-options]');
-  const emailInput = form.elements.email;
   const packageOptions = Array.from(form.querySelectorAll('[data-plan]'));
   const bookingSection = form.closest('.package-booking-section');
   const packagePriceLabel = bookingSection?.querySelector('[data-booking-price]');
   const startingPrice = Math.min(...packageOptions.map((button) => Number(button.dataset.price)).filter((price) => Number.isFinite(price) && price > 0));
   if (packagePriceLabel && Number.isFinite(startingPrice)) packagePriceLabel.textContent = 'FROM ₹' + startingPrice.toLocaleString('en-IN');
-  const purchasedPackageStorageKey = 'sr-academy-package-purchases-v1';
-  let serverPurchasedPackages = new Set();
   const packageGroup = form.querySelector('.package-booking-package-group');
   const scheduleGroups = form.querySelectorAll('[data-booking-schedule]');
   const modeTabs = bookingSection?.querySelectorAll('[data-booking-mode]') || [];
@@ -68,67 +65,6 @@
     if (!response.ok) throw new Error(data.message || 'We could not complete your request. Please try again.');
     return data;
   };
-  const readPurchasedPackages = () => {
-    try {
-      const data = JSON.parse(localStorage.getItem(purchasedPackageStorageKey) || '{}');
-      return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
-    } catch (_) { return {}; }
-  };
-  const rememberPurchasedPackage = (email, plan) => {
-    const key = email.trim().toLowerCase();
-    if (!key || !plan) return;
-    try {
-      const data = readPurchasedPackages();
-      const plans = Array.isArray(data[key]) ? data[key] : [];
-      data[key] = Array.from(new Set([...plans, plan]));
-      localStorage.setItem(purchasedPackageStorageKey, JSON.stringify(data));
-    } catch (_) {}
-  };
-  const refreshPurchasedPackages = () => {
-    const email = emailInput.value.trim().toLowerCase();
-    const stored = readPurchasedPackages();
-    const purchased = new Set([...(Array.isArray(stored[email]) ? stored[email] : []), ...serverPurchasedPackages]);
-    packageOptions.forEach((button) => {
-      const isPurchased = Boolean(email) && purchased.has(button.dataset.plan);
-      button.disabled = isPurchased;
-      let label = button.querySelector('[data-purchased-label]');
-      if (isPurchased && !label) {
-        label = document.createElement('span');
-        label.dataset.purchasedLabel = '';
-        label.textContent = 'Purchased';
-        button.append(label);
-      }
-      if (label) label.hidden = !isPurchased;
-      if (isPurchased && selectedPlan === button.dataset.plan) {
-        selectedPlan = '';
-        button.classList.remove('is-selected');
-        button.setAttribute('aria-pressed', 'false');
-      }
-    });
-  };
-  let packageLookupTimer = 0;
-  let packageLookupRequest = 0;
-  const lookupPurchasedPackages = () => {
-    window.clearTimeout(packageLookupTimer);
-    serverPurchasedPackages = new Set();
-    refreshPurchasedPackages();
-    const email = emailInput.value.trim();
-    const phone = form.elements.phone.value.trim();
-    const digits = phone.replace(/\D/g, '');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || digits.length < 7) return;
-    const requestId = ++packageLookupRequest;
-    packageLookupTimer = window.setTimeout(async () => {
-      try {
-        const data = await api('purchases', {email, phone});
-        if (requestId !== packageLookupRequest || emailInput.value.trim().toLowerCase() !== email.toLowerCase() || form.elements.phone.value.trim() !== phone) return;
-        serverPurchasedPackages = new Set(Array.isArray(data.offers) ? data.offers : []);
-        refreshPurchasedPackages();
-      } catch (_) {}
-    }, 300);
-  };
-  emailInput.addEventListener('change', lookupPurchasedPackages);
-  form.elements.phone.addEventListener('change', lookupPurchasedPackages);
-  lookupPurchasedPackages();
   packageOptions.forEach((button) => button.addEventListener('click', () => {
     if (button.disabled) return;
     selectedPlan = button.dataset.plan;
@@ -199,10 +135,8 @@
           say('Verifying your test payment…');
           const confirmed = await api('verify', payment);
           if (!confirmed.confirmed) throw new Error('Payment is not confirmed yet. Please contact the Academy before retrying.');
-          rememberPurchasedPackage(details.email, selectedPlan);
-          refreshPurchasedPackages();
           submit.disabled = false;
-          say('Payment confirmed. This package is marked as purchased. Our team will contact you within 48 hours.');
+          say('Payment confirmed. Our team will contact you within 48 hours.');
         } catch (error) { say(error.message); submit.disabled = false; }
       }, modal:{ondismiss:() => { say('Checkout closed. No purchase was confirmed.'); submit.disabled = false; }} });
       checkout.on('payment.failed', () => { say('Test payment failed. No purchase was confirmed.'); submit.disabled = false; }); checkout.open();
