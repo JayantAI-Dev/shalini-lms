@@ -96,7 +96,7 @@ JS
     if (sr_theme_slug() === 'enroll' && sr_theme_is_coaching_offer()) {
         wp_enqueue_script('sr-brochure', sr_theme_asset('assets/js/brochure.js'), ['sr-site'], $version, true);
         $checkout_script = get_template_directory() . '/assets/js/package-checkout.js';
-        $checkout_script_version = is_file($checkout_script) ? (string) filemtime($checkout_script) : $version;
+        $checkout_script_version = is_file($checkout_script) ? (string) filemtime($checkout_script) . '-' . substr(hash_file('sha256', $checkout_script), 0, 12) : $version;
         wp_enqueue_script('sr-package-checkout', sr_theme_asset('assets/js/package-checkout.js'), ['sr-site','sr-lms-razorpay-checkout'], $checkout_script_version, true);
     }
 }
