@@ -323,7 +323,7 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
 
     <?php if (($_GET['offer'] ?? '') === 'comm-package') { ?>
     <section class="package-booking-section" id="package-booking" aria-labelledby="package-booking-title">
-      <header class="package-booking-heading"><p class="package-page-kicker">SCHEDULE YOUR SESSION</p><h2 id="package-booking-title">Reserve Your Time</h2><p>Choose your package and preferred 60-minute session time.</p></header>
+      <header class="package-booking-heading"><p class="package-page-kicker">SCHEDULE YOUR SESSION</p><h2 id="package-booking-title">Reserve Your Time</h2><nav class="package-booking-tabs" aria-label="Booking type"><span class="is-selected">1:1 PACKAGE · FROM ₹49,999</span><a href="<?php echo esc_url(home_url('/contact/?type=consultation')); ?>">15-MIN DISCOVERY (FREE)</a></nav></header>
       <form class="package-booking-form" data-package-checkout novalidate>
         <div class="package-booking-fields">
           <label>Full Name *<input name="name" autocomplete="name" required maxlength="120" placeholder="Your name"></label>
@@ -335,7 +335,7 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
           <button type="button" class="package-booking-package-option" data-plan="comm-presence" data-price="74999"><span>Powerful Presence</span><strong>₹74,999</strong></button>
           <button type="button" class="package-booking-package-option" data-plan="comm-commanding" data-price="99999"><span>Commanding Presence</span><strong>₹99,999</strong></button>
         </div></fieldset>
-        <div class="package-booking-choice-group"><label for="package-booking-date">Select Preferred Date:</label><input id="package-booking-date" name="date" type="date" required></div>
+        <fieldset class="package-booking-choice-group"><legend>Select Preferred Date:</legend><div class="package-booking-options package-booking-dates" data-date-options></div><input class="package-booking-date-input" id="package-booking-date" name="date" type="date" required tabindex="-1" aria-hidden="true"></fieldset>
         <fieldset class="package-booking-choice-group"><legend>Available Time Slot:</legend><div class="package-booking-options" data-slot-options><p>Select a date to load live availability.</p></div></fieldset>
         <div class="package-booking-submit-row"><p>Razorpay test mode · no live charge</p><button class="package-booking-submit" type="submit">Continue to test payment</button></div>
         <p class="package-booking-status" data-booking-status role="status" aria-live="polite"></p>
