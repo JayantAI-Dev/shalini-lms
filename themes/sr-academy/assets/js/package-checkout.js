@@ -201,6 +201,7 @@
           if (!confirmed.confirmed) throw new Error('Payment is not confirmed yet. Please contact the Academy before retrying.');
           rememberPurchasedPackage(details.email, selectedPlan);
           refreshPurchasedPackages();
+          submit.disabled = false;
           say('Payment confirmed. This package is marked as purchased. Our team will contact you within 48 hours.');
         } catch (error) { say(error.message); submit.disabled = false; }
       }, modal:{ondismiss:() => { say('Checkout closed. No purchase was confirmed.'); submit.disabled = false; }} });
