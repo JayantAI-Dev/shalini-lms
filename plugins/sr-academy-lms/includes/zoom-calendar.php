@@ -339,6 +339,9 @@ function sr_lms_consultation_price(string $offer, int $duration): int {
         'comm-core' => [60 => 4999900],
         'comm-presence' => [60 => 7499900],
         'comm-commanding' => [60 => 9999900],
+        'style-signature' => [60 => 7000000],
+        'style-exclusive' => [60 => 9000000],
+        'style-vip' => [60 => 11000000],
         'style-call' => [30 => 375000, 60 => 799900],
         'color-call' => [60 => 799900, 90 => 1399900],
         'occasion-call' => [30 => 375000, 60 => 799900],
@@ -360,7 +363,7 @@ function sr_lms_consultation_purchased_offers(string $email, string $phone, stri
         'SELECT offer, customer_phone FROM ' . sr_lms_table('consultation_bookings') . " WHERE LOWER(customer_email)=LOWER(%s) AND mode=%s AND status='confirmed' AND booking_time='PACKAGE'",
         $email, $mode
     ), ARRAY_A);
-    $package_offers = ['comm-core', 'comm-presence', 'comm-commanding'];
+    $package_offers = ['comm-core', 'comm-presence', 'comm-commanding', 'style-signature', 'style-exclusive', 'style-vip'];
     $purchased = [];
     foreach ((array)$rows as $row) {
         if (sr_lms_consultation_normalize_phone((string)($row['customer_phone'] ?? '')) !== $wanted_phone) continue;
@@ -388,7 +391,7 @@ function sr_lms_consultation_purchases(WP_REST_Request $request) {
 function sr_lms_consultation_order(WP_REST_Request $request) {
     if (!sr_lms_payment_ready()) return new WP_Error('checkout_unavailable', 'Secure checkout is not available right now.', ['status'=>503]);
     $offer = sanitize_key((string) $request->get_param('offer'));
-    $package_offers = ['comm-core','comm-presence','comm-commanding'];
+    $package_offers = ['comm-core','comm-presence','comm-commanding','style-signature','style-exclusive','style-vip'];
     $is_package = in_array($offer, $package_offers, true);
     if ($is_package && (sr_lms_payment_settings()['mode'] ?? 'test') !== 'test') return new WP_Error('test_mode_required', 'Package checkout is currently available in test mode only.', ['status'=>503]);
     if (!$is_package && (!sr_lms_google_calendar_ready() || !sr_lms_zoom_ready())) return new WP_Error('booking_unavailable', 'Online booking is not fully configured yet.', ['status'=>503]);
@@ -410,6 +413,9 @@ function sr_lms_consultation_order(WP_REST_Request $request) {
         'comm-core'=>'Core Communication Package',
         'comm-presence'=>'Powerful Presence Package',
         'comm-commanding'=>'Commanding Presence Package',
+        'style-signature'=>'Signature Experience Package',
+        'style-exclusive'=>'Exclusive Transformation Package',
+        'style-vip'=>'VIP Makeover Experience Package',
         'style-call'=>'1:1 Image Styling & Confidence',
         'color-call'=>'Personalised Colour Analysis Consultation',
         'occasion-call'=>'Personalised Occasion Styling',
@@ -545,9 +551,9 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
     $booking = get_transient($key);
     if (!is_array($booking)) {
         $stored = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . sr_lms_table('consultation_bookings') . ' WHERE gateway_order=%s', $order_id), ARRAY_A);
-        $service_names = ['comm-call'=>'1:1 Communication & Confidence','comm-core'=>'Core Communication Package','comm-presence'=>'Powerful Presence Package','comm-commanding'=>'Commanding Presence Package','style-call'=>'1:1 Image Styling & Confidence','color-call'=>'Personalised Colour Analysis Consultation','occasion-call'=>'Personalised Occasion Styling'];
+        $service_names = ['comm-call'=>'1:1 Communication & Confidence','comm-core'=>'Core Communication Package','comm-presence'=>'Powerful Presence Package','comm-commanding'=>'Commanding Presence Package','style-signature'=>'Signature Experience Package','style-exclusive'=>'Exclusive Transformation Package','style-vip'=>'VIP Makeover Experience Package','style-call'=>'1:1 Image Styling & Confidence','color-call'=>'Personalised Colour Analysis Consultation','occasion-call'=>'Personalised Occasion Styling'];
         if ($stored && isset($service_names[$stored['offer']])) {
-            $is_package = in_array($stored['offer'], ['comm-core','comm-presence','comm-commanding'], true);
+            $is_package = in_array($stored['offer'], ['comm-core','comm-presence','comm-commanding','style-signature','style-exclusive','style-vip'], true);
             $booking = ['order_id'=>$order_id,'mode'=>$stored['mode'],'amount'=>(int)$stored['amount'],'offer'=>$stored['offer'],'duration'=>(int)$stored['duration'],'name'=>$stored['customer_name'],'email'=>$stored['customer_email'],'phone'=>$stored['customer_phone'],'challenge'=>$stored['challenge'],'date'=>$stored['booking_date'],'time'=>$stored['booking_time'],'service'=>$service_names[$stored['offer']],'package'=>$is_package,'status'=>$stored['status']==='confirmed'?'complete':'pending'];
             if ($booking['status']==='complete' && !$is_package) {
                 $slot = sr_lms_booking_slot_from_request(['booking_date'=>$booking['date'],'booking_time'=>$booking['time'],'booking_duration'=>$booking['duration']]);
@@ -557,7 +563,7 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
         }
     }
     if (!is_array($booking) || ($booking['order_id'] ?? '') !== $order_id) return new WP_Error('booking_expired', 'This checkout expired. If you were charged, contact the Academy before paying again.', ['status'=>410]);
-    $is_package = !empty($booking['package']) || in_array($booking['offer'] ?? '', ['comm-core','comm-presence','comm-commanding'], true);
+    $is_package = !empty($booking['package']) || in_array($booking['offer'] ?? '', ['comm-core','comm-presence','comm-commanding','style-signature','style-exclusive','style-vip'], true);
     $credentials = sr_lms_payment_credentials((string)$booking['mode']);
     if (!sr_lms_payment_signature($order_id . '|' . $payment_id, $signature, $credentials['secret'])) return new WP_Error('payment_signature', 'Payment could not be verified. Contact the Academy if you were charged.', ['status'=>400]);
     if (($booking['status'] ?? '') === 'complete') {
