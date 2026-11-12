@@ -470,7 +470,6 @@ if (bookingModal) {
   const scheduleDateLabel = bookingModal.querySelector('#booking-date-label');
   const bookingDate = bookingModal.querySelector('#booking-date');
   const bookingTime = bookingModal.querySelector('#booking-time');
-  const timeSlotStarts = Array.from(bookingTime?.options || []).map((option) => option.value);
   const bookingTotal = bookingModal.querySelector('#booking-total');
   const bookingContinue = bookingModal.querySelector('#booking-continue');
   const bookingBack = bookingModal.querySelector('#booking-back');
@@ -629,22 +628,18 @@ if (bookingModal) {
     const suffix = hours24 >= 12 ? 'PM' : 'AM';
     return `${String(hours12).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')} ${suffix}`;
   };
+  const bookingDuration = () => getOffering().type === 'call' ? Number(selectedDuration) : (Number(getOffering().duration) || 60);
   const updateTimeSlots = () => {
-    if (!bookingTime || !timeSlotStarts.length) return;
+    if (!bookingTime) return;
     const currentStart = bookingTime.value.split(' - ')[0];
-    const duration = getOffering().type === 'call' ? Number(selectedDuration) : 60;
+    const duration = bookingDuration();
     const fragment = document.createDocumentFragment();
-    timeSlotStarts.forEach((slot) => {
-      const [start, rest = ''] = slot.split(' - ');
-      const startMinutes = toMinutes(start);
-      const originalEnd = rest.match(/^(\d{1,2}:\d{2}\s*(?:AM|PM))/i)?.[1];
-      const end = startMinutes === null ? originalEnd : formatClock(startMinutes + duration);
-      const suffix = rest.slice(originalEnd?.length || 0);
+    for (let minutes = 600; minutes + duration <= 1140; minutes += 30) {
       const option = document.createElement('option');
-      option.value = `${start} - ${end}${suffix}`;
+      option.value = `${formatClock(minutes)} - ${formatClock(minutes + duration)} IST`;
       option.textContent = option.value;
       fragment.append(option);
-    });
+    }
     bookingTime.replaceChildren(fragment);
     const matchingOption = Array.from(bookingTime.options).find((option) => option.value.startsWith(`${currentStart} - `));
     if (matchingOption) matchingOption.selected = true;
@@ -663,7 +658,7 @@ if (bookingModal) {
       if (!endpoint) throw new Error('Live calendar availability is not configured yet.');
       const url = new URL(endpoint, window.location.href);
       url.searchParams.set('date', bookingDate.value);
-      url.searchParams.set('duration', String(getOffering().type === 'call' ? selectedDuration : 60));
+      url.searchParams.set('duration', String(bookingDuration()));
       const response = await fetch(url, {headers: {'Accept': 'application/json'}});
       // Some Hostinger responses prepend a short server-generated variable
       // line before the REST JSON. Read the body as text and parse from the
@@ -674,9 +669,17 @@ if (bookingModal) {
       const payload = JSON.parse(responseText.slice(jsonStart));
       if (!response.ok || !Array.isArray(payload.slots)) throw new Error(payload.message || 'Could not check calendar availability. Please try again.');
       if (requestId !== availabilityRequest) return;
+      if (!payload.slots.length && bookingDate.value === todayInIndia()) {
+        const tomorrow = new Date(bookingDate.value + 'T12:00:00Z');
+        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+        bookingDate.value = tomorrow.toISOString().slice(0, 10);
+        updateTimeSlots();
+        return refreshAvailability();
+      }
       const available = new Map(payload.slots.map((slot) => [slot.start, Boolean(slot.available)]));
       Array.from(bookingTime.options).forEach((option) => {
         const start = option.value.split(' - ')[0];
+        if (!available.has(start)) { option.remove(); return; }
         const isAvailable = available.get(start) === true;
         option.disabled = !isAvailable;
         option.textContent = `${option.value}${isAvailable ? '' : ' · Unavailable'}`;
@@ -752,22 +755,14 @@ if (bookingModal) {
     }
   };
 
+  const todayInIndia = () => {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Kolkata', year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(new Date()).map((part) => [part.type, part.value]));
+    return `${parts.year}-${parts.month}-${parts.day}`;
+  };
   const setDefaultDate = () => {
     if (!bookingDate) return;
-    const today = new Date();
-    const min = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const preferred = new Date(min);
-    preferred.setDate(preferred.getDate() + 2);
-    const toIso = (date) => {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    };
-    bookingDate.min = toIso(min);
-    if (!bookingDate.value || bookingDate.value < bookingDate.min) {
-      bookingDate.value = toIso(preferred);
-    }
+    bookingDate.min = todayInIndia();
+    if (!bookingDate.value || bookingDate.value < bookingDate.min) bookingDate.value = bookingDate.min;
   };
 
   const openBooking = (offerKey = 'comm-call') => {
