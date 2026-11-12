@@ -7,7 +7,10 @@
   const dateInput = form.elements.date;
   const dates = form.querySelector('[data-date-options]');
   const success = document.querySelector('[data-booking-success]');
-  const dismissedConfirmation = document.querySelector('[data-booking-success-dismissed]');
+  const inlineConfirmation = document.querySelector('[data-booking-success-inline]');
+  const inlinePlan = inlineConfirmation?.querySelector('[data-booking-complete-plan]');
+  const bookingHeading = form.closest('.package-booking-section')?.querySelector('.package-booking-heading');
+  const bookingTabs = form.closest('.package-booking-section')?.querySelector('.package-booking-tabs');
   const packageGroup = form.querySelector('.package-booking-package-group');
   const scheduleGroups = form.querySelectorAll('[data-booking-schedule]');
   const modeTabs = form.closest('.package-booking-section')?.querySelectorAll('[data-booking-mode]') || [];
@@ -40,11 +43,7 @@
     if (!success || success.hidden) return;
     success.hidden = true;
     document.body.style.overflow = '';
-    if (dismissedConfirmation) {
-      dismissedConfirmation.hidden = false;
-      dismissedConfirmation.textContent = 'Payment confirmed. You can continue browsing.';
-      dismissedConfirmation.focus();
-    }
+    inlineConfirmation?.focus();
   };
   success?.querySelectorAll('[data-close-booking-success]').forEach((button) => button.addEventListener('click', closeConfirmation));
   success?.querySelector('[data-booking-success-backdrop]')?.addEventListener('click', closeConfirmation);
@@ -147,6 +146,13 @@
           const confirmed = await api('verify', payment);
           if (!confirmed.confirmed) throw new Error('Payment is not confirmed yet. Please contact the Academy before retrying.');
           form.hidden = true;
+          if (inlinePlan) inlinePlan.textContent = confirmed.service;
+          if (inlineConfirmation) inlineConfirmation.hidden = false;
+          if (bookingTabs) bookingTabs.hidden = true;
+          const headingKicker = bookingHeading?.querySelector('.package-page-kicker');
+          const headingTitle = bookingHeading?.querySelector('h2');
+          if (headingKicker) headingKicker.textContent = 'PAYMENT CONFIRMED';
+          if (headingTitle) headingTitle.textContent = 'Thank you for your purchase!';
           success.querySelector('[data-confirmation-details]').textContent = confirmed.service;
           success.hidden = false;
           document.body.style.overflow = 'hidden';
