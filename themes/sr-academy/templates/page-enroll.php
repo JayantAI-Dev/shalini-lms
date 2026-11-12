@@ -21,7 +21,7 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
         </div>
         <div class="package-hero-actions">
           <a class="package-page-button" href="#package-booking"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3.5" y="5" width="13" height="11" rx="1.5"/><path d="M6.5 3.5v3M13.5 3.5v3M3.5 8.2h13"/></svg><span>BOOK 1:1 PACKAGE</span></a>
-          <a class="package-discovery-button" href="#package-booking"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3.5 4.2 4.7c-.8.6-.9 1.7-.5 2.7 1.8 4.2 5 7.3 9.2 9.1 1 .4 2.1.3 2.7-.5l1.2-1.8-3.2-2-1.4 1.5c-2.6-1.2-4.3-2.9-5.5-5.5l1.5-1.4-2.2-3.3Z"/></svg><span>15-MIN DISCOVERY (FREE)</span></a>
+          <a class="package-discovery-button" href="#package-booking" data-discovery-booking><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3.5 4.2 4.7c-.8.6-.9 1.7-.5 2.7 1.8 4.2 5 7.3 9.2 9.1 1 .4 2.1.3 2.7-.5l1.2-1.8-3.2-2-1.4 1.5c-2.6-1.2-4.3-2.9-5.5-5.5l1.5-1.4-2.2-3.3Z"/></svg><span>15-MIN DISCOVERY (FREE)</span></a>
         </div>
         <div class="package-hero-proof"><span>500+ Clients Styled</span><i></i><span>4.98/5 Rating</span><i></i><span>Free 24h Reschedule</span></div>
       </div>
@@ -323,7 +323,7 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
 
     <?php if (($_GET['offer'] ?? '') === 'comm-package') { ?>
     <section class="package-booking-section" id="package-booking" aria-labelledby="package-booking-title">
-      <header class="package-booking-heading"><p class="package-page-kicker">SCHEDULE YOUR SESSION</p><h2 id="package-booking-title">Reserve Your Time</h2><nav class="package-booking-tabs" aria-label="Booking type"><span class="is-selected">1:1 PACKAGE · FROM ₹49,999</span><a href="<?php echo esc_url(home_url('/contact/?type=consultation')); ?>">15-MIN DISCOVERY (FREE)</a></nav></header>
+      <header class="package-booking-heading"><p class="package-page-kicker">SCHEDULE YOUR SESSION</p><h2 id="package-booking-title">Reserve Your Time</h2><div class="package-booking-tabs" role="tablist" aria-label="Booking type"><button type="button" role="tab" aria-selected="true" class="is-selected" data-booking-mode="package">1:1 PACKAGE · FROM ₹49,999</button><button type="button" role="tab" aria-selected="false" data-booking-mode="discovery">15-MIN DISCOVERY (FREE)</button></div></header>
       <form class="package-booking-form" data-package-checkout novalidate>
         <div class="package-booking-fields">
           <label>Full Name *<input name="name" autocomplete="name" required maxlength="120" placeholder="Your name"></label>
@@ -337,7 +337,7 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
         </div></fieldset>
         <fieldset class="package-booking-choice-group"><legend>Select Preferred Date:</legend><div class="package-booking-options package-booking-dates" data-date-options></div><input class="package-booking-date-input" id="package-booking-date" name="date" type="date" required tabindex="-1" aria-hidden="true"></fieldset>
         <fieldset class="package-booking-choice-group"><legend>Available Time Slot:</legend><div class="package-booking-options" data-slot-options><p>Select a date to load live availability.</p></div></fieldset>
-        <div class="package-booking-submit-row"><p>Razorpay test mode · no live charge</p><button class="package-booking-submit" type="submit">Continue to test payment</button></div>
+        <div class="package-booking-submit-row"><p data-booking-note>Razorpay test mode · no live charge</p><button class="package-booking-submit" type="submit">Continue to test payment</button></div>
         <p class="package-booking-status" data-booking-status role="status" aria-live="polite"></p>
       </form>
       <div class="package-booking-success" data-booking-success hidden role="status"><h3>Thank you — your session is confirmed.</h3><p data-confirmation-details></p><p>A confirmation email and calendar invitation have been sent to your email address.</p></div>
