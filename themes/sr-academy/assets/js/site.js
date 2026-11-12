@@ -1,4 +1,3 @@
-document.querySelectorAll('.calls-duration-toggle [data-duration], .service-toggle [data-duration]').forEach((button) => { if (button.dataset.duration !== '60') button.hidden = true; });
 // Arrow labels use a vector icon to stay sharp and vertically centered in all browsers.
 function setCtaArrowLabel(target, label) {
   if (!target) return;
@@ -606,7 +605,6 @@ if (bookingModal) {
 
   const setDuration = (duration) => {
     selectedDuration = String(duration);
-    selectedDuration = '60';
     durationOptions.forEach((button) => {
       const active = button.dataset.bookingDuration === selectedDuration;
       button.classList.toggle('active', active);
@@ -715,7 +713,7 @@ if (bookingModal) {
       if (offering.prices[selectedDuration] === undefined) selectedDuration = '60';
       durationOptions.forEach((button) => {
         const duration = button.dataset.bookingDuration;
-        const available = duration === '60' && offering.prices[duration] !== undefined;
+        const available = offering.prices[duration] !== undefined;
         button.hidden = !available;
         button.disabled = !available;
         const active = duration === selectedDuration;
