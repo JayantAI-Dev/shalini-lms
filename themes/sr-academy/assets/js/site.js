@@ -634,8 +634,19 @@ if (bookingModal) {
     const currentStart = bookingTime.value.split(' - ')[0];
     const duration = bookingDuration();
     const fragment = document.createDocumentFragment();
-    for (const minutes of [600, 675, 795, 915, 1035]) {
-      if (minutes + duration > 1140) continue;
+    const sessionSchedule = [
+      {start:600, duration:60},
+      {start:690, duration:30},
+      {start:750, duration:60},
+      {start:840, duration:30},
+      {start:900, duration:60},
+      {start:990, duration:30},
+      {start:1050, duration:60}
+    ];
+    const starts = duration === 30 || duration === 60
+      ? sessionSchedule.filter((slot) => slot.duration === duration).map((slot) => slot.start)
+      : [600, 675, 795, 915, 1035].filter((minutes) => minutes + duration <= 1140);
+    for (const minutes of starts) {
       const option = document.createElement('option');
       option.value = `${formatClock(minutes)} - ${formatClock(minutes + duration)} IST`;
       option.textContent = option.value;
