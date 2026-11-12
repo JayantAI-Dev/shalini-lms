@@ -93,7 +93,7 @@
     document.querySelectorAll('[data-plan]').forEach((item) => { item.classList.toggle('is-selected', item === button); item.setAttribute('aria-pressed', item === button ? 'true' : 'false'); });
     const packageTab = Array.from(modeTabs).find((tab) => tab.dataset.bookingMode === 'package');
     const amount = Number(button.dataset.price);
-    if (packageTab && Number.isFinite(amount)) packageTab.textContent = '1:1 PACKAGE · ₹' + amount.toLocaleString('en-IN');
+    if (packageTab && Number.isFinite(amount)) { const priceLabel = packageTab.querySelector('[data-booking-price]'); if (priceLabel) priceLabel.textContent = '₹' + amount.toLocaleString('en-IN'); else packageTab.textContent = '1:1 PACKAGE · ₹' + amount.toLocaleString('en-IN'); }
   }));
   const dateKey = (date) => {
     const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Kolkata', year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(date).map((part) => [part.type, part.value]));
