@@ -55,7 +55,7 @@
   dateInput.max = dateKey(new Date(today.getTime() + 180 * 86400000));
   dateInput.addEventListener('change', async () => {
     selectedTime = '';
-    slots.replaceChildren(Object.assign(document.createElement('p'), {textContent:'Checking live availability…'}));
+    slots.replaceChildren(Object.assign(document.createElement('p'), {className:'package-booking-unavailable', textContent:'Checking live availability…'}));
     try {
       const url = new URL(window.SR_THEME.calendarAvailabilityUrl);
       url.searchParams.set('date', dateInput.value); url.searchParams.set('duration', '60');
@@ -70,7 +70,7 @@
         button.addEventListener('click', () => { selectedTime = slot.start; slots.querySelectorAll('button').forEach((item) => item.classList.toggle('is-selected', item === button)); }); slots.append(button);
       });
       if (!slots.childElementCount) slots.textContent = 'No times are available on this date. Choose another date.';
-    } catch (error) { slots.textContent = error.message; }
+    } catch (_) { slots.replaceChildren(Object.assign(document.createElement('p'), {className:'package-booking-unavailable', textContent:'Live availability could not be loaded. Please try another date or contact the Academy.'})); }
   });
   dateButtons[0]?.click();
   form.addEventListener('submit', async (event) => {
