@@ -402,11 +402,11 @@ function sr_lms_consultation_order(WP_REST_Request $request) {
     $now = current_time('mysql', true);
     $saved = $wpdb->insert(sr_lms_table('consultation_bookings'), [
         'gateway_order'=>$gateway['id'], 'mode'=>$mode, 'amount'=>$amount, 'status'=>'created', 'offer'=>$offer,
-        'duration'=>$is_package ? 0 : $duration, 'booking_date'=>$is_package ? null : $date, 'booking_time'=>$is_package ? null : $time,
+        'duration'=>$is_package ? 0 : $duration, 'booking_date'=>$is_package ? '2099-01-01' : $date, 'booking_time'=>$is_package ? 'PACKAGE' : $time,
         'customer_name'=>$name, 'customer_email'=>$email, 'customer_phone'=>$phone, 'challenge'=>$challenge,
         'created_at'=>$now, 'updated_at'=>$now,
     ]);
-    if (!$saved) return new WP_Error('booking_storage', 'Could not save the purchase request. Please retry before paying.', ['status'=>500]);
+    if (!$saved) { error_log('[SR Academy] Purchase request storage failed: ' . sanitize_text_field((string)$wpdb->last_error)); return new WP_Error('booking_storage', 'Could not save the purchase request. Please retry before paying.', ['status'=>500]); }
     set_transient('sr_lms_consultation_' . $gateway['id'], $payload, DAY_IN_SECONDS);
     return new WP_REST_Response([
         'order_id'=>$gateway['id'], 'key'=>sr_lms_payment_credentials($mode)['key'], 'amount'=>$amount, 'currency'=>'INR',
