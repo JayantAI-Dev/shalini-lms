@@ -466,16 +466,33 @@ function sr_lms_create_paid_consultation(array $booking) {
 }
 
 function sr_lms_send_package_confirmation(array $purchase): array {
+    $settings = sr_lms_email_settings();
+    $template_enabled = !empty($settings['templates']['package_purchase']['enabled']);
+    $user = (object)['display_name'=>(string)$purchase['name']];
+    $context = [
+        'offer_title'=>(string)$purchase['service'],
+        'amount'=>'INR ' . number_format(((int)$purchase['amount']) / 100, 2),
+        'payment_id'=>(string)($purchase['payment_id'] ?? ''),
+        'order_id'=>(string)$purchase['order_id'],
+        'cta_url'=>home_url('/contact/'),
+    ];
+    $mail = function_exists('sr_lms_email_render') ? sr_lms_email_render('package_purchase', $user, $context) : [];
+    $sent_user = !empty($purchase['email_sent']) ? true : ($template_enabled && !empty($mail) && is_email($purchase['email'])
+        ? wp_mail($purchase['email'], $mail['subject'], $mail['message'], $mail['headers'])
+        : false);
+
     $config = sr_lms_zoom_config();
-    $headers = ['Content-Type: text/html; charset=UTF-8'];
-    $subject = 'Package purchase received: ' . $purchase['service'];
-    $html = '<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#20372d"><h2>Thank you for your purchase</h2><p>Hello ' . esc_html($purchase['name']) . ',</p><p>Your test payment has been verified for <strong>' . esc_html($purchase['service']) . '</strong>.</p><p>Our team will contact you within 48 hours to help you get started.</p><p>Warmly,<br>Shalini Rathod Academy</p></div>';
-    $sent_user = wp_mail($purchase['email'], $subject, $html, $headers);
-    $admin_email = $config['admin_email'];
-    $admin_html = '<p>New package purchase: <strong>' . esc_html($purchase['service']) . '</strong></p><p>Name: ' . esc_html($purchase['name']) . '<br>Email: ' . esc_html($purchase['email']) . '<br>Phone: ' . esc_html($purchase['phone']) . '</p><p>Amount: INR ' . esc_html(number_format($purchase['amount']/100, 2)) . '<br>Razorpay order: ' . esc_html($purchase['order_id']) . '</p><p>Please contact the customer within 48 hours.</p>';
-    $sent_admin = !is_email($admin_email) || strtolower($admin_email) === strtolower($purchase['email']) || wp_mail($admin_email, 'New package purchase: ' . $purchase['service'], $admin_html, $headers);
+    $admin_email = sanitize_email($config['admin_email'] ?? '');
+    $admin_html = '<div style="font-family:Arial,sans-serif;color:#20372d"><h2>New package purchase</h2><p><strong>' . esc_html($purchase['service']) . '</strong></p><p>Name: ' . esc_html($purchase['name']) . '<br>Email: ' . esc_html($purchase['email']) . '<br>Phone: ' . esc_html($purchase['phone']) . '</p><p>Amount: INR ' . esc_html(number_format(((int)$purchase['amount'])/100, 2)) . '<br>Razorpay order: ' . esc_html($purchase['order_id']) . '<br>Payment: ' . esc_html($purchase['payment_id'] ?? '') . '</p><p>Please contact the customer within 48 hours.</p></div>';
+    $admin_headers = !empty($mail['headers']) ? $mail['headers'] : ['Content-Type: text/html; charset=UTF-8'];
+    $sent_admin = !empty($purchase['team_notified']) ? true : (
+        is_email($admin_email)
+        && strtolower($admin_email) !== strtolower($purchase['email'])
+        && wp_mail($admin_email, 'New package purchase: ' . sanitize_text_field($purchase['service']), $admin_html, $admin_headers)
+    );
+
     if (!$sent_user || !$sent_admin) error_log('[SR Academy] Package purchase email delivery failed for order ' . sanitize_text_field($purchase['order_id']));
-    return ['package'=>true];
+    return ['package'=>true, 'email_sent'=>(bool)$sent_user, 'team_notified'=>(bool)$sent_admin];
 }
 
 function sr_lms_consultation_verify(WP_REST_Request $request) {
@@ -504,8 +521,15 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
     $credentials = sr_lms_payment_credentials((string)$booking['mode']);
     if (!sr_lms_payment_signature($order_id . '|' . $payment_id, $signature, $credentials['secret'])) return new WP_Error('payment_signature', 'Payment could not be verified. Contact the Academy if you were charged.', ['status'=>400]);
     if (($booking['status'] ?? '') === 'complete') {
+        if ($is_package && (empty($booking['email_sent']) || empty($booking['team_notified']))) {
+            $booking['payment_id'] = $payment_id;
+            $mail_result = sr_lms_send_package_confirmation($booking);
+            $booking['email_sent'] = !empty($mail_result['email_sent']);
+            $booking['team_notified'] = !empty($mail_result['team_notified']);
+            set_transient($key, $booking, DAY_IN_SECONDS);
+        }
         $response = ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service']];
-        if ($is_package) $response['follow_up'] = 'Our team will contact you within 48 hours.';
+        if ($is_package) { $response['follow_up'] = 'Our team will contact you within 48 hours.'; $response['email_sent'] = !empty($booking['email_sent']); $response['team_notified'] = !empty($booking['team_notified']); }
         else $response['date_label'] = $booking['date_label'] ?? '';
         return $response;
     }
@@ -518,11 +542,12 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
     $claimed = $wpdb->query($wpdb->prepare("UPDATE $table SET gateway_payment=%s,status='processing',updated_at=%s WHERE gateway_order=%s AND (status IN ('created','paid') OR (status='processing' AND updated_at < %s))", $payment_id, $now, $order_id, gmdate('Y-m-d H:i:s', time()-300)));
     if ($claimed !== 1) {
         $current = $wpdb->get_row($wpdb->prepare("SELECT status FROM $table WHERE gateway_order=%s", $order_id), ARRAY_A);
-        if (($current['status'] ?? '') === 'confirmed') return ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service'],'follow_up'=>$is_package ? 'Our team will contact you within 48 hours.' : '', 'date_label'=>$booking['date_label'] ?? ''];
+        if (($current['status'] ?? '') === 'confirmed') return ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service'],'follow_up'=>$is_package ? 'Our team will contact you within 48 hours.' : '', 'email_sent'=>!empty($booking['email_sent']), 'team_notified'=>!empty($booking['team_notified']), 'date_label'=>$booking['date_label'] ?? ''];
         return new WP_Error('booking_processing', 'Your payment is verified and the request is being completed. Please wait a moment before retrying.', ['status'=>409]);
     }
     $booking['processing'] = true;
     set_transient($key, $booking, DAY_IN_SECONDS);
+    if ($is_package) $booking['payment_id'] = $payment_id;
     $result = $is_package ? sr_lms_send_package_confirmation($booking) : sr_lms_create_paid_consultation($booking);
     if (is_wp_error($result)) {
         $booking['processing'] = false;
@@ -542,11 +567,12 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
     }
     $booking['status'] = 'complete';
     $booking['processing'] = false;
-    if (!$is_package) $booking['date_label'] = $result['date_label'];
+    if ($is_package) { $booking['email_sent'] = !empty($result['email_sent']); $booking['team_notified'] = !empty($result['team_notified']); }
+    else $booking['date_label'] = $result['date_label'];
     set_transient($key, $booking, DAY_IN_SECONDS);
     $wpdb->update($table, ['status'=>'confirmed','zoom_meeting'=>$result['meeting_id'] ?? null,'google_event'=>$result['event_id'] ?? null,'updated_at'=>current_time('mysql',true)], ['gateway_order'=>$order_id]);
     $response = ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service']];
-    if ($is_package) $response['follow_up'] = 'Our team will contact you within 48 hours.';
+    if ($is_package) { $response['follow_up'] = 'Our team will contact you within 48 hours.'; $response['email_sent'] = !empty($booking['email_sent']); $response['team_notified'] = !empty($booking['team_notified']); }
     else $response['date_label'] = $result['date_label'];
     return $response;
 }
