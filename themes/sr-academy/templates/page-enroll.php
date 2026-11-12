@@ -340,7 +340,20 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
         <div class="package-booking-submit-row"><p data-booking-note>Razorpay test mode · no live charge</p><button class="package-booking-submit" type="submit">Continue to test payment</button></div>
         <p class="package-booking-status" data-booking-status role="status" aria-live="polite"></p>
       </form>
-      <div class="package-booking-success" data-booking-success hidden role="status"><h3>Thank you — your package purchase is confirmed.</h3><p data-confirmation-details></p><p>We have emailed your confirmation. Our team will contact you within 48 hours to help you get started.</p></div>
+      <div class="package-booking-success" data-booking-success hidden role="dialog" aria-modal="true" aria-labelledby="package-booking-success-title" aria-describedby="package-booking-success-description" tabindex="-1">
+        <div class="package-booking-success-backdrop" data-booking-success-backdrop></div>
+        <section class="package-booking-success-card">
+          <button class="package-booking-success-close" type="button" data-close-booking-success aria-label="Close confirmation">×</button>
+          <span class="package-booking-success-icon" aria-hidden="true">✓</span>
+          <p class="package-page-kicker">PAYMENT CONFIRMED</p>
+          <h3 id="package-booking-success-title">Thank you for your purchase!</h3>
+          <p class="package-booking-success-plan" data-confirmation-details></p>
+          <p id="package-booking-success-description">Our team will contact you within 48 hours to help you get started.</p>
+          <p class="package-booking-email-status" data-booking-email-status role="status" aria-live="polite"></p>
+          <button class="package-booking-submit package-booking-success-done" type="button" data-close-booking-success>Done</button>
+        </section>
+      </div>
+      <p class="package-booking-success-dismissed" data-booking-success-dismissed tabindex="-1" hidden></p>
     </section>
     <?php } else { ?><section class="package-booking-section" id="package-booking"><?php if (function_exists('sr_lms_render_enrollment')) { sr_lms_render_enrollment(); } else { sr_theme_lms_notice(); } ?></section><?php } ?>
 
