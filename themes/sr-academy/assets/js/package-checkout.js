@@ -9,6 +9,14 @@
   const success = document.querySelector('[data-booking-success]');
   let selectedPlan = '';
   let selectedTime = '';
+  const readJsonResponse = async (response) => {
+    const body = await response.text();
+    const firstObject = body.indexOf('{');
+    const lastObject = body.lastIndexOf('}');
+    if (firstObject < 0 || lastObject < firstObject) throw new Error('The booking service returned an invalid response. Please try again or contact the Academy.');
+    try { return JSON.parse(body.slice(firstObject, lastObject + 1)); }
+    catch (_) { throw new Error('The booking service returned an invalid response. Please try again or contact the Academy.'); }
+  };
   document.addEventListener('click', (event) => {
     const choice = event.target.closest('[data-comparison-plan], [data-discovery-booking]');
     if (!choice) return;
@@ -23,7 +31,7 @@
   const say = (message) => { status.textContent = message; };
   const api = async (path, body) => {
     const response = await fetch(config.api + path, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
-    const data = await response.json();
+    const data = await readJsonResponse(response);
     if (!response.ok) throw new Error(data.message || 'We could not complete your request. Please try again.');
     return data;
   };
@@ -60,14 +68,13 @@
       const url = new URL(window.SR_THEME.calendarAvailabilityUrl);
       url.searchParams.set('date', dateInput.value); url.searchParams.set('duration', '60');
       const response = await fetch(url);
-      const body = await response.text();
-      let data;
-      try { data = JSON.parse(body); } catch (_) { throw new Error('Live availability could not be loaded. Please try another date or contact the Academy.'); }
+      const data = await readJsonResponse(response);
       if (!response.ok) throw new Error(data.message || 'Calendar availability is unavailable.');
       slots.replaceChildren();
       data.slots.filter((slot) => slot.available).forEach((slot) => {
         const button = document.createElement('button'); button.type = 'button'; button.className = 'package-booking-option'; button.textContent = slot.start + ' IST';
-        button.addEventListener('click', () => { selectedTime = slot.start; slots.querySelectorAll('button').forEach((item) => item.classList.toggle('is-selected', item === button)); }); slots.append(button);
+        button.setAttribute('aria-pressed', 'false');
+        button.addEventListener('click', () => { selectedTime = slot.start; slots.querySelectorAll('button').forEach((item) => { item.classList.toggle('is-selected', item === button); item.setAttribute('aria-pressed', item === button ? 'true' : 'false'); }); }); slots.append(button);
       });
       if (!slots.childElementCount) slots.textContent = 'No times are available on this date. Choose another date.';
     } catch (_) { slots.replaceChildren(Object.assign(document.createElement('p'), {className:'package-booking-unavailable', textContent:'Live availability could not be loaded. Please try another date or contact the Academy.'})); }
