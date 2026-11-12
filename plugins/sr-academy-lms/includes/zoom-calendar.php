@@ -457,9 +457,9 @@ function sr_lms_create_paid_consultation(array $booking) {
         $headers = ['Content-Type: text/html; charset=UTF-8'];
         $html = '<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#20372d"><h2>Consultation confirmed</h2><p>Hello '.esc_html($booking['name']).',</p><p>Your payment is confirmed and your consultation is scheduled.</p><p><strong>'.esc_html($booking['service']).'</strong><br>'.esc_html($when).'</p><p><a href="'.esc_url($join_url).'" style="display:inline-block;background:#174b38;color:#fff;padding:14px 22px;border-radius:8px;text-decoration:none">Join your Zoom meeting</a></p><p>A Google Calendar invitation has been sent to you and the Academy team.</p><p>Warmly,<br>Shalini Rathod Academy</p></div>';
         $sent_user = wp_mail($booking['email'], $subject, $html, $headers);
-        $sent_admin = !is_email($config['admin_email']) || wp_mail($config['admin_email'], 'New paid consultation: ' . $booking['service'], '<p>Booking for '.esc_html($booking['name']).' ('.esc_html($booking['email']).') · '.esc_html($when).'</p><p>Payment: INR '.esc_html(number_format($booking['amount']/100,2)).' · '.esc_html($booking['order_id']).'</p><p>Zoom: <a href="'.esc_url($join_url).'">Join meeting</a></p>', $headers);
+        $sent_admin = is_email($config['admin_email']) && strtolower($config['admin_email']) !== strtolower($booking['email']) && wp_mail($config['admin_email'], 'New paid consultation: ' . $booking['service'], '<p>Booking for '.esc_html($booking['name']).' ('.esc_html($booking['email']).') · '.esc_html($when).'</p><p>Payment: INR '.esc_html(number_format($booking['amount']/100,2)).' · '.esc_html($booking['order_id']).'</p><p>Zoom: <a href="'.esc_url($join_url).'">Join meeting</a></p>', $headers);
         if (!$sent_user || !$sent_admin) error_log('[SR Academy] Paid consultation email delivery failed for order ' . sanitize_text_field($booking['order_id']));
-        return ['meeting_id'=>$meeting_id,'event_id'=>$event_id,'date_label'=>$when,'join_url'=>$join_url];
+        return ['meeting_id'=>$meeting_id,'event_id'=>$event_id,'date_label'=>$when,'join_url'=>$join_url,'calendar_invite_sent'=>!empty($attendees),'email_sent'=>(bool)$sent_user,'team_notified'=>(bool)$sent_admin];
     } finally {
         if (!$event_id) { if ($meeting_id) sr_lms_zoom_api('DELETE','/meetings/'.rawurlencode($meeting_id)); delete_option($lock); }
     }
@@ -530,7 +530,7 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
         }
         $response = ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service']];
         if ($is_package) { $response['follow_up'] = 'Our team will contact you within 48 hours.'; $response['email_sent'] = !empty($booking['email_sent']); $response['team_notified'] = !empty($booking['team_notified']); }
-        else $response['date_label'] = $booking['date_label'] ?? '';
+        else { $response['date_label'] = $booking['date_label'] ?? ''; $response['calendar_invite_sent'] = !empty($booking['calendar_invite_sent']); $response['email_sent'] = !empty($booking['email_sent']); $response['team_notified'] = !empty($booking['team_notified']); }
         return $response;
     }
     $payment = sr_lms_payment_api((string)$booking['mode'], 'payments/' . $payment_id);
@@ -542,7 +542,7 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
     $claimed = $wpdb->query($wpdb->prepare("UPDATE $table SET gateway_payment=%s,status='processing',updated_at=%s WHERE gateway_order=%s AND (status IN ('created','paid') OR (status='processing' AND updated_at < %s))", $payment_id, $now, $order_id, gmdate('Y-m-d H:i:s', time()-300)));
     if ($claimed !== 1) {
         $current = $wpdb->get_row($wpdb->prepare("SELECT status FROM $table WHERE gateway_order=%s", $order_id), ARRAY_A);
-        if (($current['status'] ?? '') === 'confirmed') return ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service'],'follow_up'=>$is_package ? 'Our team will contact you within 48 hours.' : '', 'email_sent'=>!empty($booking['email_sent']), 'team_notified'=>!empty($booking['team_notified']), 'date_label'=>$booking['date_label'] ?? ''];
+        if (($current['status'] ?? '') === 'confirmed') return ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service'],'follow_up'=>$is_package ? 'Our team will contact you within 48 hours.' : '', 'email_sent'=>!empty($booking['email_sent']), 'team_notified'=>!empty($booking['team_notified']), 'calendar_invite_sent'=>!empty($booking['calendar_invite_sent']), 'date_label'=>$booking['date_label'] ?? ''];
         return new WP_Error('booking_processing', 'Your payment is verified and the request is being completed. Please wait a moment before retrying.', ['status'=>409]);
     }
     $booking['processing'] = true;
@@ -568,12 +568,12 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
     $booking['status'] = 'complete';
     $booking['processing'] = false;
     if ($is_package) { $booking['email_sent'] = !empty($result['email_sent']); $booking['team_notified'] = !empty($result['team_notified']); }
-    else $booking['date_label'] = $result['date_label'];
+    else { $booking['date_label'] = $result['date_label']; $booking['calendar_invite_sent'] = !empty($result['calendar_invite_sent']); $booking['email_sent'] = !empty($result['email_sent']); $booking['team_notified'] = !empty($result['team_notified']); }
     set_transient($key, $booking, DAY_IN_SECONDS);
     $wpdb->update($table, ['status'=>'confirmed','zoom_meeting'=>$result['meeting_id'] ?? null,'google_event'=>$result['event_id'] ?? null,'updated_at'=>current_time('mysql',true)], ['gateway_order'=>$order_id]);
     $response = ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service']];
     if ($is_package) { $response['follow_up'] = 'Our team will contact you within 48 hours.'; $response['email_sent'] = !empty($booking['email_sent']); $response['team_notified'] = !empty($booking['team_notified']); }
-    else $response['date_label'] = $result['date_label'];
+    else { $response['date_label'] = $result['date_label']; $response['calendar_invite_sent'] = !empty($booking['calendar_invite_sent']); $response['email_sent'] = !empty($booking['email_sent']); $response['team_notified'] = !empty($booking['team_notified']); }
     return $response;
 }
 
