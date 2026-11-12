@@ -6,12 +6,9 @@
   const slots = form.querySelector('[data-slot-options]');
   const dateInput = form.elements.date;
   const dates = form.querySelector('[data-date-options]');
-  const success = document.querySelector('[data-booking-success]');
-  const inlineConfirmation = document.querySelector('[data-booking-success-inline]');
-  const inlinePlan = inlineConfirmation?.querySelector('[data-booking-complete-plan]');
-  const bookingSection = form.closest('.package-booking-section');
-  const bookingHeading = bookingSection?.querySelector('.package-booking-heading');
-  const bookingTabs = bookingSection?.querySelector('.package-booking-tabs');
+  const emailInput = form.elements.email;
+  const packageOptions = Array.from(form.querySelectorAll('[data-plan]'));
+  const purchasedPackageStorageKey = 'sr-academy-package-purchases-v1';
   const packageGroup = form.querySelector('.package-booking-package-group');
   const scheduleGroups = form.querySelectorAll('[data-booking-schedule]');
   const modeTabs = bookingSection?.querySelectorAll('[data-booking-mode]') || [];
@@ -40,17 +37,6 @@
     }
     document.querySelector('#package-booking')?.scrollIntoView({behavior:'smooth',block:'start'});
   }, true);
-  const closeConfirmation = () => {
-    if (!success || success.hidden) return;
-    success.hidden = true;
-    document.body.style.overflow = '';
-    inlineConfirmation?.focus();
-  };
-  success?.querySelectorAll('[data-close-booking-success]').forEach((button) => button.addEventListener('click', closeConfirmation));
-  success?.querySelector('[data-booking-success-backdrop]')?.addEventListener('click', closeConfirmation);
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && success && !success.hidden) closeConfirmation();
-  });
   const say = (message) => { status.textContent = message; };
   const setBookingMode = (mode) => {
     bookingMode = mode;
@@ -77,7 +63,8 @@
     if (!response.ok) throw new Error(data.message || 'We could not complete your request. Please try again.');
     return data;
   };
-  document.querySelectorAll('[data-plan]').forEach((button) => button.addEventListener('click', () => {
+  packageOptions.forEach((button) => button.addEventListener('click', () => {
+    if (button.disabled) return;
     selectedPlan = button.dataset.plan;
     document.querySelectorAll('[data-plan]').forEach((item) => { item.classList.toggle('is-selected', item === button); item.setAttribute('aria-pressed', item === button ? 'true' : 'false'); });
     const packageTab = Array.from(modeTabs).find((tab) => tab.dataset.bookingMode === 'package');
@@ -146,20 +133,9 @@
           say('Verifying your test payment…');
           const confirmed = await api('verify', payment);
           if (!confirmed.confirmed) throw new Error('Payment is not confirmed yet. Please contact the Academy before retrying.');
-          form.hidden = true;
-          if (inlinePlan) inlinePlan.textContent = confirmed.service;
-          if (inlineConfirmation) inlineConfirmation.hidden = false;
-          if (bookingSection) bookingSection.classList.add('is-purchase-complete');
-          if (bookingTabs) { bookingTabs.hidden = true; bookingTabs.style.display = 'none'; }
-          const headingKicker = bookingHeading?.querySelector('.package-page-kicker');
-          const headingTitle = bookingHeading?.querySelector('h2');
-          if (headingKicker) headingKicker.textContent = 'PAYMENT CONFIRMED';
-          if (headingTitle) headingTitle.textContent = 'Thank you for your purchase!';
-          success.querySelector('[data-confirmation-details]').textContent = confirmed.service;
-          success.hidden = false;
-          document.body.style.overflow = 'hidden';
-          success.focus();
-          success.scrollIntoView({behavior:'smooth',block:'center'});
+          rememberPurchasedPackage(details.email, selectedPlan);
+          refreshPurchasedPackages();
+          say('Payment confirmed. This package is marked as purchased. Our team will contact you within 48 hours.');
         } catch (error) { say(error.message); submit.disabled = false; }
       }, modal:{ondismiss:() => { say('Checkout closed. No purchase was confirmed.'); submit.disabled = false; }} });
       checkout.on('payment.failed', () => { say('Test payment failed. No purchase was confirmed.'); submit.disabled = false; }); checkout.open();
