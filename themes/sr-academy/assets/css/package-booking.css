@@ -17,6 +17,8 @@ body.package-enrollment-page .package-booking-package-options { gap:7px; }
 body.package-enrollment-page .package-booking-package-option { min-height:62px; padding:9px 10px; border-radius:10px; font-size:12px; }
 body.package-enrollment-page .package-booking-package-option strong { font-size:13px; }
 body.package-enrollment-page .package-booking-choice-group { margin-bottom:17px; }
+body.package-enrollment-page .package-booking-form [data-booking-schedule][hidden],
+body.package-enrollment-page .package-booking-package-group[hidden] { display:none !important; }
 body.package-enrollment-page .package-booking-date-input { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
 body.package-enrollment-page .package-booking-options { gap:6px; }
 body.package-enrollment-page .package-booking-options > .package-booking-unavailable { grid-column:1/-1; margin:0; color:#657467; font-size:13px; line-height:1.5; }
