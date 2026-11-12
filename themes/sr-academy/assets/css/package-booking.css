@@ -1,3 +1,13 @@
+/* Show a complete receipt state after the success popup is dismissed. */
+body.package-enrollment-page .package-booking-success-inline[hidden] { display:none !important; }
+body.package-enrollment-page .package-booking-inline-confirmation:not([hidden]) { display:block; width:min(100%,680px); margin:22px auto 0; padding:clamp(26px,4vw,44px); border:1px solid #dce9d9; border-radius:22px; background:#fff; box-shadow:0 12px 34px rgba(22,54,38,.08); text-align:center; }
+body.package-enrollment-page .package-booking-inline-confirmation .package-booking-success-icon { margin-bottom:16px; }
+body.package-enrollment-page .package-booking-inline-confirmation .package-page-kicker { margin:0 0 9px; color:#55864a; font-size:11px; font-weight:800; letter-spacing:.16em; }
+body.package-enrollment-page .package-booking-inline-confirmation h3 { margin:0 0 12px; color:#1b3026; font-size:clamp(26px,4.5vw,36px); line-height:1.15; }
+body.package-enrollment-page .package-booking-inline-confirmation .package-booking-success-plan { margin:0 0 8px; color:#1b3026; font-size:18px; font-weight:700; }
+body.package-enrollment-page .package-booking-inline-confirmation p:not(.package-page-kicker) { color:#526359; line-height:1.65; }
+body.package-enrollment-page .package-booking-heading:has(+ .package-booking-tabs[hidden]) { margin-bottom:0; }
+
 
 /* Successful package checkout confirmation modal. */
 body.package-enrollment-page .package-booking-success[hidden],
