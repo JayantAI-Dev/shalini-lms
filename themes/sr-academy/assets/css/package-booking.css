@@ -1,3 +1,49 @@
+/* Match the original package booking layout while keeping calendar slots live. */
+body.package-enrollment-page .package-booking-section { width:min(calc(100% - 48px),856px); }
+body.package-enrollment-page .package-booking-heading { margin-bottom:20px; }
+body.package-enrollment-page .package-booking-heading > p:last-child { display:none; }
+body.package-enrollment-page .package-booking-tabs { display:inline-flex; align-items:center; gap:3px; max-width:100%; margin:0 auto; padding:4px; border:1px solid #dce9d9; border-radius:999px; background:#edf5e9; }
+body.package-enrollment-page .package-booking-tabs > :is(span,a,button) { display:flex; min-height:34px; align-items:center; justify-content:center; padding:0 14px; border:0; border-radius:999px; color:#756e64; background:transparent; font:inherit; font-size:11px; font-weight:700; line-height:1.2; text-align:center; text-decoration:none; white-space:nowrap; cursor:pointer; }
+body.package-enrollment-page .package-booking-tabs > .is-selected { color:#fff; background:#194c3b; }
+body.package-enrollment-page .package-booking-tabs > :is(a,button):hover { color:#194c3b; }
+body.package-enrollment-page .package-booking-form { width:min(100%,680px); margin:0 auto; padding:clamp(22px,2.4vw,32px); border-radius:20px; }
+body.package-enrollment-page .package-booking-fields { gap:16px 12px; margin-bottom:20px; }
+body.package-enrollment-page .package-booking-fields label { gap:7px; font-size:12px; }
+body.package-enrollment-page .package-booking-fields input { min-height:35px; border-radius:11px; font-size:12px; }
+body.package-enrollment-page .package-booking-package-group { margin-bottom:18px; }
+body.package-enrollment-page .package-booking-package-group legend,
+body.package-enrollment-page .package-booking-choice-group legend { margin-bottom:8px; font-size:12px; font-weight:600; }
+body.package-enrollment-page .package-booking-package-options { gap:7px; }
+body.package-enrollment-page .package-booking-package-option { min-height:62px; padding:9px 10px; border-radius:10px; font-size:12px; }
+body.package-enrollment-page .package-booking-package-option strong { font-size:13px; }
+body.package-enrollment-page .package-booking-choice-group { margin-bottom:17px; }
+body.package-enrollment-page .package-booking-form [data-booking-schedule][hidden],
+body.package-enrollment-page .package-booking-package-group[hidden] { display:none !important; }
+body.package-enrollment-page .package-booking-date-input { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+body.package-enrollment-page .package-booking-options { gap:6px; }
+body.package-enrollment-page .package-booking-options > .package-booking-unavailable { grid-column:1/-1; margin:0; color:#657467; font-size:13px; line-height:1.5; }
+body.package-enrollment-page .package-booking-option { min-height:34px; padding:6px 7px; border-radius:9px; color:#1e3429; background:#fff; font-size:11px; }
+body.package-enrollment-page .package-booking-option.is-selected { color:#fff; background:#194c3b; }
+body.package-enrollment-page .package-booking-submit-row { padding-top:12px; }
+body.package-enrollment-page .package-booking-submit-row > p { font-size:11px; }
+body.package-enrollment-page .package-booking-submit { min-height:42px; font-size:13px; }
+body.package-enrollment-page .package-booking-status { overflow-wrap:anywhere; }
+@media(max-width:700px) {
+  body.package-enrollment-page .package-booking-section { width:min(calc(100% - 34px),560px); }
+  body.package-enrollment-page .package-booking-tabs { width:auto; max-width:100%; }
+  body.package-enrollment-page .package-booking-tabs > :is(span,a,button) { min-height:32px; padding:0 9px; font-size:9px; white-space:normal; }
+  body.package-enrollment-page .package-booking-form { width:100%; padding:21px 17px; }
+  body.package-enrollment-page .package-booking-package-options { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+  body.package-enrollment-page .package-booking-package-option { min-height:66px; padding:8px; font-size:11px; }
+  body.package-enrollment-page .package-booking-package-option strong { font-size:12px; }
+  body.package-enrollment-page .package-booking-options { grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; }
+  body.package-enrollment-page .package-booking-option { min-height:38px; padding:5px 3px; font-size:10px; }
+}
+@media(max-width:420px) {
+  body.package-enrollment-page .package-booking-package-options { grid-template-columns:1fr; }
+  body.package-enrollment-page .package-booking-package-option { min-height:54px; }
+  body.package-enrollment-page .package-booking-options { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
 /* Keep the curriculum anchor and sticky callout below both sticky site bars. */
 @media(min-width:768px){
   .lms-shell #lms-curriculum-section{scroll-margin-top:calc(64px + clamp(85px,6.1vw,125px) + 20px)}
