@@ -9,6 +9,7 @@
   const emailInput = form.elements.email;
   const packageOptions = Array.from(form.querySelectorAll('[data-plan]'));
   const purchasedPackageStorageKey = 'sr-academy-package-purchases-v1';
+  let serverPurchasedPackages = new Set();
   const packageGroup = form.querySelector('.package-booking-package-group');
   const scheduleGroups = form.querySelectorAll('[data-booking-schedule]');
   const modeTabs = bookingSection?.querySelectorAll('[data-booking-mode]') || [];
@@ -63,6 +64,29 @@
     if (!response.ok) throw new Error(data.message || 'We could not complete your request. Please try again.');
     return data;
   };
+  let packageLookupTimer = 0;
+  let packageLookupRequest = 0;
+  const lookupPurchasedPackages = () => {
+    window.clearTimeout(packageLookupTimer);
+    serverPurchasedPackages = new Set();
+    refreshPurchasedPackages();
+    const email = emailInput.value.trim();
+    const phone = form.elements.phone.value.trim();
+    const digits = phone.replace(/\D/g, '');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || digits.length < 7) return;
+    const requestId = ++packageLookupRequest;
+    packageLookupTimer = window.setTimeout(async () => {
+      try {
+        const data = await api('purchases', {email, phone});
+        if (requestId !== packageLookupRequest || emailInput.value.trim().toLowerCase() !== email.toLowerCase() || form.elements.phone.value.trim() !== phone) return;
+        serverPurchasedPackages = new Set(Array.isArray(data.offers) ? data.offers : []);
+        refreshPurchasedPackages();
+      } catch (_) {}
+    }, 300);
+  };
+  emailInput.addEventListener('change', lookupPurchasedPackages);
+  form.elements.phone.addEventListener('change', lookupPurchasedPackages);
+  lookupPurchasedPackages();
   packageOptions.forEach((button) => button.addEventListener('click', () => {
     if (button.disabled) return;
     selectedPlan = button.dataset.plan;
