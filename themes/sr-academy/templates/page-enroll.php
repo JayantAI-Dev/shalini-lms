@@ -321,9 +321,9 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
       </div>
     </section>
 
-    <?php if (($_GET['offer'] ?? '') === 'comm-package') { ?>
+    <?php $is_style_package = ($_GET['offer'] ?? '') === 'style-package'; ?>
     <section class="package-booking-section" id="package-booking" aria-labelledby="package-booking-title">
-      <header class="package-booking-heading"><p class="package-page-kicker">YOUR NEXT STEP</p><h2 id="package-booking-title">Choose Your Package or Book a Call</h2><div class="package-booking-tabs" role="tablist" aria-label="Booking type"><button type="button" role="tab" aria-selected="true" class="is-selected" data-booking-mode="package">1:1 PACKAGE · <span data-booking-price>FROM ₹49,999</span></button><button type="button" role="tab" aria-selected="false" data-booking-mode="discovery">15-MIN DISCOVERY (FREE)</button></div></header>
+      <header class="package-booking-heading"><p class="package-page-kicker">YOUR NEXT STEP</p><h2 id="package-booking-title">Choose Your Package or Book a Call</h2><div class="package-booking-tabs" role="tablist" aria-label="Booking type"><button type="button" role="tab" aria-selected="true" class="is-selected" data-booking-mode="package">1:1 PACKAGE · <span data-booking-price>FROM <?php echo $is_style_package ? '₹70,000' : '₹49,999'; ?></span></button><button type="button" role="tab" aria-selected="false" data-booking-mode="discovery">15-MIN DISCOVERY (FREE)</button></div></header>
       <form class="package-booking-form" data-package-checkout novalidate>
         <div class="package-booking-fields">
           <label>Full Name *<input name="name" autocomplete="name" required maxlength="120" placeholder="Your name"></label>
@@ -331,9 +331,15 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
           <label class="package-booking-phone">WhatsApp / Phone *<input name="phone" type="tel" autocomplete="tel" required maxlength="40" placeholder="+91 98765 43210"></label>
         </div>
         <fieldset class="package-booking-package-group"><legend>Choose a package:</legend><div class="package-booking-package-options">
+          <?php if ($is_style_package) { ?>
+          <button type="button" class="package-booking-package-option" data-plan="style-signature" data-price="70000"><span>Signature Experience</span><strong>₹70,000</strong></button>
+          <button type="button" class="package-booking-package-option" data-plan="style-exclusive" data-price="90000"><span>Exclusive Transformation</span><strong>₹90,000</strong></button>
+          <button type="button" class="package-booking-package-option" data-plan="style-vip" data-price="110000"><span>VIP Makeover Experience</span><strong>₹1,10,000</strong></button>
+          <?php } else { ?>
           <button type="button" class="package-booking-package-option" data-plan="comm-core" data-price="49999"><span>Core Communication</span><strong>₹49,999</strong></button>
           <button type="button" class="package-booking-package-option" data-plan="comm-presence" data-price="74999"><span>Powerful Presence</span><strong>₹74,999</strong></button>
           <button type="button" class="package-booking-package-option" data-plan="comm-commanding" data-price="99999"><span>Commanding Presence</span><strong>₹99,999</strong></button>
+          <?php } ?>
         </div></fieldset>
         <fieldset class="package-booking-choice-group" data-booking-schedule hidden><legend>Select Preferred Date:</legend><div class="package-booking-options package-booking-dates" data-date-options></div><input class="package-booking-date-input" id="package-booking-date" name="date" type="date" required tabindex="-1" aria-hidden="true"></fieldset>
         <fieldset class="package-booking-choice-group" data-booking-schedule hidden><legend>Available Time Slot:</legend><div class="package-booking-options" data-slot-options><p>Select a date to load live availability.</p></div></fieldset>
@@ -341,7 +347,7 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
         <p class="package-booking-status" data-booking-status role="status" aria-live="polite"></p>
       </form>
     </section>
-    <?php } else { ?><section class="package-booking-section" id="package-booking"><?php if (function_exists('sr_lms_render_enrollment')) { sr_lms_render_enrollment(); } else { sr_theme_lms_notice(); } ?></section><?php } ?>
+
 
     <section class="package-faq-section" id="package-faq" aria-labelledby="package-faq-title">
       <div class="package-faq-inner">
