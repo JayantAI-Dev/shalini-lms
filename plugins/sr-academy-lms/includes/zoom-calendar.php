@@ -432,7 +432,6 @@ function sr_lms_consultation_order(WP_REST_Request $request) {
         }
     }
     $mode = (string) (sr_lms_payment_settings()['mode'] ?? 'test');
-    if ($is_package && in_array($offer, sr_lms_consultation_purchased_offers($email, $phone, $mode), true)) return new WP_Error('already_purchased', 'This package has already been purchased with these contact details. Choose another package.', ['status'=>409]);
     $gateway = sr_lms_payment_api($mode, 'orders', [
         'amount'=>$amount, 'currency'=>'INR', 'receipt'=>($is_package ? 'package-' : 'consult-') . wp_generate_password(12, false, false),
         'notes'=>['service'=>$offer, 'session_minutes'=>$is_package ? '0' : (string)$duration],
