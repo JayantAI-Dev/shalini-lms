@@ -403,7 +403,6 @@ function sr_lms_consultation_order(WP_REST_Request $request) {
     if ($hits >= 10) return new WP_Error('rate_limited', 'Please wait before starting another checkout.', ['status'=>429]);
     set_transient($rate_key, $hits + 1, HOUR_IN_SECONDS);
     $duration = $is_package ? 60 : absint($request->get_param('duration'));
-    if (!$is_package && $duration !== 60) return new WP_Error('invalid_duration', 'Please select a 60-minute consultation.', ['status'=>400]);
     $amount = sr_lms_consultation_price($offer, $duration);
     $name = sanitize_text_field((string) $request->get_param('name'));
     $email = sanitize_email((string) $request->get_param('email'));
