@@ -7,6 +7,8 @@
   const dateInput = form.elements.date;
   const dates = form.querySelector('[data-date-options]');
   const success = document.querySelector('[data-booking-success]');
+  const emailStatus = success?.querySelector('[data-booking-email-status]');
+  const dismissedConfirmation = document.querySelector('[data-booking-success-dismissed]');
   const packageGroup = form.querySelector('.package-booking-package-group');
   const scheduleGroups = form.querySelectorAll('[data-booking-schedule]');
   const modeTabs = form.closest('.package-booking-section')?.querySelectorAll('[data-booking-mode]') || [];
@@ -35,6 +37,21 @@
     }
     document.querySelector('#package-booking')?.scrollIntoView({behavior:'smooth',block:'start'});
   }, true);
+  const closeConfirmation = () => {
+    if (!success || success.hidden) return;
+    success.hidden = true;
+    document.body.style.overflow = '';
+    if (dismissedConfirmation) {
+      dismissedConfirmation.hidden = false;
+      dismissedConfirmation.textContent = 'Payment confirmed. You can continue browsing.';
+      dismissedConfirmation.focus();
+    }
+  };
+  success?.querySelectorAll('[data-close-booking-success]').forEach((button) => button.addEventListener('click', closeConfirmation));
+  success?.querySelector('[data-booking-success-backdrop]')?.addEventListener('click', closeConfirmation);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && success && !success.hidden) closeConfirmation();
+  });
   const say = (message) => { status.textContent = message; };
   const setBookingMode = (mode) => {
     bookingMode = mode;
@@ -130,7 +147,19 @@
           say('Verifying your test payment…');
           const confirmed = await api('verify', payment);
           if (!confirmed.confirmed) throw new Error('Payment is not confirmed yet. Please contact the Academy before retrying.');
-          form.hidden = true; success.hidden = false; success.querySelector('[data-confirmation-details]').textContent = confirmed.service; success.scrollIntoView({behavior:'smooth',block:'center'});
+          form.hidden = true;
+          success.querySelector('[data-confirmation-details]').textContent = confirmed.service;
+          emailStatus.textContent = confirmed.email_sent && confirmed.team_notified
+            ? `Confirmation email sent to ${details.email}. The Academy team has been notified and will contact you within 48 hours.`
+            : confirmed.email_sent
+              ? `Confirmation email sent to ${details.email}, but the Academy team was not notified. Please contact the Academy; do not pay again.`
+              : confirmed.team_notified
+                ? 'The Academy team has been notified and will contact you within 48 hours, but the confirmation email could not be sent. Please contact the Academy if you need a receipt; do not pay again.'
+                : 'Payment is confirmed, but the site could not send the confirmation email or notify the Academy team. Please contact the Academy; do not pay again.';
+          success.hidden = false;
+          document.body.style.overflow = 'hidden';
+          success.focus();
+          success.scrollIntoView({behavior:'smooth',block:'center'});
         } catch (error) { say(error.message); submit.disabled = false; }
       }, modal:{ondismiss:() => { say('Checkout closed. No purchase was confirmed.'); submit.disabled = false; }} });
       checkout.on('payment.failed', () => { say('Test payment failed. No purchase was confirmed.'); submit.disabled = false; }); checkout.open();
