@@ -62,7 +62,7 @@ function sr_theme_enqueue(): void {
     wp_enqueue_style('sr-fonts', sr_theme_asset('assets/fonts/fonts.css'), [], $version);
     wp_enqueue_style('sr-academy', get_stylesheet_uri(), ['sr-fonts'], $style_version);
     $site_dependencies = [];
-    if (in_array(sr_theme_slug(), ['home','services'], true) && function_exists('sr_lms_payment_ready') && sr_lms_payment_ready()) {
+    if ((in_array(sr_theme_slug(), ['home','services'], true) || (sr_theme_slug() === 'enroll' && sr_theme_is_coaching_offer())) && function_exists('sr_lms_payment_ready') && sr_lms_payment_ready()) {
         wp_enqueue_script('sr-lms-razorpay-checkout', 'https://checkout.razorpay.com/v1/checkout.js', [], null, true);
         $site_dependencies[] = 'sr-lms-razorpay-checkout';
     }
@@ -70,7 +70,7 @@ function sr_theme_enqueue(): void {
     $pages = [];
     foreach (sr_theme_pages() as $filename=>$slug) { $pages[$filename] = sr_theme_url($filename); }
     $config = ['pages'=>$pages,'home'=>home_url('/'),'assetBase'=>trailingslashit(get_template_directory_uri()),'calendarAvailabilityUrl'=>rest_url('sr-lms/v1/calendar-availability')];
-    if (in_array(sr_theme_slug(), ['home','services'], true) && function_exists('sr_lms_payment_ready')) {
+    if ((in_array(sr_theme_slug(), ['home','services'], true) || (sr_theme_slug() === 'enroll' && sr_theme_is_coaching_offer())) && function_exists('sr_lms_payment_ready')) {
         $config['consultationCheckout'] = [
             'enabled' => sr_lms_payment_ready() && function_exists('sr_lms_google_calendar_ready') && sr_lms_google_calendar_ready() && function_exists('sr_lms_zoom_ready') && sr_lms_zoom_ready(),
             'api' => rest_url('sr-lms/v1/consultations/'),
@@ -90,6 +90,7 @@ JS
     }
     if (sr_theme_slug() === 'enroll' && sr_theme_is_coaching_offer()) {
         wp_enqueue_script('sr-brochure', sr_theme_asset('assets/js/brochure.js'), ['sr-site'], $version, true);
+        wp_enqueue_script('sr-package-checkout', sr_theme_asset('assets/js/package-checkout.js'), ['sr-site','sr-lms-razorpay-checkout'], $version, true);
     }
 }
 add_action('wp_enqueue_scripts', 'sr_theme_enqueue');

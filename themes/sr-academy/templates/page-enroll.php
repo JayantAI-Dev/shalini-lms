@@ -20,8 +20,8 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
           <div class="package-hero-deliverables"><span data-package-deliverable-one>Private 60-minute 1:1 Zoom sessions</span><span data-package-deliverable-two>Personalized Executive Speaker Playbook</span></div>
         </div>
         <div class="package-hero-actions">
-          <a class="package-page-button" data-package-contact href="<?php echo esc_url(sr_theme_url('contact.html?type=consultation&offer=comm-package')); ?>"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3.5" y="5" width="13" height="11" rx="1.5"/><path d="M6.5 3.5v3M13.5 3.5v3M3.5 8.2h13"/></svg><span>BOOK 1:1 PACKAGE</span></a>
-          <a class="package-discovery-button" href="<?php echo esc_url(sr_theme_url('contact.html?type=consultation&offer=comm-package')); ?>"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3.5 4.2 4.7c-.8.6-.9 1.7-.5 2.7 1.8 4.2 5 7.3 9.2 9.1 1 .4 2.1.3 2.7-.5l1.2-1.8-3.2-2-1.4 1.5c-2.6-1.2-4.3-2.9-5.5-5.5l1.5-1.4-2.2-3.3Z"/></svg><span>15-MIN DISCOVERY (FREE)</span></a>
+          <a class="package-page-button" href="#package-booking"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3.5" y="5" width="13" height="11" rx="1.5"/><path d="M6.5 3.5v3M13.5 3.5v3M3.5 8.2h13"/></svg><span>BOOK 1:1 PACKAGE</span></a>
+          <a class="package-discovery-button" href="#package-booking"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3.5 4.2 4.7c-.8.6-.9 1.7-.5 2.7 1.8 4.2 5 7.3 9.2 9.1 1 .4 2.1.3 2.7-.5l1.2-1.8-3.2-2-1.4 1.5c-2.6-1.2-4.3-2.9-5.5-5.5l1.5-1.4-2.2-3.3Z"/></svg><span>15-MIN DISCOVERY (FREE)</span></a>
         </div>
         <div class="package-hero-proof"><span>500+ Clients Styled</span><i></i><span>4.98/5 Rating</span><i></i><span>Free 24h Reschedule</span></div>
       </div>
@@ -321,7 +321,28 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
       </div>
     </section>
 
-    <section class="package-booking-section" id="package-booking"><?php if (function_exists('sr_lms_render_enrollment')) { sr_lms_render_enrollment(); } else { sr_theme_lms_notice(); } ?></section>
+    <?php if (($_GET['offer'] ?? '') === 'comm-package') { ?>
+    <section class="package-booking-section" id="package-booking" aria-labelledby="package-booking-title">
+      <header class="package-booking-heading"><p class="package-page-kicker">SCHEDULE YOUR SESSION</p><h2 id="package-booking-title">Reserve Your Time</h2><p>Choose your package and preferred 60-minute session time.</p></header>
+      <form class="package-booking-form" data-package-checkout novalidate>
+        <div class="package-booking-fields">
+          <label>Full Name *<input name="name" autocomplete="name" required maxlength="120" placeholder="Your name"></label>
+          <label>Email Address *<input name="email" type="email" autocomplete="email" required maxlength="190" placeholder="your.email@example.com"></label>
+          <label class="package-booking-phone">WhatsApp / Phone *<input name="phone" type="tel" autocomplete="tel" required maxlength="40" placeholder="+91 98765 43210"></label>
+        </div>
+        <fieldset class="package-booking-package-group"><legend>Choose a package:</legend><div class="package-booking-package-options">
+          <button type="button" class="package-booking-package-option" data-plan="comm-core" data-price="49999"><span>Core Communication</span><strong>₹49,999</strong></button>
+          <button type="button" class="package-booking-package-option" data-plan="comm-presence" data-price="74999"><span>Powerful Presence</span><strong>₹74,999</strong></button>
+          <button type="button" class="package-booking-package-option" data-plan="comm-commanding" data-price="99999"><span>Commanding Presence</span><strong>₹99,999</strong></button>
+        </div></fieldset>
+        <div class="package-booking-choice-group"><label for="package-booking-date">Select Preferred Date:</label><input id="package-booking-date" name="date" type="date" required></div>
+        <fieldset class="package-booking-choice-group"><legend>Available Time Slot:</legend><div class="package-booking-options" data-slot-options><p>Select a date to load live availability.</p></div></fieldset>
+        <div class="package-booking-submit-row"><p>Razorpay test mode · no live charge</p><button class="package-booking-submit" type="submit">Continue to test payment</button></div>
+        <p class="package-booking-status" data-booking-status role="status" aria-live="polite"></p>
+      </form>
+      <div class="package-booking-success" data-booking-success hidden role="status"><h3>Thank you — your session is confirmed.</h3><p data-confirmation-details></p><p>A confirmation email and calendar invitation have been sent to your email address.</p></div>
+    </section>
+    <?php } else { ?><section class="package-booking-section" id="package-booking"><?php if (function_exists('sr_lms_render_enrollment')) { sr_lms_render_enrollment(); } else { sr_theme_lms_notice(); } ?></section><?php } ?>
 
     <section class="package-faq-section" id="package-faq" aria-labelledby="package-faq-title">
       <div class="package-faq-inner">

@@ -336,6 +336,9 @@ add_action('wpcf7_before_send_mail', 'sr_lms_process_consultation_booking', 10, 
 function sr_lms_consultation_price(string $offer, int $duration): int {
     $prices = [
         'comm-call' => [30 => 375000, 60 => 799900],
+        'comm-core' => [60 => 4999900],
+        'comm-presence' => [60 => 7499900],
+        'comm-commanding' => [60 => 9999900],
         'style-call' => [30 => 375000, 60 => 799900],
         'color-call' => [60 => 799900, 90 => 1399900],
         'occasion-call' => [30 => 375000, 60 => 799900],
@@ -345,6 +348,7 @@ function sr_lms_consultation_price(string $offer, int $duration): int {
 
 function sr_lms_consultation_order(WP_REST_Request $request) {
     if (!sr_lms_payment_ready()) return new WP_Error('checkout_unavailable', 'Secure checkout is not available right now.', ['status' => 503]);
+    if (in_array(sanitize_key((string) $request->get_param('offer')), ['comm-core','comm-presence','comm-commanding'], true) && (sr_lms_payment_settings()['mode'] ?? 'test') !== 'test') return new WP_Error('test_mode_required', 'Package checkout is currently available in test mode only.', ['status'=>503]);
     if (!sr_lms_google_calendar_ready() || !sr_lms_zoom_ready()) return new WP_Error('booking_unavailable', 'Online booking is not fully configured yet.', ['status' => 503]);
     $ip = sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? 'unknown');
     $rate_key = 'sr_lms_consult_order_rate_' . hash('sha256', $ip);
@@ -362,6 +366,9 @@ function sr_lms_consultation_order(WP_REST_Request $request) {
     $time = sanitize_text_field((string) $request->get_param('time'));
     $service_names = [
         'comm-call' => '1:1 Communication & Confidence',
+        'comm-core' => 'Core Communication Package',
+        'comm-presence' => 'Powerful Presence Package',
+        'comm-commanding' => 'Commanding Presence Package',
         'style-call' => '1:1 Image Styling & Confidence',
         'color-call' => 'Personalised Colour Analysis Consultation',
         'occasion-call' => 'Personalised Occasion Styling',
@@ -468,7 +475,7 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
     $booking = get_transient($key);
     if (!is_array($booking)) {
         $stored = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . sr_lms_table('consultation_bookings') . ' WHERE gateway_order=%s', $order_id), ARRAY_A);
-        $service_names = ['comm-call'=>'1:1 Communication & Confidence','style-call'=>'1:1 Image Styling & Confidence','color-call'=>'Personalised Colour Analysis Consultation','occasion-call'=>'Personalised Occasion Styling'];
+        $service_names = ['comm-call'=>'1:1 Communication & Confidence','comm-core'=>'Core Communication Package','comm-presence'=>'Powerful Presence Package','comm-commanding'=>'Commanding Presence Package','style-call'=>'1:1 Image Styling & Confidence','color-call'=>'Personalised Colour Analysis Consultation','occasion-call'=>'Personalised Occasion Styling'];
         if ($stored && isset($service_names[$stored['offer']])) {
             $booking = ['order_id'=>$order_id,'mode'=>$stored['mode'],'amount'=>(int)$stored['amount'],'offer'=>$stored['offer'],'duration'=>(int)$stored['duration'],'name'=>$stored['customer_name'],'email'=>$stored['customer_email'],'phone'=>$stored['customer_phone'],'challenge'=>$stored['challenge'],'date'=>$stored['booking_date'],'time'=>$stored['booking_time'],'service'=>$service_names[$stored['offer']],'status'=>$stored['status']==='confirmed'?'complete':'pending'];
             if ($booking['status']==='complete') {
