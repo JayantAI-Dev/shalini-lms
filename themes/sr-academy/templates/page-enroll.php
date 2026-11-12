@@ -323,7 +323,7 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
 
     <?php if (($_GET['offer'] ?? '') === 'comm-package') { ?>
     <section class="package-booking-section" id="package-booking" aria-labelledby="package-booking-title">
-      <header class="package-booking-heading"><p class="package-page-kicker">SCHEDULE YOUR SESSION</p><h2 id="package-booking-title">Reserve Your Time</h2><div class="package-booking-tabs" role="tablist" aria-label="Booking type"><button type="button" role="tab" aria-selected="true" class="is-selected" data-booking-mode="package">1:1 PACKAGE · FROM ₹49,999</button><button type="button" role="tab" aria-selected="false" data-booking-mode="discovery">15-MIN DISCOVERY (FREE)</button></div></header>
+      <header class="package-booking-heading"><p class="package-page-kicker">YOUR NEXT STEP</p><h2 id="package-booking-title">Choose Your Package or Book a Call</h2><div class="package-booking-tabs" role="tablist" aria-label="Booking type"><button type="button" role="tab" aria-selected="true" class="is-selected" data-booking-mode="package">1:1 PACKAGE · FROM ₹49,999</button><button type="button" role="tab" aria-selected="false" data-booking-mode="discovery">15-MIN DISCOVERY (FREE)</button></div></header>
       <form class="package-booking-form" data-package-checkout novalidate>
         <div class="package-booking-fields">
           <label>Full Name *<input name="name" autocomplete="name" required maxlength="120" placeholder="Your name"></label>
@@ -335,12 +335,12 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
           <button type="button" class="package-booking-package-option" data-plan="comm-presence" data-price="74999"><span>Powerful Presence</span><strong>₹74,999</strong></button>
           <button type="button" class="package-booking-package-option" data-plan="comm-commanding" data-price="99999"><span>Commanding Presence</span><strong>₹99,999</strong></button>
         </div></fieldset>
-        <fieldset class="package-booking-choice-group"><legend>Select Preferred Date:</legend><div class="package-booking-options package-booking-dates" data-date-options></div><input class="package-booking-date-input" id="package-booking-date" name="date" type="date" required tabindex="-1" aria-hidden="true"></fieldset>
-        <fieldset class="package-booking-choice-group"><legend>Available Time Slot:</legend><div class="package-booking-options" data-slot-options><p>Select a date to load live availability.</p></div></fieldset>
+        <fieldset class="package-booking-choice-group" data-booking-schedule><legend>Select Preferred Date:</legend><div class="package-booking-options package-booking-dates" data-date-options></div><input class="package-booking-date-input" id="package-booking-date" name="date" type="date" required tabindex="-1" aria-hidden="true"></fieldset>
+        <fieldset class="package-booking-choice-group" data-booking-schedule><legend>Available Time Slot:</legend><div class="package-booking-options" data-slot-options><p>Select a date to load live availability.</p></div></fieldset>
         <div class="package-booking-submit-row"><p data-booking-note>Razorpay test mode · no live charge</p><button class="package-booking-submit" type="submit">Continue to test payment</button></div>
         <p class="package-booking-status" data-booking-status role="status" aria-live="polite"></p>
       </form>
-      <div class="package-booking-success" data-booking-success hidden role="status"><h3>Thank you — your session is confirmed.</h3><p data-confirmation-details></p><p>A confirmation email and calendar invitation have been sent to your email address.</p></div>
+      <div class="package-booking-success" data-booking-success hidden role="status"><h3>Thank you — your package purchase is confirmed.</h3><p data-confirmation-details></p><p>We have emailed your confirmation. Our team will contact you within 48 hours to help you get started.</p></div>
     </section>
     <?php } else { ?><section class="package-booking-section" id="package-booking"><?php if (function_exists('sr_lms_render_enrollment')) { sr_lms_render_enrollment(); } else { sr_theme_lms_notice(); } ?></section><?php } ?>
 
