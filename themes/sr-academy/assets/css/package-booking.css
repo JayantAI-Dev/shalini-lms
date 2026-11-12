@@ -19,6 +19,7 @@ body.package-enrollment-page .package-booking-package-option strong { font-size:
 body.package-enrollment-page .package-booking-choice-group { margin-bottom:17px; }
 body.package-enrollment-page .package-booking-date-input { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
 body.package-enrollment-page .package-booking-options { gap:6px; }
+body.package-enrollment-page .package-booking-options > .package-booking-unavailable { grid-column:1/-1; margin:0; color:#657467; font-size:13px; line-height:1.5; }
 body.package-enrollment-page .package-booking-option { min-height:34px; padding:6px 7px; border-radius:9px; color:#1e3429; background:#fff; font-size:11px; }
 body.package-enrollment-page .package-booking-option.is-selected { color:#fff; background:#194c3b; }
 body.package-enrollment-page .package-booking-submit-row { padding-top:12px; }
