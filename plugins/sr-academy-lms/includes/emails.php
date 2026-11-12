@@ -10,6 +10,7 @@ function sr_lms_email_defaults(): array {
         'password_reset'=>['Reset your {brand} password','Reset your password','A password reset was requested for your account. Use the button below to choose a new password. If you did not request this, ignore this email.','Reset password'],
         'enrollment'=>['Your course access is ready','You are enrolled','You now have access to {offer_title}. Visit your dashboard to start learning.','Start learning'],
         'purchase'=>['Your {brand} purchase receipt','Thank you for your purchase','Your purchase of {offer_title} is complete. Amount: {amount}. Payment reference: {payment_id}. Order reference: {order_id}. Your learning access is ready.','Start learning'],
+        'package_purchase'=>['Package purchase received: {offer_title}','Thank you for your purchase','Your test payment for {offer_title} is confirmed. Amount: {amount}. Payment reference: {payment_id}. Order reference: {order_id}. Our team will contact you within 48 hours to help you get started.','Contact the Academy'],
     ] as $type=>$values)$templates[$type]=array_combine(['subject','heading','body','cta'],$values)+['enabled'=>true];
     return ['brand'=>'Shalini Rathod Academy','sender_name'=>'Shalini Rathod Academy','sender_email'=>sanitize_email(get_option('admin_email')),'reply_to'=>sanitize_email(get_option('admin_email')),'support_url'=>home_url('/contact/'),'logo_url'=>'','color'=>'#125c45','templates'=>$templates];
 }
