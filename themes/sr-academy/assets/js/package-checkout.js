@@ -9,11 +9,12 @@
   const success = document.querySelector('[data-booking-success]');
   const inlineConfirmation = document.querySelector('[data-booking-success-inline]');
   const inlinePlan = inlineConfirmation?.querySelector('[data-booking-complete-plan]');
-  const bookingHeading = form.closest('.package-booking-section')?.querySelector('.package-booking-heading');
-  const bookingTabs = form.closest('.package-booking-section')?.querySelector('.package-booking-tabs');
+  const bookingSection = form.closest('.package-booking-section');
+  const bookingHeading = bookingSection?.querySelector('.package-booking-heading');
+  const bookingTabs = bookingSection?.querySelector('.package-booking-tabs');
   const packageGroup = form.querySelector('.package-booking-package-group');
   const scheduleGroups = form.querySelectorAll('[data-booking-schedule]');
-  const modeTabs = form.closest('.package-booking-section')?.querySelectorAll('[data-booking-mode]') || [];
+  const modeTabs = bookingSection?.querySelectorAll('[data-booking-mode]') || [];
   const bookingNote = form.querySelector('[data-booking-note]');
   const submitButton = form.querySelector('[type="submit"]');
   let bookingMode = 'package';
@@ -148,7 +149,8 @@
           form.hidden = true;
           if (inlinePlan) inlinePlan.textContent = confirmed.service;
           if (inlineConfirmation) inlineConfirmation.hidden = false;
-          if (bookingTabs) bookingTabs.hidden = true;
+          if (bookingSection) bookingSection.classList.add('is-purchase-complete');
+          if (bookingTabs) { bookingTabs.hidden = true; bookingTabs.style.display = 'none'; }
           const headingKicker = bookingHeading?.querySelector('.package-page-kicker');
           const headingTitle = bookingHeading?.querySelector('h2');
           if (headingKicker) headingKicker.textContent = 'PAYMENT CONFIRMED';
