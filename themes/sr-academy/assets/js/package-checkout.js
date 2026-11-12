@@ -8,7 +8,8 @@
   const dates = form.querySelector('[data-date-options]');
   const emailInput = form.elements.email;
   const packageOptions = Array.from(form.querySelectorAll('[data-plan]'));
-  const packagePriceLabel = form.closest('.package-booking-section')?.querySelector('[data-booking-price]');
+  const bookingSection = form.closest('.package-booking-section');
+  const packagePriceLabel = bookingSection?.querySelector('[data-booking-price]');
   if (packagePriceLabel) packagePriceLabel.textContent = 'FROM ₹49,999';
   const purchasedPackageStorageKey = 'sr-academy-package-purchases-v1';
   let serverPurchasedPackages = new Set();
@@ -65,6 +66,44 @@
     const data = await readJsonResponse(response);
     if (!response.ok) throw new Error(data.message || 'We could not complete your request. Please try again.');
     return data;
+  };
+  const readPurchasedPackages = () => {
+    try {
+      const data = JSON.parse(localStorage.getItem(purchasedPackageStorageKey) || '{}');
+      return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+    } catch (_) { return {}; }
+  };
+  const rememberPurchasedPackage = (email, plan) => {
+    const key = email.trim().toLowerCase();
+    if (!key || !plan) return;
+    try {
+      const data = readPurchasedPackages();
+      const plans = Array.isArray(data[key]) ? data[key] : [];
+      data[key] = Array.from(new Set([...plans, plan]));
+      localStorage.setItem(purchasedPackageStorageKey, JSON.stringify(data));
+    } catch (_) {}
+  };
+  const refreshPurchasedPackages = () => {
+    const email = emailInput.value.trim().toLowerCase();
+    const stored = readPurchasedPackages();
+    const purchased = new Set([...(Array.isArray(stored[email]) ? stored[email] : []), ...serverPurchasedPackages]);
+    packageOptions.forEach((button) => {
+      const isPurchased = Boolean(email) && purchased.has(button.dataset.plan);
+      button.disabled = isPurchased;
+      let label = button.querySelector('[data-purchased-label]');
+      if (isPurchased && !label) {
+        label = document.createElement('span');
+        label.dataset.purchasedLabel = '';
+        label.textContent = 'Purchased';
+        button.append(label);
+      }
+      if (label) label.hidden = !isPurchased;
+      if (isPurchased && selectedPlan === button.dataset.plan) {
+        selectedPlan = '';
+        button.classList.remove('is-selected');
+        button.setAttribute('aria-pressed', 'false');
+      }
+    });
   };
   let packageLookupTimer = 0;
   let packageLookupRequest = 0;
