@@ -285,3 +285,8 @@ body.package-enrollment-page .package-booking-status { overflow-wrap:anywhere; }
     gap: 12px;
   }
 }
+
+/* Keep purchased packages visible while preventing a duplicate checkout in this browser. */
+body.package-enrollment-page .package-booking-package-option:disabled { opacity:.62; cursor:not-allowed; border-style:dashed; background:#f2f5f0; }
+body.package-enrollment-page .package-booking-package-option [data-purchased-label][hidden] { display:none !important; }
+body.package-enrollment-page .package-booking-package-option [data-purchased-label] { display:block; grid-column:1 / -1; color:#657467; font-size:10px; font-weight:700; }
