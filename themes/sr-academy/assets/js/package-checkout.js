@@ -5,6 +5,7 @@
   const status = form.querySelector('[data-booking-status]');
   const slots = form.querySelector('[data-slot-options]');
   const dateInput = form.elements.date;
+  const dates = form.querySelector('[data-date-options]');
   const success = document.querySelector('[data-booking-success]');
   let selectedPlan = '';
   let selectedTime = '';
@@ -30,15 +31,38 @@
     selectedPlan = button.dataset.plan;
     document.querySelectorAll('[data-plan]').forEach((item) => { item.classList.toggle('is-selected', item === button); item.setAttribute('aria-pressed', item === button ? 'true' : 'false'); });
   }));
-  dateInput.min = new Date().toISOString().slice(0, 10);
-  dateInput.max = new Date(Date.now() + 180 * 86400000).toISOString().slice(0, 10);
+  const dateKey = (date) => {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Kolkata', year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(date).map((part) => [part.type, part.value]));
+    return `${parts.year}-${parts.month}-${parts.day}`;
+  };
+  const dateLabel = (date) => new Intl.DateTimeFormat('en-IN', {timeZone:'Asia/Kolkata', weekday:'long', day:'numeric', month:'short'}).format(date);
+  const today = new Date();
+  const dateButtons = [];
+  for (let offset = 1; offset <= 4; offset++) {
+    const date = new Date(today.getTime() + offset * 86400000);
+    const key = dateKey(date);
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'package-booking-option'; button.textContent = dateLabel(date);
+    button.setAttribute('aria-pressed', 'false');
+    button.addEventListener('click', () => {
+      dateInput.value = key;
+      dateButtons.forEach((item) => { item.classList.toggle('is-selected', item === button); item.setAttribute('aria-pressed', item === button ? 'true' : 'false'); });
+      dateInput.dispatchEvent(new Event('change', {bubbles:true}));
+    });
+    dates.append(button); dateButtons.push(button);
+  }
+  dateInput.min = dateKey(today);
+  dateInput.max = dateKey(new Date(today.getTime() + 180 * 86400000));
   dateInput.addEventListener('change', async () => {
     selectedTime = '';
     slots.replaceChildren(Object.assign(document.createElement('p'), {textContent:'Checking live availability…'}));
     try {
       const url = new URL(window.SR_THEME.calendarAvailabilityUrl);
       url.searchParams.set('date', dateInput.value); url.searchParams.set('duration', '60');
-      const response = await fetch(url); const data = await response.json();
+      const response = await fetch(url);
+      const body = await response.text();
+      let data;
+      try { data = JSON.parse(body); } catch (_) { throw new Error('Live availability could not be loaded. Please try another date or contact the Academy.'); }
       if (!response.ok) throw new Error(data.message || 'Calendar availability is unavailable.');
       slots.replaceChildren();
       data.slots.filter((slot) => slot.available).forEach((slot) => {
@@ -48,6 +72,7 @@
       if (!slots.childElementCount) slots.textContent = 'No times are available on this date. Choose another date.';
     } catch (error) { slots.textContent = error.message; }
   });
+  dateButtons[0]?.click();
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!config.enabled || !config.test) { say('Test checkout is unavailable. Please contact the Academy.'); return; }
