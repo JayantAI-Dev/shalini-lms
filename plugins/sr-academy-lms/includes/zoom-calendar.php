@@ -225,7 +225,7 @@ function sr_lms_google_delete_calendar_event(string $event_id) {
     return true;
 }
 
-function sr_lms_booking_slot_from_request(array $data) {
+function sr_lms_booking_slot_from_request(array $data, bool $enforce_notice = true) {
     $date = sanitize_text_field((string) ($data['booking_date'] ?? ''));
     $time = sanitize_text_field((string) ($data['booking_time'] ?? ''));
     $duration = absint($data['booking_duration'] ?? 0);
@@ -233,16 +233,18 @@ function sr_lms_booking_slot_from_request(array $data) {
         return new WP_Error('invalid_booking_slot', 'Please select a valid date and time slot.');
     }
     $config = sr_lms_google_calendar_config();
-    $timezone = $config['timezone'] ?: 'Asia/Kolkata';
-    try { $zone = new DateTimeZone($timezone); } catch (Exception $e) { return new WP_Error('invalid_booking_timezone', 'The booking timezone is not configured correctly.'); }
+    $timezone = 'Asia/Kolkata';
+    $zone = new DateTimeZone($timezone);
     $hour = (int) $matches[1]; $minute = (int) $matches[2]; $ampm = strtoupper($matches[3]);
     if ($hour < 1 || $hour > 12 || $minute > 59) return new WP_Error('invalid_booking_slot', 'Please select a valid time slot.');
     if ($ampm === 'AM') { if ($hour === 12) $hour = 0; } else { if ($hour !== 12) $hour += 12; }
-    if (!in_array($hour * 60 + $minute, [600,690,840,990,1140], true)) return new WP_Error('invalid_booking_slot', 'Please choose one of the available time slots.');
+    $start_minutes = $hour * 60 + $minute;
+    if ($start_minutes < 600 || $start_minutes % 30 !== 0 || $start_minutes + $duration > 1140) return new WP_Error('invalid_booking_slot', 'Please choose a slot between 10:00 AM and 7:00 PM IST.');
     $start = DateTimeImmutable::createFromFormat('!Y-m-d H:i', $date.' '.sprintf('%02d:%02d',$hour,$minute), $zone);
     if (!$start || $start->format('Y-m-d') !== $date || $start <= new DateTimeImmutable('now', $zone) || $start > (new DateTimeImmutable('now', $zone))->modify('+180 days')) {
         return new WP_Error('invalid_booking_slot', 'Please choose a future date within the next six months.');
     }
+    if ($enforce_notice && $start->getTimestamp() < time() + 2 * HOUR_IN_SECONDS) return new WP_Error('invalid_booking_slot', 'Please choose a slot at least two hours from now.');
     return ['start'=>$start,'end'=>$start->modify('+'.$duration.' minutes'),'duration'=>$duration,'timezone'=>$timezone];
 }
 
@@ -462,7 +464,7 @@ function sr_lms_consultation_order(WP_REST_Request $request) {
 
 /** Creates Zoom + Google Calendar records after verified payment. */
 function sr_lms_create_paid_consultation(array $booking) {
-    $slot = sr_lms_booking_slot_from_request(['booking_date'=>$booking['date'],'booking_time'=>$booking['time'],'booking_duration'=>$booking['duration']]);
+    $slot = sr_lms_booking_slot_from_request(['booking_date'=>$booking['date'],'booking_time'=>$booking['time'],'booking_duration'=>$booking['duration']], false);
     if (is_wp_error($slot)) return $slot;
     $busy = sr_lms_google_freebusy(sr_lms_google_calendar_config()['calendar_id'], $slot['start'], $slot['end'], $slot['timezone']);
     if (is_wp_error($busy)) return $busy;
@@ -555,7 +557,7 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
             $is_package = in_array($stored['offer'], ['comm-core','comm-presence','comm-commanding','style-signature','style-exclusive','style-vip'], true);
             $booking = ['order_id'=>$order_id,'mode'=>$stored['mode'],'amount'=>(int)$stored['amount'],'offer'=>$stored['offer'],'duration'=>(int)$stored['duration'],'name'=>$stored['customer_name'],'email'=>$stored['customer_email'],'phone'=>$stored['customer_phone'],'challenge'=>$stored['challenge'],'date'=>$stored['booking_date'],'time'=>$stored['booking_time'],'service'=>$service_names[$stored['offer']],'package'=>$is_package,'status'=>$stored['status']==='confirmed'?'complete':'pending'];
             if ($booking['status']==='complete' && !$is_package) {
-                $slot = sr_lms_booking_slot_from_request(['booking_date'=>$booking['date'],'booking_time'=>$booking['time'],'booking_duration'=>$booking['duration']]);
+                $slot = sr_lms_booking_slot_from_request(['booking_date'=>$booking['date'],'booking_time'=>$booking['time'],'booking_duration'=>$booking['duration']], false);
                 if (!is_wp_error($slot)) $booking['date_label'] = wp_date('j F Y', $slot['start']->getTimestamp(), $slot['start']->getTimezone()) . ' · ' . $slot['start']->format('g:i A') . ' – ' . $slot['end']->format('g:i A') . ' ' . $slot['timezone'];
             }
             set_transient($key, $booking, DAY_IN_SECONDS);
@@ -635,8 +637,8 @@ function sr_lms_google_calendar_slots(WP_REST_Request $request) {
         return new WP_Error('invalid_schedule', 'Choose a valid date and session length.', ['status' => 400]);
     }
     $config = sr_lms_google_calendar_config();
-    $timezone = $config['timezone'] ?: 'Asia/Kolkata';
-    try { $zone = new DateTimeZone($timezone); } catch (Exception $e) { $zone = new DateTimeZone('Asia/Kolkata'); $timezone = 'Asia/Kolkata'; }
+    $timezone = 'Asia/Kolkata';
+    $zone = new DateTimeZone($timezone);
     $local_start = DateTimeImmutable::createFromFormat('!Y-m-d', $date, $zone);
     $today = new DateTimeImmutable('today', $zone);
     if (!$local_start || $local_start->format('Y-m-d') !== $date || $local_start < $today || $local_start > $today->modify('+180 days')) {
@@ -655,13 +657,14 @@ function sr_lms_google_calendar_slots(WP_REST_Request $request) {
     $busy_periods = array_map(static function ($period) {
         return [strtotime($period['start'] ?? ''), strtotime($period['end'] ?? '')];
     }, $busy);
-    $starts = [600, 690, 840, 990, 1140];
+    $starts = range(600, 1140 - $duration, 30);
     $slots = [];
     foreach ($starts as $minutes) {
         $slot_start = $local_start->setTime(intdiv($minutes, 60), $minutes % 60);
         $slot_end = $slot_start->modify('+' . $duration . ' minutes');
         $start_ts = $slot_start->getTimestamp(); $end_ts = $slot_end->getTimestamp();
-        $available = !($date === $today->format('Y-m-d') && $start_ts <= time());
+        if ($start_ts < time() + 2 * HOUR_IN_SECONDS) continue;
+        $available = true;
         foreach ($busy_periods as [$busy_start, $busy_end]) {
             if ($busy_start && $busy_end && $start_ts < $busy_end && $end_ts > $busy_start) { $available = false; break; }
         }
