@@ -335,8 +335,8 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
           <button type="button" class="package-booking-package-option" data-plan="comm-presence" data-price="74999"><span>Powerful Presence</span><strong>₹74,999</strong></button>
           <button type="button" class="package-booking-package-option" data-plan="comm-commanding" data-price="99999"><span>Commanding Presence</span><strong>₹99,999</strong></button>
         </div></fieldset>
-        <fieldset class="package-booking-choice-group" data-booking-schedule><legend>Select Preferred Date:</legend><div class="package-booking-options package-booking-dates" data-date-options></div><input class="package-booking-date-input" id="package-booking-date" name="date" type="date" required tabindex="-1" aria-hidden="true"></fieldset>
-        <fieldset class="package-booking-choice-group" data-booking-schedule><legend>Available Time Slot:</legend><div class="package-booking-options" data-slot-options><p>Select a date to load live availability.</p></div></fieldset>
+        <fieldset class="package-booking-choice-group" data-booking-schedule hidden><legend>Select Preferred Date:</legend><div class="package-booking-options package-booking-dates" data-date-options></div><input class="package-booking-date-input" id="package-booking-date" name="date" type="date" required tabindex="-1" aria-hidden="true"></fieldset>
+        <fieldset class="package-booking-choice-group" data-booking-schedule hidden><legend>Available Time Slot:</legend><div class="package-booking-options" data-slot-options><p>Select a date to load live availability.</p></div></fieldset>
         <div class="package-booking-submit-row"><p data-booking-note>Razorpay test mode · no live charge</p><button class="package-booking-submit" type="submit">Continue to test payment</button></div>
         <p class="package-booking-status" data-booking-status role="status" aria-live="polite"></p>
       </form>
