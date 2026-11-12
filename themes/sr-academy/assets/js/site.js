@@ -956,7 +956,9 @@ if (bookingModal) {
               const kicker = bookingModal.querySelector('.booking-confirmation-kicker');
               if (kicker) kicker.textContent = 'BOOKING CONFIRMED';
               const finalMsg = bookingModal.querySelector('.booking-step-three > p:not(.booking-confirmation-kicker)');
-              if (finalMsg) finalMsg.textContent = 'Your payment is confirmed. We have emailed your Zoom joining details and sent calendar invitations to you and the Academy team.';
+              if (finalMsg) finalMsg.textContent = confirmed.calendar_invite_sent
+                ? `Your payment and booking are confirmed. Google Calendar sent an invitation to ${bookingPayload.email}; it includes your Zoom link.`
+                : 'Your payment is confirmed. Please contact the Academy if you do not receive your calendar invitation.';
               if (sendRequest) sendRequest.hidden = true;
               const copyBtn = bookingModal.querySelector('#booking-copy-request');
               if (copyBtn) copyBtn.hidden = true;
