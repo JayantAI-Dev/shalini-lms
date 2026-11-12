@@ -239,7 +239,7 @@ function sr_lms_booking_slot_from_request(array $data, bool $enforce_notice = tr
     if ($hour < 1 || $hour > 12 || $minute > 59) return new WP_Error('invalid_booking_slot', 'Please select a valid time slot.');
     if ($ampm === 'AM') { if ($hour === 12) $hour = 0; } else { if ($hour !== 12) $hour += 12; }
     $start_minutes = $hour * 60 + $minute;
-    if ($start_minutes < 600 || $start_minutes % 30 !== 0 || $start_minutes + $duration > 1140) return new WP_Error('invalid_booking_slot', 'Please choose a slot between 10:00 AM and 7:00 PM IST.');
+    if ($enforce_notice && ($start_minutes < 600 || $start_minutes % 30 !== 0 || $start_minutes + $duration > 1140)) return new WP_Error('invalid_booking_slot', 'Please choose a slot between 10:00 AM and 7:00 PM IST.');
     $start = DateTimeImmutable::createFromFormat('!Y-m-d H:i', $date.' '.sprintf('%02d:%02d',$hour,$minute), $zone);
     if (!$start || $start->format('Y-m-d') !== $date || $start <= new DateTimeImmutable('now', $zone) || $start > (new DateTimeImmutable('now', $zone))->modify('+180 days')) {
         return new WP_Error('invalid_booking_slot', 'Please choose a future date within the next six months.');
