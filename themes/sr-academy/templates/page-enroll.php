@@ -323,7 +323,7 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
 
     <?php if (($_GET['offer'] ?? '') === 'comm-package') { ?>
     <section class="package-booking-section" id="package-booking" aria-labelledby="package-booking-title">
-      <div class="package-booking-heading"><p class="package-page-kicker">SCHEDULE YOUR SESSION</p><h2 id="package-booking-title">Reserve Your Time</h2><div class="package-booking-tabs" role="tablist" aria-label="Choose a booking type"><button type="button" role="tab" aria-selected="true" class="is-selected" data-booking-mode="package">1:1 PACKAGE · <span data-booking-price>FROM ₹49,999</span></button><button type="button" role="tab" aria-selected="false" data-booking-mode="discovery">15-MIN DISCOVERY (FREE)</button></div></div>
+      <header class="package-booking-heading"><p class="package-page-kicker">YOUR NEXT STEP</p><h2 id="package-booking-title">Choose Your Package or Book a Call</h2><div class="package-booking-tabs" role="tablist" aria-label="Booking type"><button type="button" role="tab" aria-selected="true" class="is-selected" data-booking-mode="package">1:1 PACKAGE · <span data-booking-price>FROM ₹49,999</span></button><button type="button" role="tab" aria-selected="false" data-booking-mode="discovery">15-MIN DISCOVERY (FREE)</button></div></header>
       <form class="package-booking-form" data-package-checkout novalidate>
         <div class="package-booking-fields">
           <label>Full Name *<input name="name" autocomplete="name" required maxlength="120" placeholder="Your name"></label>
