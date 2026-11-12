@@ -10,7 +10,8 @@
   const packageOptions = Array.from(form.querySelectorAll('[data-plan]'));
   const bookingSection = form.closest('.package-booking-section');
   const packagePriceLabel = bookingSection?.querySelector('[data-booking-price]');
-  if (packagePriceLabel) packagePriceLabel.textContent = 'FROM ₹49,999';
+  const startingPrice = Math.min(...packageOptions.map((button) => Number(button.dataset.price)).filter((price) => Number.isFinite(price) && price > 0));
+  if (packagePriceLabel && Number.isFinite(startingPrice)) packagePriceLabel.textContent = 'FROM ₹' + startingPrice.toLocaleString('en-IN');
   const purchasedPackageStorageKey = 'sr-academy-package-purchases-v1';
   let serverPurchasedPackages = new Set();
   const packageGroup = form.querySelector('.package-booking-package-group');
