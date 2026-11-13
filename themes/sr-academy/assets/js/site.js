@@ -1,3 +1,28 @@
+/* Recover Contact Form 7 feedback JSON when the server prepends stray output. */
+(() => {
+  if (window.__srCf7ResponseRecovery || typeof window.fetch !== 'function') return;
+  window.__srCf7ResponseRecovery = true;
+  const nativeFetch = window.fetch.bind(window);
+  window.fetch = async (...args) => {
+    const response = await nativeFetch(...args);
+    let requestUrl = '';
+    try {
+      const request = args[0];
+      requestUrl = new URL(typeof request === 'string' ? request : request.url, window.location.href).pathname;
+    } catch (_) { return response; }
+    if (!requestUrl.includes('/contact-form-7/v1/contact-forms/') || !requestUrl.endsWith('/feedback')) return response;
+    const body = await response.clone().text();
+    const first = body.indexOf('{');
+    const last = body.lastIndexOf('}');
+    if (first < 0 || last < first) return response;
+    const json = body.slice(first, last + 1);
+    try { JSON.parse(json); } catch (_) { return response; }
+    const headers = new Headers(response.headers);
+    headers.delete('content-length');
+    headers.delete('content-encoding');
+    return new Response(json, {status:response.status, statusText:response.statusText, headers});
+  };
+})();
 // Arrow labels use a vector icon to stay sharp and vertically centered in all browsers.
 function setCtaArrowLabel(target, label) {
   if (!target) return;
