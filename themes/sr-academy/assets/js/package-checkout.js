@@ -120,7 +120,29 @@
     if (!form.reportValidity()) return;
     if (bookingMode === 'discovery') {
       if (!selectedTime) { say('Choose an available time before continuing.'); return; }
-      say('Your free discovery call request is ready. The team will follow up to confirm availability.');
+      const submit = submitButton;
+      submit.disabled = true;
+      say('Confirming your free discovery call and creating your Zoom meeting…');
+      try {
+        const details = Object.fromEntries(new FormData(form));
+        const confirmed = await api('discovery', {
+          name: details.name,
+          email: details.email,
+          phone: details.phone,
+          date: details.date,
+          time: selectedTime
+        });
+        if (!confirmed.confirmed) throw new Error('Your discovery call was not confirmed. Please try another available time.');
+        if (confirmed.email_sent && confirmed.calendar_invite_sent) {
+          say(`Your free call is confirmed for ${confirmed.date_label}. We emailed your Zoom link and Google Calendar invitation to ${details.email}.`);
+        } else {
+          say('Your free call is booked, but we could not confirm email delivery. Please contact the Academy before booking again.');
+        }
+      } catch (error) {
+        say(error.message);
+      } finally {
+        submit.disabled = false;
+      }
       return;
     }
     if (!config.enabled || !config.test) { say('Test checkout is unavailable. Please contact the Academy.'); return; }
