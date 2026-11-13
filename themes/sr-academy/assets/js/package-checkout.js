@@ -16,6 +16,33 @@
   const modeTabs = bookingSection?.querySelectorAll('[data-booking-mode]') || [];
   const bookingNote = form.querySelector('[data-booking-note]');
   const submitButton = form.querySelector('[type="submit"]');
+  const confirmation = bookingSection?.querySelector('[data-package-confirmation]');
+  const confirmationKicker = confirmation?.querySelector('[data-confirmation-kicker]');
+  const confirmationTitle = confirmation?.querySelector('[data-confirmation-title]');
+  const confirmationPackage = confirmation?.querySelector('[data-confirmation-package]');
+  const confirmationMessage = confirmation?.querySelector('[data-confirmation-message]');
+  const closeConfirmationButtons = confirmation?.querySelectorAll('[data-confirmation-close]') || [];
+  let lastConfirmationTrigger = null;
+  const showConfirmation = ({kicker, title, packageName, message}) => {
+    if (!confirmation) { say(message); return; }
+    lastConfirmationTrigger = document.activeElement;
+    if (confirmationKicker) confirmationKicker.textContent = kicker;
+    if (confirmationTitle) confirmationTitle.textContent = title;
+    if (confirmationPackage) confirmationPackage.textContent = packageName;
+    if (confirmationMessage) confirmationMessage.textContent = message;
+    confirmation.hidden = false;
+    document.body.classList.add('package-confirmation-open');
+    confirmation.querySelector('[data-confirmation-close]')?.focus();
+  };
+  const hideConfirmation = () => {
+    if (!confirmation || confirmation.hidden) return;
+    confirmation.hidden = true;
+    document.body.classList.remove('package-confirmation-open');
+    lastConfirmationTrigger?.focus?.();
+  };
+  closeConfirmationButtons.forEach((button) => button.addEventListener('click', hideConfirmation));
+  confirmation?.addEventListener('click', (event) => { if (event.target === confirmation) hideConfirmation(); });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') hideConfirmation(); });
   let bookingMode = 'package';
   let selectedPlan = '';
   let selectedTime = '';
@@ -133,11 +160,15 @@
           time: selectedTime
         });
         if (!confirmed.confirmed) throw new Error('Your discovery call was not confirmed. Please try another available time.');
-        if (confirmed.email_sent && confirmed.calendar_invite_sent) {
-          say(`Your free call is confirmed for ${confirmed.date_label}. We emailed your Zoom link and Google Calendar invitation to ${details.email}.`);
-        } else {
-          say('Your free call is booked, but we could not confirm email delivery. Please contact the Academy before booking again.');
-        }
+        const message = confirmed.email_sent && confirmed.calendar_invite_sent
+          ? `Your free call is confirmed for ${confirmed.date_label}. We emailed your Zoom link and Google Calendar invitation to ${details.email}.`
+          : 'Your free call is booked, but email delivery could not be confirmed. Please contact the Academy before booking again.';
+        showConfirmation({
+          kicker: 'DISCOVERY CALL CONFIRMED',
+          title: 'Your free call is booked',
+          packageName: confirmed.date_label || '15-minute discovery call',
+          message
+        });
       } catch (error) {
         say(error.message);
       } finally {
@@ -158,7 +189,17 @@
           const confirmed = await api('verify', payment);
           if (!confirmed.confirmed) throw new Error('Payment is not confirmed yet. Please contact the Academy before retrying.');
           submit.disabled = false;
-          say('Payment confirmed. Our team will contact you within 48 hours.');
+          const selectedPackage = packageOptions.find((button) => button.dataset.plan === selectedPlan);
+          const packageName = selectedPackage?.querySelector('span')?.textContent.trim() || confirmed.service || 'Your package';
+          const emailMessage = confirmed.email_sent
+            ? `A confirmation email was sent to ${details.email}. Our team will contact you within 48 hours to help you get started.`
+            : 'Your payment is confirmed, but email delivery could not be confirmed. Please contact the Academy before retrying or paying again.';
+          showConfirmation({
+            kicker: 'PAYMENT CONFIRMED',
+            title: 'Thank you for your purchase!',
+            packageName,
+            message: emailMessage
+          });
         } catch (error) { say(error.message); submit.disabled = false; }
       }, modal:{ondismiss:() => { say('Checkout closed. No purchase was confirmed.'); submit.disabled = false; }} });
       checkout.on('payment.failed', () => { say('Test payment failed. No purchase was confirmed.'); submit.disabled = false; }); checkout.open();
