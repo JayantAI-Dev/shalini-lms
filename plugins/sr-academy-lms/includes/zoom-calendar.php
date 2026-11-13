@@ -398,6 +398,47 @@ function sr_lms_consultation_purchases(WP_REST_Request $request) {
     $response->header('Cache-Control', 'private, no-store');
     return $response;
 }
+function sr_lms_consultation_discovery(WP_REST_Request $request) {
+    if (!sr_lms_google_calendar_ready() || !sr_lms_zoom_ready()) return new WP_Error('discovery_unavailable', 'Free discovery booking is not fully configured yet. Please contact the Academy.', ['status'=>503]);
+    $ip = sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    $rate_key = 'sr_lms_discovery_rate_' . hash('sha256', $ip);
+    $hits = (int) get_transient($rate_key);
+    if ($hits >= 8) return new WP_Error('rate_limited', 'Please wait before requesting another discovery call.', ['status'=>429]);
+    set_transient($rate_key, $hits + 1, HOUR_IN_SECONDS);
+
+    $name = sanitize_text_field((string)$request->get_param('name'));
+    $email = sanitize_email((string)$request->get_param('email'));
+    $phone = sanitize_text_field((string)$request->get_param('phone'));
+    $date = sanitize_text_field((string)$request->get_param('date'));
+    $time = sanitize_text_field((string)$request->get_param('time'));
+    if (!$name || !is_email($email) || !$phone) return new WP_Error('discovery_details', 'Enter your name, email, and phone number.', ['status'=>400]);
+
+    $slot = sr_lms_booking_slot_from_request(['booking_date'=>$date,'booking_time'=>$time,'booking_duration'=>15], true);
+    if (is_wp_error($slot)) return new WP_Error($slot->get_error_code(), $slot->get_error_message(), ['status'=>400]);
+
+    $booking = [
+        'offer'=>'discovery-call',
+        'date'=>$date,
+        'time'=>$time,
+        'duration'=>15,
+        'name'=>$name,
+        'email'=>$email,
+        'phone'=>$phone,
+        'service'=>'15-minute complimentary discovery call',
+        'free_discovery'=>true,
+    ];
+    $result = sr_lms_create_consultation_meeting($booking);
+    if (is_wp_error($result)) return new WP_Error($result->get_error_code(), $result->get_error_message(), ['status'=>409]);
+    return rest_ensure_response([
+        'confirmed'=>true,
+        'service'=>$booking['service'],
+        'date_label'=>$result['date_label'],
+        'calendar_invite_sent'=>!empty($result['calendar_invite_sent']),
+        'email_sent'=>!empty($result['email_sent']),
+        'team_notified'=>!empty($result['team_notified']),
+    ]);
+}
+
 function sr_lms_consultation_order(WP_REST_Request $request) {
     if (!sr_lms_payment_ready()) return new WP_Error('checkout_unavailable', 'Secure checkout is not available right now.', ['status'=>503]);
     $offer = sanitize_key((string) $request->get_param('offer'));
@@ -471,7 +512,7 @@ function sr_lms_consultation_order(WP_REST_Request $request) {
 }
 
 /** Creates Zoom + Google Calendar records after verified payment. */
-function sr_lms_create_paid_consultation(array $booking) {
+function sr_lms_create_consultation_meeting(array $booking) {
     $slot = sr_lms_booking_slot_from_request(['booking_date'=>$booking['date'],'booking_time'=>$booking['time'],'booking_duration'=>$booking['duration']], false);
     if (is_wp_error($slot)) return $slot;
     $busy = sr_lms_google_freebusy(sr_lms_google_calendar_config()['calendar_id'], $slot['start'], $slot['end'], $slot['timezone']);
@@ -508,12 +549,18 @@ function sr_lms_create_paid_consultation(array $booking) {
         if (is_wp_error($event)) return $event;
         $event_id = (string) ($event['id'] ?? '');
         $when = wp_date('j F Y', $slot['start']->getTimestamp(), $slot['start']->getTimezone()) . ' · ' . $slot['start']->format('g:i A') . ' – ' . $slot['end']->format('g:i A') . ' ' . $slot['timezone'];
-        $subject = 'Consultation confirmed: ' . $booking['service'];
-        $headers = ['Content-Type: text/html; charset=UTF-8'];
-        $html = '<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#20372d"><h2>Consultation confirmed</h2><p>Hello '.esc_html($booking['name']).',</p><p>Your payment is confirmed and your consultation is scheduled.</p><p><strong>'.esc_html($booking['service']).'</strong><br>'.esc_html($when).'</p><p><a href="'.esc_url($join_url).'" style="display:inline-block;background:#174b38;color:#fff;padding:14px 22px;border-radius:8px;text-decoration:none">Join your Zoom meeting</a></p><p>A Google Calendar invitation has been sent to you and the Academy team.</p><p>Warmly,<br>Shalini Rathod Academy</p></div>';
+        $is_free_discovery = !empty($booking['free_discovery']);
+        $subject = $is_free_discovery ? 'Your free discovery call is confirmed' : 'Consultation confirmed: ' . $booking['service'];
+        $customer_message = $is_free_discovery
+            ? 'Your complimentary 15-minute discovery call is scheduled.'
+            : 'Your payment is confirmed and your consultation is scheduled.';
+        $html = '<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#20372d"><h2>Consultation confirmed</h2><p>Hello '.esc_html($booking['name']).',</p><p>'.esc_html($customer_message).'</p><p><strong>'.esc_html($booking['service']).'</strong><br>'.esc_html($when).'</p><p><a href="'.esc_url($join_url).'" style="display:inline-block;background:#174b38;color:#fff;padding:14px 22px;border-radius:8px;text-decoration:none">Join your Zoom meeting</a></p><p>A Google Calendar invitation has been sent to you and the Academy team.</p><p>Warmly,<br>Shalini Rathod Academy</p></div>';
         $sent_user = wp_mail($booking['email'], $subject, $html, $headers);
-        $sent_admin = is_email($config['admin_email']) && strtolower($config['admin_email']) !== strtolower($booking['email']) && wp_mail($config['admin_email'], 'New paid consultation: ' . $booking['service'], '<p>Booking for '.esc_html($booking['name']).' ('.esc_html($booking['email']).') · '.esc_html($when).'</p><p>Payment: INR '.esc_html(number_format($booking['amount']/100,2)).' · '.esc_html($booking['order_id']).'</p><p>Zoom: <a href="'.esc_url($join_url).'">Join meeting</a></p>', $headers);
-        if (!$sent_user || !$sent_admin) error_log('[SR Academy] Paid consultation email delivery failed for order ' . sanitize_text_field($booking['order_id']));
+        $admin_subject = $is_free_discovery ? 'New free discovery call: ' . $booking['service'] : 'New paid consultation: ' . $booking['service'];
+        $admin_body = '<p>Booking for '.esc_html($booking['name']).' ('.esc_html($booking['email']).') · '.esc_html($when).'</p><p>Zoom: <a href="'.esc_url($join_url).'">Join meeting</a></p>';
+        if (!$is_free_discovery) $admin_body .= '<p>Payment: INR '.esc_html(number_format(((int)($booking['amount'] ?? 0))/100,2)).' · '.esc_html((string)($booking['order_id'] ?? '')).'</p>';
+        $sent_admin = is_email($config['admin_email']) && strtolower($config['admin_email']) !== strtolower($booking['email']) && wp_mail($config['admin_email'], $admin_subject, $admin_body, $headers);
+        if (!$sent_user || !$sent_admin) error_log('[SR Academy] Consultation email delivery failed for ' . sanitize_text_field((string)($booking['order_id'] ?? 'free discovery')));
         return ['meeting_id'=>$meeting_id,'event_id'=>$event_id,'date_label'=>$when,'join_url'=>$join_url,'calendar_invite_sent'=>!empty($attendees),'email_sent'=>(bool)$sent_user,'team_notified'=>(bool)$sent_admin];
     } finally {
         if (!$event_id) { if ($meeting_id) sr_lms_zoom_api('DELETE','/meetings/'.rawurlencode($meeting_id)); delete_option($lock); }
@@ -603,7 +650,7 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
     $booking['processing'] = true;
     set_transient($key, $booking, DAY_IN_SECONDS);
     if ($is_package) $booking['payment_id'] = $payment_id;
-    $result = $is_package ? sr_lms_send_package_confirmation($booking) : sr_lms_create_paid_consultation($booking);
+    $result = $is_package ? sr_lms_send_package_confirmation($booking) : sr_lms_create_consultation_meeting($booking);
     if (is_wp_error($result)) {
         $booking['processing'] = false;
         set_transient($key, $booking, DAY_IN_SECONDS);
@@ -635,6 +682,7 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
 add_action('rest_api_init', static function (): void {
     register_rest_route('sr-lms/v1', '/consultations/purchases', ['methods'=>'POST','permission_callback'=>'__return_true','callback'=>'sr_lms_consultation_purchases']);
     register_rest_route('sr-lms/v1', '/consultations/order', ['methods'=>'POST','permission_callback'=>'__return_true','callback'=>'sr_lms_consultation_order']);
+    register_rest_route('sr-lms/v1', '/consultations/discovery', ['methods'=>'POST','permission_callback'=>'__return_true','callback'=>'sr_lms_consultation_discovery']);
     register_rest_route('sr-lms/v1', '/consultations/verify', ['methods'=>'POST','permission_callback'=>'__return_true','callback'=>'sr_lms_consultation_verify']);
 });
 
