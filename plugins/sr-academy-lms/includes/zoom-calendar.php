@@ -551,16 +551,27 @@ function sr_lms_create_consultation_meeting(array $booking) {
         $event_id = (string) ($event['id'] ?? '');
         $when = wp_date('j F Y', $slot['start']->getTimestamp(), $slot['start']->getTimezone()) . ' · ' . $slot['start']->format('g:i A') . ' – ' . $slot['end']->format('g:i A') . ' ' . $slot['timezone'];
         $is_free_discovery = !empty($booking['free_discovery']);
-        $subject = $is_free_discovery ? 'Your free discovery call is confirmed' : 'Consultation confirmed: ' . $booking['service'];
-        $customer_message = $is_free_discovery
-            ? 'Your complimentary 15-minute discovery call is scheduled.'
-            : 'Your payment is confirmed and your consultation is scheduled.';
-        $html = '<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#20372d"><h2>Consultation confirmed</h2><p>Hello '.esc_html($booking['name']).',</p><p>'.esc_html($customer_message).'</p><p><strong>'.esc_html($booking['service']).'</strong><br>'.esc_html($when).'</p><p><a href="'.esc_url($join_url).'" style="display:inline-block;background:#174b38;color:#fff;padding:14px 22px;border-radius:8px;text-decoration:none">Join your Zoom meeting</a></p><p>A Google Calendar invitation has been sent to you and the Academy team.</p><p>Warmly,<br>Shalini Rathod Academy</p></div>';
-        $sent_user = wp_mail($booking['email'], $subject, $html, $headers);
-        $admin_subject = $is_free_discovery ? 'New free discovery call: ' . $booking['service'] : 'New paid consultation: ' . $booking['service'];
-        $admin_body = '<p>Booking for '.esc_html($booking['name']).' ('.esc_html($booking['email']).') · '.esc_html($when).'</p><p>Zoom: <a href="'.esc_url($join_url).'">Join meeting</a></p>';
-        if (!$is_free_discovery) $admin_body .= '<p>Payment: INR '.esc_html(number_format(((int)($booking['amount'] ?? 0))/100,2)).' · '.esc_html((string)($booking['order_id'] ?? '')).'</p>';
-        $sent_admin = is_email($config['admin_email']) && strtolower($config['admin_email']) !== strtolower($booking['email']) && wp_mail($config['admin_email'], $admin_subject, $admin_body, $headers);
+        $context = [
+            'name'=>(string)$booking['name'], 'offer_title'=>(string)$booking['service'], 'appointment'=>$when,
+            'meeting_id'=>$meeting_id, 'customer_email'=>(string)$booking['email'], 'customer_phone'=>(string)$booking['phone'],
+            'cta_url'=>$join_url,
+        ];
+        if (!$is_free_discovery) {
+            $context['amount'] = 'INR ' . number_format(((int)($booking['amount'] ?? 0))/100, 2);
+            $context['payment_id'] = (string)($booking['payment_id'] ?? '');
+        }
+        $customer = (object)['display_name'=>(string)$booking['name']];
+        $user_type = $is_free_discovery ? 'discovery_booking' : 'consultation_booking';
+        $admin_type = $is_free_discovery ? 'discovery_booking_admin' : 'consultation_booking_admin';
+        $user_mail = function_exists('sr_lms_email_render') ? sr_lms_email_render($user_type, $customer, $context) : [];
+        $sent_user = !empty($user_mail) ? wp_mail($booking['email'], $user_mail['subject'], $user_mail['message'], $user_mail['headers']) : false;
+        $admin_mail = function_exists('sr_lms_email_render') ? sr_lms_email_render($admin_type, $customer, $context) : [];
+        $same_recipient = is_email($config['admin_email']) && strtolower($config['admin_email']) === strtolower($booking['email']);
+        $sent_admin = $same_recipient
+            ? (bool)$sent_user
+            : (is_email($config['admin_email']) && !empty($admin_mail)
+                ? wp_mail($config['admin_email'], $admin_mail['subject'], $admin_mail['message'], $admin_mail['headers'])
+                : false);
         if (!$sent_user || !$sent_admin) error_log('[SR Academy] Consultation email delivery failed for ' . sanitize_text_field((string)($booking['order_id'] ?? 'free discovery')));
         return ['meeting_id'=>$meeting_id,'event_id'=>$event_id,'date_label'=>$when,'join_url'=>$join_url,'calendar_invite_sent'=>!empty($attendees),'email_sent'=>(bool)$sent_user,'team_notified'=>(bool)$sent_admin];
     } finally {
@@ -569,14 +580,15 @@ function sr_lms_create_consultation_meeting(array $booking) {
 }
 
 function sr_lms_send_package_confirmation(array $purchase): array {
-    $settings = sr_lms_email_settings();
-    $template_enabled = !empty($settings['templates']['package_purchase']['enabled']);
     $user = (object)['display_name'=>(string)$purchase['name']];
     $context = [
+        'name'=>(string)$purchase['name'],
         'offer_title'=>(string)$purchase['service'],
         'amount'=>'INR ' . number_format(((int)$purchase['amount']) / 100, 2),
         'payment_id'=>(string)($purchase['payment_id'] ?? ''),
         'order_id'=>(string)$purchase['order_id'],
+        'customer_email'=>(string)$purchase['email'],
+        'customer_phone'=>(string)$purchase['phone'],
         'cta_url'=>home_url('/contact/'),
     ];
     $mail = function_exists('sr_lms_email_render') ? sr_lms_email_render('package_purchase', $user, $context) : [];
@@ -584,7 +596,7 @@ function sr_lms_send_package_confirmation(array $purchase): array {
     $fallback_html = '<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#20372d"><h2>Thank you for your purchase!</h2><p>Hello ' . esc_html($purchase['name']) . ',</p><p>Your payment for <strong>' . esc_html($purchase['service']) . '</strong> is confirmed.</p><p>Amount: INR ' . esc_html(number_format(((int)$purchase['amount']) / 100, 2)) . '</p><p>Our team will contact you within 48 hours to help you get started. Package sessions are arranged separately with the Academy.</p><p>Warmly,<br>Shalini Rathod Academy</p></div>';
     $fallback_headers = ['Content-Type' => 'text/html; charset=UTF-8'];
     $sent_user = !empty($purchase['email_sent']) ? true : (is_email($purchase['email'])
-        ? (!empty($mail) && $template_enabled
+        ? (!empty($mail)
             ? wp_mail($purchase['email'], $mail['subject'], $mail['message'], $mail['headers'])
             : wp_mail($purchase['email'], $fallback_subject, $fallback_html, $fallback_headers))
         : false);
@@ -592,11 +604,16 @@ function sr_lms_send_package_confirmation(array $purchase): array {
     $config = sr_lms_zoom_config();
     $admin_email = sanitize_email($config['admin_email'] ?? '');
     $admin_html = '<div style="font-family:Arial,sans-serif;color:#20372d"><h2>New package purchase</h2><p><strong>' . esc_html($purchase['service']) . '</strong></p><p>Name: ' . esc_html($purchase['name']) . '<br>Email: ' . esc_html($purchase['email']) . '<br>Phone: ' . esc_html($purchase['phone']) . '</p><p>Amount: INR ' . esc_html(number_format(((int)$purchase['amount'])/100, 2)) . '<br>Razorpay order: ' . esc_html($purchase['order_id']) . '<br>Payment: ' . esc_html($purchase['payment_id'] ?? '') . '</p><p>Please contact the customer within 48 hours.</p></div>';
-    $admin_headers = !empty($mail['headers']) ? $mail['headers'] : ['Content-Type: text/html; charset=UTF-8'];
+    $admin_mail = function_exists('sr_lms_email_render') ? sr_lms_email_render('package_purchase_admin', $user, $context) : [];
+    $admin_headers = !empty($mail['headers']) ? $mail['headers'] : $fallback_headers;
     $sent_admin = !empty($purchase['team_notified']) ? true : (
-        is_email($admin_email)
-        && strtolower($admin_email) !== strtolower($purchase['email'])
-        && wp_mail($admin_email, 'New package purchase: ' . sanitize_text_field($purchase['service']), $admin_html, $admin_headers)
+        (is_email($admin_email) && strtolower($admin_email) === strtolower($purchase['email']))
+            ? (bool)$sent_user
+            : (is_email($admin_email)
+                ? (!empty($admin_mail)
+                    ? wp_mail($admin_email, $admin_mail['subject'], $admin_mail['message'], $admin_mail['headers'])
+                    : wp_mail($admin_email, 'New package purchase: ' . sanitize_text_field($purchase['service']), $admin_html, $admin_headers))
+                : false)
     );
 
     if (!$sent_user || !$sent_admin) error_log('[SR Academy] Package purchase email delivery failed for order ' . sanitize_text_field($purchase['order_id']));

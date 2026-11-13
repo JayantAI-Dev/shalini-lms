@@ -67,6 +67,21 @@
     document.querySelector('#package-booking')?.scrollIntoView({behavior:'smooth',block:'start'});
   }, true);
   const say = (message) => { status.textContent = message; };
+  const clearFormAfterConfirmation = () => {
+    form.reset();
+    selectedPlan = '';
+    selectedTime = '';
+    packageOptions.forEach((button) => {
+      button.classList.remove('is-selected');
+      button.setAttribute('aria-pressed', 'false');
+    });
+    dateButtons.forEach((button) => {
+      button.classList.remove('is-selected');
+      button.setAttribute('aria-pressed', 'false');
+    });
+    slots?.replaceChildren(Object.assign(document.createElement('p'), {textContent:'Select a date to load live availability.'}));
+    say('');
+  };
   const setBookingMode = (mode) => {
     bookingMode = mode;
     modeTabs.forEach((tab) => {
@@ -160,15 +175,16 @@
           time: selectedTime
         });
         if (!confirmed.confirmed) throw new Error('Your discovery call was not confirmed. Please try another available time.');
-        const message = confirmed.email_sent && confirmed.calendar_invite_sent
-          ? `Your free call is confirmed for ${confirmed.date_label}. We emailed your Zoom link and Google Calendar invitation to ${details.email}.`
-          : 'Your free call is booked, but email delivery could not be confirmed. Please contact the Academy before booking again.';
+        const message = confirmed.email_sent && confirmed.team_notified && confirmed.calendar_invite_sent
+          ? `Your free call is confirmed for ${confirmed.date_label}. We emailed your Zoom details and sent a Google Calendar invitation to ${details.email}. The Academy has also been notified.`
+          : `Your free call is confirmed for ${confirmed.date_label}. We could not confirm delivery of every email or calendar invitation, so the Academy team will follow up. Please do not submit another booking.`;
         showConfirmation({
           kicker: 'DISCOVERY CALL CONFIRMED',
           title: 'Your free call is booked',
           packageName: confirmed.date_label || '15-minute discovery call',
           message
         });
+        clearFormAfterConfirmation();
       } catch (error) {
         say(error.message);
       } finally {
@@ -191,15 +207,16 @@
           submit.disabled = false;
           const selectedPackage = packageOptions.find((button) => button.dataset.plan === selectedPlan);
           const packageName = selectedPackage?.querySelector('span')?.textContent.trim() || confirmed.service || 'Your package';
-          const emailMessage = confirmed.email_sent
-            ? `A confirmation email was sent to ${details.email}. Our team will contact you within 48 hours to help you get started.`
-            : 'Your payment is confirmed, but email delivery could not be confirmed. Please contact the Academy before retrying or paying again.';
+          const emailMessage = confirmed.email_sent && confirmed.team_notified
+            ? `A confirmation email was sent to ${details.email}, and the Academy team was notified. We will contact you within 48 hours to help you get started.`
+            : 'Your payment is confirmed, but delivery of every confirmation email could not be verified. The Academy team will follow up. Please do not pay again.';
           showConfirmation({
             kicker: 'PAYMENT CONFIRMED',
             title: 'Thank you for your purchase!',
             packageName,
             message: emailMessage
           });
+          clearFormAfterConfirmation();
         } catch (error) { say(error.message); submit.disabled = false; }
       }, modal:{ondismiss:() => { say('Checkout closed. No purchase was confirmed.'); submit.disabled = false; }} });
       checkout.on('payment.failed', () => { say('Test payment failed. No purchase was confirmed.'); submit.disabled = false; }); checkout.open();
