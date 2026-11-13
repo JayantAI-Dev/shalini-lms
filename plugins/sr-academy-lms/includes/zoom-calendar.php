@@ -333,6 +333,7 @@ function sr_lms_process_consultation_booking($contact_form, &$abort, $submission
         $time_label = $slot['start']->format('g:i A').' – '.$slot['end']->format('g:i A').' '.$slot['timezone'];
         $subject = 'Your consultation is booked: '.$service;
         $headers = ['Content-Type: text/html; charset=UTF-8'];
+        $headers = ['Content-Type' => 'text/html; charset=UTF-8'];
         $html = '<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#20372d"><h2>Consultation confirmed</h2><p>Hello '.esc_html($name).',</p><p>Your consultation has been scheduled.</p><p><strong>'.esc_html($service).'</strong><br>'.esc_html($date_label).' · '.esc_html($time_label).'</p><p><a href="'.esc_url($join_url).'" style="display:inline-block;background:#174b38;color:#fff;padding:14px 22px;border-radius:8px;text-decoration:none">Join your Zoom meeting</a></p><p>Calendar invitations have also been sent to you and the Academy team.</p><p>Warmly,<br>Shalini Rathod Academy</p></div>';
         wp_mail($email, $subject, $html, $headers);
         if (is_email($zoom_config['admin_email'])) wp_mail($zoom_config['admin_email'], 'New consultation booked: '.$service, str_replace('Hello '.esc_html($name).',','A consultation has been booked by '.esc_html($name).' ('.esc_html($email).').',$html), $headers);
