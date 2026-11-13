@@ -259,3 +259,97 @@ body.package-enrollment-page .package-booking-form [data-booking-schedule][hidde
 body.package-enrollment-page .package-booking-package-option:disabled { opacity:.62; cursor:not-allowed; border-style:dashed; background:#f2f5f0; }
 body.package-enrollment-page .package-booking-package-option [data-purchased-label][hidden] { display:none !important; }
 body.package-enrollment-page .package-booking-package-option [data-purchased-label] { display:block; grid-column:1 / -1; color:#657467; font-size:10px; font-weight:700; }
+
+
+/* Payment and discovery confirmation overlay */
+.package-confirmation-open { overflow: hidden; }
+.package-confirmation-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(20 35 29 / 68%);
+  backdrop-filter: blur(5px);
+}
+.package-confirmation-overlay[hidden] { display: none; }
+.package-confirmation-dialog {
+  position: relative;
+  width: min(100%, 620px);
+  padding: clamp(32px, 6vw, 58px);
+  border: 1px solid #d8e7d8;
+  border-radius: 26px;
+  background: #fff;
+  color: #1c3028;
+  text-align: center;
+  box-shadow: 0 28px 90px rgb(12 33 24 / 24%);
+}
+.package-confirmation-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: #f0f5ef;
+  color: #1b4b3a;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+.package-confirmation-check {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  background: #eaf4e8;
+  color: #1b5540;
+  font-size: 42px;
+  font-weight: 700;
+}
+.package-confirmation-kicker {
+  margin: 0 0 12px;
+  color: #57834f;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+.package-confirmation-dialog h2 {
+  margin: 0;
+  color: #1c3028;
+  font-size: clamp(28px, 5vw, 40px);
+  line-height: 1.12;
+}
+.package-confirmation-package {
+  margin: 18px 0 0;
+  color: #50655a;
+  font-size: 19px;
+  font-weight: 750;
+}
+.package-confirmation-message {
+  margin: 16px 0 0;
+  color: #52655b;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.package-confirmation-done {
+  min-width: 165px;
+  min-height: 48px;
+  margin-top: 28px;
+  padding: 12px 24px;
+  border: 0;
+  border-radius: 999px;
+  background: #1b4f3c;
+  color: #fff;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+@media (max-width: 560px) {
+  .package-confirmation-overlay { padding: 14px; }
+  .package-confirmation-dialog { padding: 52px 24px 28px; border-radius: 22px; }
+}
