@@ -580,8 +580,13 @@ function sr_lms_send_package_confirmation(array $purchase): array {
         'cta_url'=>home_url('/contact/'),
     ];
     $mail = function_exists('sr_lms_email_render') ? sr_lms_email_render('package_purchase', $user, $context) : [];
-    $sent_user = !empty($purchase['email_sent']) ? true : ($template_enabled && !empty($mail) && is_email($purchase['email'])
-        ? wp_mail($purchase['email'], $mail['subject'], $mail['message'], $mail['headers'])
+    $fallback_subject = 'Package purchase confirmed: ' . sanitize_text_field((string)$purchase['service']);
+    $fallback_html = '<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#20372d"><h2>Thank you for your purchase!</h2><p>Hello ' . esc_html($purchase['name']) . ',</p><p>Your payment for <strong>' . esc_html($purchase['service']) . '</strong> is confirmed.</p><p>Amount: INR ' . esc_html(number_format(((int)$purchase['amount']) / 100, 2)) . '</p><p>Our team will contact you within 48 hours to help you get started. Package sessions are arranged separately with the Academy.</p><p>Warmly,<br>Shalini Rathod Academy</p></div>';
+    $fallback_headers = ['Content-Type' => 'text/html; charset=UTF-8'];
+    $sent_user = !empty($purchase['email_sent']) ? true : (is_email($purchase['email'])
+        ? (!empty($mail) && $template_enabled
+            ? wp_mail($purchase['email'], $mail['subject'], $mail['message'], $mail['headers'])
+            : wp_mail($purchase['email'], $fallback_subject, $fallback_html, $fallback_headers))
         : false);
 
     $config = sr_lms_zoom_config();
