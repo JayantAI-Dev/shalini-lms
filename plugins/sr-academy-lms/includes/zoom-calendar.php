@@ -523,7 +523,15 @@ function sr_lms_create_consultation_meeting(array $booking) {
         if ($busy_start && $busy_end && $slot['start']->getTimestamp() < $busy_end && $slot['end']->getTimestamp() > $busy_start) return new WP_Error('slot_unavailable', 'The selected time has just been booked.');
     }
     $lock = 'sr_lms_slot_' . md5($slot['start']->format('c'));
-    if (!add_option($lock, time(), '', false)) return new WP_Error('slot_unavailable', 'The selected time is currently being booked.');
+    if (!add_option($lock, time(), '', false)) {
+        $lock_started = (int)get_option($lock, 0);
+        if ($lock_started && $lock_started < time() - 600) {
+            delete_option($lock);
+            if (!add_option($lock, time(), '', false)) return new WP_Error('slot_unavailable', 'The selected time is currently being booked.');
+        } else {
+            return new WP_Error('slot_unavailable', 'The selected time is currently being booked.');
+        }
+    }
     $meeting_id = ''; $event_id = '';
     try {
         $zoom = sr_lms_zoom_api('POST', '/users/' . rawurlencode(sr_lms_zoom_config()['host_email']) . '/meetings', [
@@ -575,7 +583,8 @@ function sr_lms_create_consultation_meeting(array $booking) {
         if (!$sent_user || !$sent_admin) error_log('[SR Academy] Consultation email delivery failed for ' . sanitize_text_field((string)($booking['order_id'] ?? 'free discovery')));
         return ['meeting_id'=>$meeting_id,'event_id'=>$event_id,'date_label'=>$when,'join_url'=>$join_url,'calendar_invite_sent'=>!empty($attendees),'email_sent'=>(bool)$sent_user,'team_notified'=>(bool)$sent_admin];
     } finally {
-        if (!$event_id) { if ($meeting_id) sr_lms_zoom_api('DELETE','/meetings/'.rawurlencode($meeting_id)); delete_option($lock); }
+        if (!$event_id && $meeting_id) sr_lms_zoom_api('DELETE','/meetings/'.rawurlencode($meeting_id));
+        delete_option($lock);
     }
 }
 
