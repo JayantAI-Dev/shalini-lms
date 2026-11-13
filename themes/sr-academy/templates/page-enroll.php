@@ -346,6 +346,17 @@ if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (functio
         <div class="package-booking-submit-row"><p data-booking-note>Razorpay test mode · no live charge</p><button class="package-booking-submit" type="submit">Continue to test payment</button></div>
         <p class="package-booking-status" data-booking-status role="status" aria-live="polite"></p>
       </form>
+      <div class="package-confirmation-overlay" data-package-confirmation hidden>
+        <section class="package-confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="package-confirmation-title" aria-describedby="package-confirmation-message" tabindex="-1">
+          <button class="package-confirmation-close" type="button" data-confirmation-close aria-label="Close confirmation">×</button>
+          <span class="package-confirmation-check" aria-hidden="true">✓</span>
+          <p class="package-confirmation-kicker" data-confirmation-kicker>PAYMENT CONFIRMED</p>
+          <h2 id="package-confirmation-title" data-confirmation-title>Thank you for your purchase!</h2>
+          <p class="package-confirmation-package" data-confirmation-package></p>
+          <p class="package-confirmation-message" id="package-confirmation-message" data-confirmation-message></p>
+          <button class="package-confirmation-done" type="button" data-confirmation-close>Done</button>
+        </section>
+      </div>
     </section>
 
 
