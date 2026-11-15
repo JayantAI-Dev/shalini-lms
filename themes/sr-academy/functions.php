@@ -156,10 +156,32 @@ add_filter('template_include', function(string $template): string {
     return $template;
 });
 
+/** Let visitors purchase a selected course from its detail page without signing in first. */
+function sr_theme_course_checkout_modal(): void {
+    if (sr_theme_slug() !== 'course' || !isset($_GET['course']) || !is_string($_GET['course']) || !function_exists('sr_lms_offers') || !function_exists('sr_lms_payment_ready')) { return; }
+    $offer = sanitize_key(wp_unslash($_GET['course']));
+    $offers = sr_lms_offers();
+    $settings = function_exists('sr_lms_payment_settings') ? sr_lms_payment_settings() : [];
+    if (!isset($offers[$offer]) || !sr_lms_payment_ready() || !in_array($offer, (array) ($settings['offers'] ?? []), true)) { return; }
+    $mode = (string) ($settings['mode'] ?? 'test');
+    if ($mode !== 'test' && is_user_logged_in()) {
+        foreach ((array) $offers[$offer]['courses'] as $course) { if (sr_lms_has_access(get_current_user_id(), $course)) { return; } }
+    }
+    wp_enqueue_script('sr-course-razorpay', 'https://checkout.razorpay.com/v1/checkout.js', [], null, true);
+    $payments_file = WP_PLUGIN_DIR . '/sr-academy-lms/assets/payments.js';
+    $payments_version = is_file($payments_file) ? (string) filemtime($payments_file) : (defined('SR_LMS_VERSION') ? SR_LMS_VERSION : '1.0');
+    wp_enqueue_script('sr-course-payments', plugins_url('assets/payments.js', WP_PLUGIN_DIR . '/sr-academy-lms/sr-academy-lms.php'), ['sr-course-razorpay'], $payments_version, true);
+    $title = (string) $offers[$offer]['title'];
+    echo '<div class="sr-course-checkout-modal" id="sr-course-checkout-modal" hidden><div class="sr-course-checkout-backdrop" data-course-checkout-close></div><section class="sr-course-checkout-dialog" role="dialog" aria-modal="true" aria-labelledby="sr-course-checkout-title"><button class="sr-course-checkout-close" type="button" aria-label="Close" data-course-checkout-close>×</button><span class="lms-eyebrow">SECURE COURSE CHECKOUT</span><h2 id="sr-course-checkout-title">'.esc_html($title).'</h2><p>Enter your details. After a successful payment, we’ll email your student login email and a secure link to set your password.</p><form class="sr-lms-purchase" data-dashboard="'.esc_url(sr_lms_page_url('student-portal')).'" data-offer="'.esc_attr($offer).'" data-api="'.esc_url(rest_url('sr-lms/v1/payments/')).'" data-nonce="'.esc_attr(wp_create_nonce('wp_rest')).'" novalidate><div class="sr-lms-customer-fields"><label>Full name<input name="name" type="text" autocomplete="name" maxlength="100" required></label><label>Email address<input name="email" type="email" autocomplete="email" maxlength="100" required></label><label>WhatsApp / phone<input name="phone" type="tel" autocomplete="tel" minlength="7" maxlength="25" required></label></div><button type="submit" class="lms-primary">'.($mode==='test'?'Continue to Razorpay test payment':'Continue to Razorpay').'</button><p class="sr-lms-payment-note">'.($mode==='test'?'Razorpay test mode · no live charge or course access':'Secure Razorpay checkout').'</p><p role="status" aria-live="polite"></p></form></section></div>';
+    echo '<script>(function(){var modal=document.getElementById("sr-course-checkout-modal");if(!modal)return;var close=modal.querySelector("[data-course-checkout-close]");var focusBack=null;document.addEventListener("click",function(event){var cta=event.target.closest("#lms-enroll-cta,#lms-curriculum-enroll");if(cta){event.preventDefault();focusBack=cta;modal.hidden=false;document.body.classList.add("sr-course-checkout-open");modal.querySelector("input[name=name]").focus();return;}if(event.target.closest("[data-course-checkout-close]")){modal.hidden=true;document.body.classList.remove("sr-course-checkout-open");if(focusBack)focusBack.focus();}});document.addEventListener("keydown",function(event){if(event.key==="Escape"&&!modal.hidden){modal.hidden=true;document.body.classList.remove("sr-course-checkout-open");if(focusBack)focusBack.focus();}});}());</script>';
+}
+add_action('wp_footer', 'sr_theme_course_checkout_modal', 5);
+
 function sr_theme_cf7_form(string $title, string $class = ''): string {
     if (!shortcode_exists('contact-form-7')) { return '<p class="sr-lms-notice">The inquiry form is temporarily unavailable. Please email <a href="mailto:shalinirathodofficial@gmail.com">shalinirathodofficial@gmail.com</a>.</p>'; }
     $forms = get_posts(['post_type' => 'wpcf7_contact_form', 'title' => $title, 'post_status' => 'publish', 'numberposts' => 1]);
     if (!$forms) { return '<p class="sr-lms-notice">The inquiry form is temporarily unavailable. Please email <a href="mailto:shalinirathodofficial@gmail.com">shalinirathodofficial@gmail.com</a>.</p>'; }
     return do_shortcode(sprintf('[contact-form-7 id="%d" title="%s" html_class="%s"]', (int) $forms[0]->ID, esc_attr($title), esc_attr($class)));
 }
+
 

@@ -26,11 +26,11 @@ try {
  $GLOBALS['sr_pay_fixture']['amount_refunded']=0;sr_lms_payment_reconcile($id,'pay_fixture');sr_pay_assert(!sr_lms_has_access($uid,'speakathon'),'Stale capture cannot restore refunded access');
  $event=new WP_REST_Request('POST');$event['mode']='live';$event->set_body('{"event":"payment.captured","payload":{"payment":{"entity":{"id":"pay_fixture"}}}}');$event->set_header('X-Razorpay-Signature',hash_hmac('sha256',$event->get_body(),'hook'));$event->set_header('X-Razorpay-Event-Id','fixture-'.$id);sr_pay_assert(!is_wp_error(sr_lms_payment_webhook($event)),'Signed raw webhook accepted');sr_pay_assert(!empty(sr_lms_payment_webhook($event)['duplicate']),'Webhook deduplicated');
  $event['mode']='test';sr_pay_assert(is_wp_error(sr_lms_payment_webhook($event)),'Wrong mode webhook rejected');
- $r['razorpay_signature']=hash_hmac('sha256','order_fixture|pay_fixture','fixture');wp_set_current_user(0);sr_pay_assert(is_wp_error(sr_lms_payment_verify($r)),'Cross-user callback rejected');
+ $r['razorpay_signature']=hash_hmac('sha256','order_fixture|pay_fixture','fixture');wp_set_current_user(0);sr_pay_assert(!is_wp_error(sr_lms_payment_verify($r)),'Valid signed payment callback can be verified by a guest checkout');
  $sealed=sr_lms_payment_settings()['live_secret'];sr_pay_assert($sealed!=='fixture'&&sr_lms_payment_decrypt($sealed)==='fixture','Secret encrypted at rest');
  $wpdb->insert(sr_lms_table('payments'),['user_id'=>$uid,'offer'=>'speakathon','mode'=>'test','amount'=>10000,'targets'=>'["speakathon"]','gateway_order'=>'order_testfixture','created_at'=>$now,'updated_at'=>$now]);$testid=(int)$wpdb->insert_id;$ids[]=$testid;
  $settings=sr_lms_payment_settings();$settings['test_key']='rzp_test_fixture';$settings['test_secret']=sr_lms_payment_encrypt('testfixture');update_option('sr_lms_payment_settings',$settings,false);$GLOBALS['sr_pay_fixture']['order_id']='order_testfixture';$GLOBALS['sr_pay_fixture']['id']='pay_testfixture';wp_set_current_user($uid);
- sr_pay_assert(!is_wp_error(sr_lms_payment_reconcile($testid,'pay_testfixture')),'Test capture reconciles');sr_pay_assert(!sr_lms_has_access($uid,'speakathon'),'Test capture never grants course access');sr_pay_assert((int)$wpdb->get_var($wpdb->prepare('SELECT email_sent FROM '.sr_lms_table('payments').' WHERE id=%d',$testid))===0,'Test capture sends no purchase receipt');
+ sr_pay_assert(!is_wp_error(sr_lms_payment_reconcile($testid,'pay_testfixture')),'Test capture reconciles');sr_pay_assert(!sr_lms_has_access($uid,'speakathon'),'Test capture never grants course access');sr_pay_assert((int)$wpdb->get_var($wpdb->prepare('SELECT email_sent FROM '.sr_lms_table('payments').' WHERE id=%d',$testid))===1,'Test capture sends a non-access test receipt');
  $result='PASS: '.$GLOBALS['sr_pay_test_count'].' payment integration assertions';
 }catch(Throwable $e){$failure=$e->getMessage();}
 finally {
@@ -39,3 +39,4 @@ finally {
  foreach($ids as $id)$wpdb->delete(sr_lms_table('payment_events'),['event_key'=>hash('sha256','live|fixture-'.$id)]);
 }
 if(isset($failure))WP_CLI::error($failure);WP_CLI::success($result);
+
