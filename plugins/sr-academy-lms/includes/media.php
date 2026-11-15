@@ -1,11 +1,27 @@
 <?php
 if (!defined('ABSPATH')) exit;
+function sr_lms_private_directory_allowed(string $path): bool {
+    $root=realpath($path);$web=realpath(ABSPATH);
+    if(!$root||!$web)return false;
+    $root=rtrim($root,DIRECTORY_SEPARATOR);$web=rtrim($web,DIRECTORY_SEPARATOR);
+    if($root!==$web&&!str_starts_with($root,$web.DIRECTORY_SEPARATOR))return true;
+    if(!defined('WP_CONTENT_DIR'))return false;
+    $content=realpath(WP_CONTENT_DIR);
+    $expected=$content?realpath($content.DIRECTORY_SEPARATOR.'sr-academy-private-media'.DIRECTORY_SEPARATOR.'assets'.DIRECTORY_SEPARATOR.'lms'):false;
+    if(!$expected||$root!==rtrim($expected,DIRECTORY_SEPARATOR))return false;
+    $guard=dirname(dirname($root)).DIRECTORY_SEPARATOR.'.htaccess';
+    if(!is_file($guard)||!is_readable($guard))return false;
+    $rules=file_get_contents($guard);
+    return is_string($rules)
+        &&preg_match('/^\\s*Require\\s+all\\s+denied\\s*$/mi',$rules)===1
+        &&preg_match('/^\\s*Deny\\s+from\\s+all\\s*$/mi',$rules)===1;
+}
 function sr_lms_private_file(string $reference): ?string {
     if(!sr_lms_validate_media_reference($reference))return null;
     $configured=get_option('sr_lms_private_media_dir','');if(!is_string($configured)||$configured==='')return null;
     $root=realpath($configured);$web=realpath(ABSPATH);if(!$root||!$web)return null;
     $root=rtrim($root,DIRECTORY_SEPARATOR);$web=rtrim($web,DIRECTORY_SEPARATOR);
-    if($root===$web||str_starts_with($root,$web.DIRECTORY_SEPARATOR))return null;
+    if(!sr_lms_private_directory_allowed($root))return null;
     $relative=substr($reference,strlen('assets/lms/'));$path=realpath($root.DIRECTORY_SEPARATOR.$relative);
     if(!$path||!str_starts_with($path,$root.DIRECTORY_SEPARATOR)||!is_file($path)||!is_readable($path))return null;
     return $path;
