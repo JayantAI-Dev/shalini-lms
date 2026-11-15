@@ -9,13 +9,13 @@ function sr_lms_email_defaults(): array {
         'login'=>['New sign-in to {brand}','You signed in','Your account was just used to sign in. If this was not you, reset your password or contact support.','Open dashboard'],
         'password_reset'=>['Reset your {brand} password','Reset your password','A password reset was requested for your account. Use the button below to choose a new password. If you did not request this, ignore this email.','Reset password'],
         'enrollment'=>['Your course access is ready','You are enrolled','You now have access to {offer_title}. Visit your dashboard to start learning.','Start learning'],
-        'purchase'=>['Your {brand} purchase receipt','Thank you for your purchase','Your purchase of {offer_title} is complete. Amount: {amount}. Payment reference: {payment_id}. Order reference: {order_id}. Your learning access is ready.','Start learning'],
-        'package_purchase'=>['Package purchase confirmed: {offer_title}','Thank you for your purchase','Hello {name}, your payment for {offer_title} is confirmed. Amount: {amount}. Payment reference: {payment_id}. Order reference: {order_id}. Our team will contact you within 48 hours to arrange your package.','Contact the Academy'],
-        'package_purchase_admin'=>['New package purchase: {offer_title}','A package purchase is confirmed','Customer: {name} ({customer_email})\nPhone / WhatsApp: {customer_phone}\nPackage: {offer_title}\nAmount: {amount}\nPayment reference: {payment_id}\nOrder reference: {order_id}\nPlease contact the customer within 48 hours.','View booking details'],
+        'purchase'=>['Your {brand} purchase receipt','Thank you for your purchase','Your purchase of {offer_title} is complete. Your learning access is ready.','Start learning'],
+        'package_purchase'=>['Package purchase confirmed: {offer_title}','Thank you for your purchase','Hello {name}, your payment for {offer_title} is confirmed. Our team will contact you within 48 hours to arrange your package.','Contact the Academy'],
+        'package_purchase_admin'=>['New package purchase: {offer_title}','A package purchase is confirmed','Customer: {name} ({customer_email})\nPhone / WhatsApp: {customer_phone}\nPackage: {offer_title}\nPlease contact the customer within 48 hours.','View booking details'],
         'discovery_booking'=>['Your free discovery call is confirmed','Your free call is booked','Hello {name}, your complimentary 15-minute discovery call is confirmed for {appointment}. A Google Calendar invitation has been sent to you and the Academy team. Use the button below to join your Zoom call. Meeting ID: {meeting_id}.','Join your Zoom call'],
         'discovery_booking_admin'=>['New free discovery call: {name}','A free discovery call is booked','Customer: {name} ({customer_email})\nPhone / WhatsApp: {customer_phone}\nAppointment: {appointment}\nMeeting ID: {meeting_id}\nA Google Calendar invitation was sent to the customer and Academy team.','Join the Zoom call'],
         'consultation_booking'=>['Your consultation is confirmed: {offer_title}','Your consultation is confirmed','Hello {name}, your payment is confirmed and your consultation is booked for {appointment}. A Google Calendar invitation has been sent to you and the Academy team. Use the button below to join your Zoom call. Meeting ID: {meeting_id}.','Join your Zoom call'],
-        'consultation_booking_admin'=>['New paid consultation: {offer_title}','A paid consultation is booked','Customer: {name} ({customer_email})\nPhone / WhatsApp: {customer_phone}\nService: {offer_title}\nAppointment: {appointment}\nAmount: {amount}\nPayment reference: {payment_id}\nMeeting ID: {meeting_id}\nA Google Calendar invitation was sent to the customer and Academy team.','Join the Zoom call'],
+        'consultation_booking_admin'=>['New paid consultation: {offer_title}','A paid consultation is booked','Customer: {name} ({customer_email})\nPhone / WhatsApp: {customer_phone}\nService: {offer_title}\nAppointment: {appointment}\nMeeting ID: {meeting_id}\nA Google Calendar invitation was sent to the customer and Academy team.','Join the Zoom call'],
     ] as $type=>$values)$templates[$type]=array_combine(['subject','heading','body','cta'],$values)+['enabled'=>true];
     return ['brand'=>'Shalini Rathod Academy','sender_name'=>'Shalini Rathod Academy','sender_email'=>sanitize_email(get_option('admin_email')),'reply_to'=>sanitize_email(get_option('admin_email')),'support_url'=>home_url('/contact/'),'logo_url'=>'','color'=>'#125c45','templates'=>$templates];
 }
@@ -40,14 +40,40 @@ function sr_lms_email_safe_cta(string $url, bool $allow_zoom = false): string {
     $same_site=in_array($host,$allowed_hosts,true);$zoom_host=$allow_zoom&&preg_match('/(^|\.)zoom\.us$/D',$host);
     return $parts&&in_array(strtolower($parts['scheme']??''),['http','https'],true)&&($same_site||$zoom_host)&&empty($parts['user'])&&empty($parts['pass'])?$url:home_url('/dashboard/');
 }
+function sr_lms_email_payment_summary(array $context): string {
+    $rows = [];
+    foreach ([
+        'amount' => 'Amount paid',
+        'payment_id' => 'Payment reference',
+        'order_id' => 'Order ID',
+    ] as $key => $label) {
+        if (!isset($context[$key]) || !is_scalar($context[$key]) || trim((string)$context[$key]) === '') continue;
+        $value = esc_html((string)$context[$key]);
+        $value_style = $key === 'amount'
+            ? 'font-size:18px;font-weight:700;color:#18382c'
+            : 'display:inline-block;padding:7px 10px;border:1px solid #dce8dc;border-radius:6px;background:#fff;color:#18382c;font-family:Consolas,Monaco,monospace;font-size:13px;line-height:1.5;word-break:break-all';
+        $rows[] = '<tr><td style="padding:9px 12px 9px 0;color:#627268;font-size:13px;vertical-align:top;width:145px">'.esc_html($label).'</td><td style="padding:9px 0;color:#18382c;font-size:14px;vertical-align:top"><span style="'.$value_style.'">'.$value.'</span></td></tr>';
+    }
+    if (!$rows) return '';
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;border:1px solid #dce8dc;border-radius:10px;background:#f5f8f3"><tr><td colspan="2" style="padding:14px 12px 5px;color:#286447;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Payment details</td></tr>'.implode('', $rows).'<tr><td colspan="2" style="height:6px;font-size:1px;line-height:6px">&nbsp;</td></tr></table>';
+}
 function sr_lms_email_render(string $type,object $user,array $context=[]): array {
     $settings=sr_lms_email_settings();if(!isset($settings['templates'][$type]))return [];$template=$settings['templates'][$type];
     $values=['{brand}'=>$settings['brand'],'{name}'=>$user->display_name ?? 'there','{offer_title}'=>'your course','{amount}'=>'','{payment_id}'=>'','{order_id}'=>'','{customer_email}'=>'','{customer_phone}'=>'','{appointment}'=>'','{meeting_id}'=>''];
     foreach(['name','offer_title','amount','payment_id','order_id','customer_email','customer_phone','appointment','meeting_id'] as $key)if(isset($context[$key])&&is_scalar($context[$key]))$values['{'.$key.'}']=(string)$context[$key];
-    $subject=sanitize_text_field(strtr($template['subject'],$values));$heading=esc_html(strtr($template['heading'],$values));$body=nl2br(esc_html(strtr($template['body'],$values)));
+    // Payment identifiers are presented in a dedicated, readable details panel below.
+    // Remove their old inline form too, including from templates already saved in WP.
+    $body_text = (string)$template['body'];
+    $body_text = preg_replace('/(?:^|[ \t])(?:Amount:\s*\{amount\}|Payment reference:\s*\{payment_id\}|Order (?:reference|ID):\s*\{order_id\})\.?[ \t]*(?=\R|$)/mi', '', $body_text);
+    $body_text = preg_replace('/\s*(?:Amount:\s*\{amount\}|Payment reference:\s*\{payment_id\}|Order (?:reference|ID):\s*\{order_id\})\.?/i', '', $body_text);
+    $body_text = preg_replace('/([.!?])(?=[A-Za-z])/', '$1 ', $body_text);
+    $body_text = preg_replace('/[ \t]{2,}/', ' ', $body_text);
+    $body_text = preg_replace('/\R{3,}/', "\n\n", trim($body_text));
+    $subject=sanitize_text_field(strtr($template['subject'],$values));$heading=esc_html(strtr($template['heading'],$values));$body=nl2br(esc_html(strtr($body_text,$values)));
+    $payment_summary = sr_lms_email_payment_summary($context);
     $url=$type==='password_reset'?($context['reset_url']??''):($type==='verification'?($context['verify_url']??''):($context['cta_url']??home_url('/dashboard/')));$url=sr_lms_email_safe_cta(is_string($url)?$url:'',str_contains($type,'booking'));
     $logo=$settings['logo_url']?'<img src="'.esc_url($settings['logo_url']).'" alt="'.esc_attr($settings['brand']).'" style="max-width:200px;height:auto;margin-bottom:20px">':'';
-    $html='<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta charset="UTF-8"></head><body style="margin:0;background:#f2f6f3;font-family:Arial,sans-serif;color:#18382c"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:28px 12px"><table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#fff;border-radius:16px"><tr><td style="padding:36px">'.$logo.'<p style="font-size:14px;color:'.esc_attr($settings['color']).'">'.esc_html($settings['brand']).'</p><h1 style="font-size:28px;line-height:1.25">'.$heading.'</h1><p style="font-size:16px;line-height:1.7">'.$body.'</p><p style="margin:28px 0"><a href="'.esc_url($url).'" style="display:inline-block;padding:15px 24px;border-radius:7px;background:'.esc_attr($settings['color']).';color:#fff;text-decoration:none">'.esc_html($template['cta']).'</a></p><p style="font-size:12px;line-height:1.6;color:#66766e">Need help? <a href="'.esc_url($settings['support_url']).'">Contact support</a><br>'.esc_html($settings['brand']).'<br>This is an account notification. We will never ask you to share your password.</p></td></tr></table></td></tr></table></body></html>';
+    $html='<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta charset="UTF-8"></head><body style="margin:0;background:#f2f6f3;font-family:Arial,sans-serif;color:#18382c"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:28px 12px"><table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#fff;border-radius:16px"><tr><td style="padding:36px">'.$logo.'<p style="margin:0 0 18px;font-size:14px;line-height:1.5;color:'.esc_attr($settings['color']).'">'.esc_html($settings['brand']).'</p><h1 style="margin:0 0 20px;font-size:28px;line-height:1.25">'.$heading.'</h1><p style="margin:0;font-size:16px;line-height:1.75">'.$body.'</p>'.$payment_summary.'<p style="margin:28px 0"><a href="'.esc_url($url).'" style="display:inline-block;padding:15px 24px;border-radius:7px;background:'.esc_attr($settings['color']).';color:#fff;text-decoration:none">'.esc_html($template['cta']).'</a></p><p style="margin:32px 0 0;font-size:12px;line-height:1.7;color:#66766e">Need help? <a href="'.esc_url($settings['support_url']).'" style="color:'.esc_attr($settings['color']).'">Contact support</a><br>'.esc_html($settings['brand']).'<br>This is an account notification. We will never ask you to share your password.</p></td></tr></table></td></tr></table></body></html>';
     return ['subject'=>$subject,'message'=>$html,'headers'=>['Content-Type: text/html; charset=UTF-8','From: '.sanitize_text_field($settings['sender_name']).' <'.$settings['sender_email'].'>','Reply-To: '.$settings['reply_to']]];
 }
 function sr_lms_send_email(string $type,int $user_id,array $context=[]): bool {
