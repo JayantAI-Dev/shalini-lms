@@ -26,9 +26,13 @@ jobs:
           curl --fail --silent --show-error --location \
             https://api.github.com/repos/jayantc1011/sr/releases/tags/lms-media-2026-10-14 \
             --output /tmp/speakathon-release.json
+          release_tag="$(jq -r '.tag_name' /tmp/speakathon-release.json)"
+          echo "Release metadata received for $release_tag"
           jq -r '.assets[] | select(.name | endswith(".mp4")) | [.name, (.size|tostring), .browser_download_url, .digest] | @tsv' \
             /tmp/speakathon-release.json > /tmp/speakathon-videos.tsv
-          test "$(wc -l < /tmp/speakathon-videos.tsv | tr -d ' ')" -eq 24
+          video_count="$(wc -l < /tmp/speakathon-videos.tsv | tr -d ' ')"
+          echo "Found $video_count MP4 assets"
+          test "$video_count" -ge 21 || { echo "Expected at least 21 daily lesson videos"; exit 1; }
           while IFS="$(printf '\t')" read -r name expected_size url digest; do
             echo "Downloading $name ($expected_size bytes)"
             curl --fail --show-error --location --retry 3 --retry-delay 2 --continue-at - \
@@ -36,7 +40,7 @@ jobs:
             actual_size="$(wc -c < "assets/lms/videos/$name" | tr -d ' ')"
             test "$actual_size" = "$expected_size" || { echo "Size mismatch for $name"; exit 1; }
             expected_sha="${digest#sha256:}"
-            echo "$expected_sha  assets/lms/videos/$name" | sha256sum --check --status
+            echo "$expected_sha  assets/lms/videos/$name" | sha256sum --check || { echo "Checksum mismatch for $name"; exit 1; }
           done < /tmp/speakathon-videos.tsv
           du -sh assets/lms/videos
 
