@@ -12,11 +12,34 @@ concurrency:
 
 jobs:
   deploy:
-    name: Download release videos and deploy to private storage
+    name: Secure and deploy Speakathon videos
     runs-on: ubuntu-latest
     steps:
       - name: Check out deployment repository
         uses: actions/checkout@v6
+
+      - name: Create a web access deny rule for the temporary copy
+        shell: bash
+        run: |
+          mkdir -p assets/lms/public-guard
+          cat > assets/lms/public-guard/.htaccess <<'EOF'
+          Options -Indexes
+          Require all denied
+          Deny from all
+          EOF
+
+      - name: Secure the temporary copy under public_html
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          protocol: ftps
+          port: ${{ vars.HOSTINGER_FTP_PORT || 21 }}
+          local-dir: assets/lms/public-guard/
+          server-dir: ../sr-academy-private-media/
+          state-name: .ftp-deploy-public-lms-media-guard-state.json
+          dangerous-clean-slate: false
 
       - name: Download and verify Speakathon videos
         shell: bash
@@ -44,7 +67,7 @@ jobs:
           done < /tmp/speakathon-videos.tsv
           du -sh assets/lms/videos
 
-      - name: Deploy videos to the private folder beside public_html
+      - name: Deploy videos outside public_html
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.HOSTINGER_FTP_SERVER }}
@@ -53,6 +76,6 @@ jobs:
           protocol: ftps
           port: ${{ vars.HOSTINGER_FTP_PORT || 21 }}
           local-dir: assets/lms/videos/
-          server-dir: ../sr-academy-private-media/assets/lms/videos/
+          server-dir: ../../sr-academy-private-media/assets/lms/videos/
           state-name: .ftp-deploy-private-lms-media-state.json
           dangerous-clean-slate: false
