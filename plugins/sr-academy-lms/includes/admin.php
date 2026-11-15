@@ -37,7 +37,7 @@ function sr_lms_admin_handler(): void {
         if(str_starts_with($origin,'offer:'))$wpdb->update(sr_lms_table('requests'),['status'=>'revoked','updated_at'=>current_time('mysql',true)],['user_id'=>$student,'offer'=>substr($origin,6)]);
     }elseif($operation==='settings'){
         $path=trim(sr_lms_input('private_path','POST'));$real=$path?realpath($path):false;$web=realpath(ABSPATH);
-        if($path&&(!$real||!is_dir($real)||!is_readable($real)||$real===$web||str_starts_with($real,rtrim($web,DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR)))wp_die('Use an existing readable media directory outside the public WordPress root.','Invalid private directory',['response'=>400]);
+        if($path&&(!$real||!is_dir($real)||!is_readable($real)||!sr_lms_private_directory_allowed($real)))wp_die('Use an existing readable private media directory with public access blocked.','Invalid private directory',['response'=>400]);
         update_option('sr_lms_private_media_dir',$real?:'',false);update_option('users_can_register',!empty($_POST['allow_registration'])?1:0);sr_lms_refresh_media_metadata();
     }elseif($operation==='catalog'){
         $raw=sr_lms_input('catalog','POST');$decoded=json_decode($raw,true);if(json_last_error()!==JSON_ERROR_NONE)wp_die('Invalid JSON: '.esc_html(json_last_error_msg()),'Catalog validation',['response'=>400]);
