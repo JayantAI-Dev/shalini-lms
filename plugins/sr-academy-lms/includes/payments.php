@@ -33,6 +33,14 @@ function sr_lms_payment_install(): void {
  update_option('sr_lms_payment_schema','2',false);
 }
 function sr_lms_payment_settings(): array {return (array)get_option('sr_lms_payment_settings',[]);}
+/** Test purchases may unlock access only for existing, verified accounts explicitly allowlisted by an administrator. */
+function sr_lms_payment_test_access_enabled(int $user_id): bool {
+ $settings=sr_lms_payment_settings();if(($settings['mode']??'test')!=='test')return false;$user=get_userdata($user_id);if(!$user||!function_exists('sr_lms_email_is_verified')||!sr_lms_email_is_verified($user_id))return false;
+ $email=strtolower(sanitize_email((string)$user->user_email));$allowed=array_map(static fn($value)=>strtolower(sanitize_email((string)$value)),(array)($settings['test_access_emails']??[]));return $email!==''&&in_array($email,$allowed,true);
+}
+function sr_lms_payment_test_access_user_id(array $notes,int $existing_id=0): int {
+ $email=strtolower(sanitize_email((string)($notes['customer_email']??'')));if(!$email)return 0;$user=$existing_id?get_userdata($existing_id):get_user_by('email',$email);if(!$user||strtolower((string)$user->user_email)!==$email)return 0;return sr_lms_payment_test_access_enabled((int)$user->ID)?(int)$user->ID:0;
+}
 function sr_lms_payment_encrypt(string $plain) {
  if(!function_exists('openssl_encrypt'))return new WP_Error('crypto','OpenSSL is required.');
  $iv=random_bytes(12);$tag='';$cipher=openssl_encrypt($plain,'aes-256-gcm',hash('sha256',wp_salt('auth'),true),OPENSSL_RAW_DATA,$iv,$tag);
@@ -97,31 +105,32 @@ function sr_lms_payment_reconcile(int $id,string $payment='') {
  $refundRaw=$p['amount_refunded']??null;if(!is_int($refundRaw)||$refundRaw<0||$refundRaw>(int)$row['amount']||(($p['status']??'')==='refunded'&&$refundRaw!==(int)$row['amount']))return new WP_Error('refund','Gateway refund amount is inconsistent.');
  $customer_order=sr_lms_payment_api($row['mode'],'orders/'.$row['gateway_order']);if(is_wp_error($customer_order))return $customer_order;$notes=(array)($customer_order['notes']??[]);
  if(empty($notes['customer_email'])&&$row['user_id']){$linked=get_userdata((int)$row['user_id']);if($linked){$notes['customer_email']=$linked->user_email;$notes['customer_name']=$linked->display_name;$notes['customer_phone']=get_user_meta((int)$linked->ID,'sr_lms_phone',true);}}
- $payment_full=(int)$refundRaw>=(int)$row['amount']||($p['status']??'')==='refunded';$customer_account=null;
+ $payment_full=(int)$refundRaw>=(int)$row['amount']||($p['status']??'')==='refunded';$customer_account=null;$test_access_user_id=$row['mode']==='test'?sr_lms_payment_test_access_user_id($notes,(int)$row['user_id']):0;
  if($row['mode']==='live'&&!$payment_full){$customer_account=sr_lms_payment_customer_account($notes,(int)$row['user_id']);if(is_wp_error($customer_account))return $customer_account;}
  if($wpdb->query('START TRANSACTION')===false)return new WP_Error('transaction','Could not begin payment transaction.');$row=$wpdb->get_row($wpdb->prepare("SELECT * FROM $t WHERE id=%d FOR UPDATE",$id),ARRAY_A);
  if(!$row){$wpdb->query('ROLLBACK');return new WP_Error('transaction','Could not lock payment order.');}
  $refund=max((int)$row['refunded'],(int)($p['amount_refunded']??0));$full=$refund>=(int)$row['amount']||$row['status']==='refunded';$origin='pay:'.$id;$error=null;
  if($row['gateway_payment']&&$row['gateway_payment']!==$payment)$error=new WP_Error('duplicate','A different payment already belongs to this order.');
- $customer_user_id=(int)$row['user_id'];if(!$error&&$row['mode']==='live'&&!$full&&$customer_account)$customer_user_id=(int)$customer_account['user_id'];
+ $customer_user_id=(int)$row['user_id'];if(!$error&&$row['mode']==='live'&&!$full&&$customer_account)$customer_user_id=(int)$customer_account['user_id'];elseif(!$error&&$row['mode']==='test'&&!$full&&$test_access_user_id)$customer_user_id=$test_access_user_id;
  if(!$error&&$row['mode']==='live'){
   if($full&&$customer_user_id){if(!sr_lms_revoke($customer_user_id,$origin))$error=new WP_Error('grant','Could not revoke refunded enrollment.');}
   elseif(!$full&&$row['status']!=='paid') {foreach((array)json_decode($row['targets'],true) as $course){$saved=$wpdb->query($wpdb->prepare('INSERT INTO '.sr_lms_table('grants').' (user_id,course,origin,granted_at,granted_by) VALUES (%d,%s,%s,%s,0) ON DUPLICATE KEY UPDATE origin=VALUES(origin)',$customer_user_id,$course,$origin,current_time('mysql',true)));if($saved===false){$error=new WP_Error('grant','Could not save enrollment.');break;}}}
  }
+ elseif(!$error&&$row['mode']==='test'&&$test_access_user_id){$customer_user_id=$test_access_user_id;$test_origin='test:'.$id;if($full){$wpdb->delete(sr_lms_table('grants'),['user_id'=>$customer_user_id,'origin'=>$test_origin],['%d','%s']);}else{foreach((array)json_decode($row['targets'],true) as $course){$saved=$wpdb->query($wpdb->prepare('INSERT INTO '.sr_lms_table('grants').' (user_id,course,origin,granted_at,granted_by) VALUES (%d,%s,%s,%s,0) ON DUPLICATE KEY UPDATE origin=VALUES(origin)',$customer_user_id,$course,$test_origin,current_time('mysql',true)));if($saved===false){$error=new WP_Error('grant','Could not save test enrollment.');break;}}}}
  $status=$full?'refunded':($row['mode']==='test'?'test_paid':'paid');
  if(!$error&&$wpdb->update($t,['user_id'=>$customer_user_id,'status'=>$status,'gateway_payment'=>$payment,'refunded'=>$refund,'updated_at'=>current_time('mysql',true)],['id'=>$id])===false)$error=new WP_Error('storage','Could not save payment.');
  if($error){$wpdb->query('ROLLBACK');return $error;}if($wpdb->query('COMMIT')===false){$wpdb->query('ROLLBACK');return new WP_Error('transaction','Could not commit payment transaction. Please reconcile again.');}
  // Claim with a short database lease; failed delivery can be retried by reconciliation.
  if(!$full&&function_exists('sr_lms_send_email')){
   $lease=time();$claimed=$wpdb->query($wpdb->prepare("UPDATE $t SET email_sent=%d WHERE id=%d AND (email_sent=0 OR (email_sent<0 AND email_sent > %d))",-$lease,$id,-($lease-300)));
-  if($claimed===1){$offer_title=sr_lms_offers()[$row['offer']]['title']??$row['offer'];$email=sanitize_email((string)($notes['customer_email']??''));$name=sanitize_text_field((string)($notes['customer_name']??''));$context=['offer_title'=>$offer_title,'customer_email'=>$email,'customer_phone'=>(string)($notes['customer_phone']??''),'name'=>$name,'cta_url'=>sr_lms_page_url('dashboard'),'amount'=>'INR '.number_format($row['amount']/100,2),'currency'=>'INR','payment_id'=>$payment,'order_id'=>$row['gateway_order'],'mode'=>$row['mode']];
+  if($claimed===1){$offer_title=sr_lms_offers()[$row['offer']]['title']??$row['offer'];$email=sanitize_email((string)($notes['customer_email']??''));$name=sanitize_text_field((string)($notes['customer_name']??''));$context=['offer_title'=>$offer_title,'customer_email'=>$email,'customer_phone'=>(string)($notes['customer_phone']??''),'name'=>$name,'cta_url'=>sr_lms_page_url('dashboard'),'amount'=>'INR '.number_format($row['amount']/100,2),'currency'=>'INR','payment_id'=>$payment,'order_id'=>$row['gateway_order'],'mode'=>$row['mode'],'test_access_message'=>$test_access_user_id?'A limited course access grant was enabled for your approved test account.':'No course access was activated.'];
    if($row['mode']==='test'){$sent=sr_lms_send_email_to('course_test_purchase',$email,$name,$context);}
    elseif(!empty($customer_account['needs_password_setup'])){$user=get_userdata($customer_user_id);$key=$user?get_password_reset_key($user):new WP_Error('account','Student account not found.');if(!is_wp_error($key)){$context['reset_url']=network_site_url('wp-login.php?action=rp&key='.rawurlencode($key).'&login='.rawurlencode($user->user_login),'login');$sent=sr_lms_send_email('course_access',$customer_user_id,$context);}else{$sent=false;}}
    else{$sent=sr_lms_send_email('purchase',$customer_user_id,$context);}
    $wpdb->query($wpdb->prepare("UPDATE $t SET email_sent=%d WHERE id=%d AND email_sent=%d",($sent&&!is_wp_error($sent))?1:0,$id,-$lease));}
  }
 
- return ['status'=>$status,'test'=>$row['mode']==='test','customer_email'=>sanitize_email((string)($notes['customer_email']??'')),'course_title'=>sr_lms_offers()[$row['offer']]['title']??$row['offer'],'account_setup_required'=>$row['mode']==='live'&&!empty($customer_account['needs_password_setup'])];
+ return ['status'=>$status,'test'=>$row['mode']==='test','test_access_granted'=>$row['mode']==='test'&&!$full&&(bool)$test_access_user_id,'customer_email'=>sanitize_email((string)($notes['customer_email']??'')),'course_title'=>sr_lms_offers()[$row['offer']]['title']??$row['offer'],'account_setup_required'=>$row['mode']==='live'&&!empty($customer_account['needs_password_setup'])];
 }
 function sr_lms_payment_verify($r) {
  global $wpdb;$id=absint($r['id']??0);$row=$wpdb->get_row($wpdb->prepare('SELECT * FROM '.sr_lms_table('payments').' WHERE id=%d',$id),ARRAY_A);

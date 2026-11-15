@@ -41,7 +41,8 @@ function sr_lms_has_access($user_id,$course): bool {
     global $wpdb;$user_id=absint($user_id);$course=sr_lms_id($course);
     if(!$user_id||!$course||!array_key_exists($course,sr_lms_catalog()))return false;
     if(user_can($user_id,'manage_options'))return true;
-    return (bool)$wpdb->get_var($wpdb->prepare('SELECT id FROM '.sr_lms_table('grants').' WHERE user_id=%d AND course=%s LIMIT 1',$user_id,$course));
+    $test_access=function_exists('sr_lms_payment_test_access_enabled')&&sr_lms_payment_test_access_enabled($user_id);
+    return (bool)$wpdb->get_var($wpdb->prepare('SELECT id FROM '.sr_lms_table('grants').' WHERE user_id=%d AND course=%s AND (origin NOT LIKE %s OR %d=1) LIMIT 1',$user_id,$course,'test:%',$test_access?1:0));
 }
 function sr_lms_grant(int $user_id,string $offer,string $origin='') {
     global $wpdb;$targets=sr_lms_grant_targets($offer,sr_lms_catalog());
@@ -98,3 +99,4 @@ function sr_lms_register_routes(): void {
     register_rest_route('sr-lms/v1','/courses/(?P<course>[a-z0-9-]+)/state',['methods'=>'GET','permission_callback'=>'sr_lms_rest_permission','callback'=>static function($request){$response=new WP_REST_Response(sr_lms_student_state(get_current_user_id(),$request['course']));$response->header('Cache-Control','private, no-store');$response->header('Vary','Cookie');return $response;}]);
     register_rest_route('sr-lms/v1','/courses/(?P<course>[a-z0-9-]+)/lessons/(?P<lesson>[a-z0-9-]+)/progress',['methods'=>'POST','permission_callback'=>'sr_lms_rest_permission','callback'=>static function($request){$input=$request->get_json_params();if(!is_array($input))return new WP_Error('json','Provide a JSON object.',['status'=>400]);foreach(array_keys($input) as $key)if(!in_array($key,['ranges','position','practice'],true))return new WP_Error('field','Unsupported progress field.',['status'=>400]);$result=sr_lms_save_progress(get_current_user_id(),$request['course'],$request['lesson'],$input);if(is_wp_error($result))return $result;$response=new WP_REST_Response(['lesson'=>$result,'completion'=>sr_lms_completion(get_current_user_id(),$request['course'])]);$response->header('Cache-Control','private, no-store');return $response;}]);
 }
+

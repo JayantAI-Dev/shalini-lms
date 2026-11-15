@@ -20,7 +20,7 @@
      paymentReceived=true;status.textContent='Verifying payment…';
      try{
       const verified=await request('verify',{id:order.id,...payment});
-      if(verified.test){status.textContent='Test payment verified. A test confirmation was emailed to '+customer.email+'. No live charge or course access was created.';box.reset();button.disabled=false;return;}
+      if(verified.test){status.textContent=verified.test_access_granted?'Test payment verified. This approved test account can now see the course in the student portal. No live charge was made.':'Test payment verified. A test confirmation was emailed to '+customer.email+'. No live charge or course access was created.';box.reset();button.disabled=false;return;}
       const done=document.createElement('div');done.className='sr-lms-purchase-confirmation';
       const title=document.createElement('h2');title.textContent='Thank you — your course purchase is confirmed.';
       const course=document.createElement('p');course.textContent=verified.course_title||order.description;
