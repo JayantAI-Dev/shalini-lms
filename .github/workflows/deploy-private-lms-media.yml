@@ -18,34 +18,7 @@ jobs:
       - name: Check out deployment repository
         uses: actions/checkout@v6
 
-      - name: Inspect Hostinger FTP directories (read only)
-        env:
-          FTP_SERVER: ${{ secrets.HOSTINGER_FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.HOSTINGER_FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          FTP_PORT: ${{ vars.HOSTINGER_FTP_PORT || 21 }}
-        run: |
-          python3 - <<'PY'
-          import ftplib, os
-          ftp = ftplib.FTP_TLS(timeout=30)
-          ftp.connect(os.environ["FTP_SERVER"], int(os.environ["FTP_PORT"]))
-          ftp.login(os.environ["FTP_USERNAME"], os.environ["FTP_PASSWORD"])
-          ftp.prot_p()
-          print("FTP home:", ftp.pwd())
-          for entry in ftp.mlsd():
-              print("HOME ENTRY:", entry[0], entry[1].get("type", ""))
-          for candidate in ("..", "../..", "../../sr-academy-private-media", "../../sr-academy-private-media/assets/lms"):
-              try:
-                  ftp.cwd(candidate)
-                  print("PATH:", candidate, "=>", ftp.pwd())
-                  for entry in ftp.mlsd():
-                      print("PATH ENTRY:", entry[0], entry[1].get("type", ""))
-              except Exception as exc:
-                  print("PATH CHECK:", candidate, type(exc).__name__)
-          ftp.quit()
-          PY
-
-      - name: Create a web access deny rule for the temporary copy
+      - name: Create a web access deny rule for the protected media folder
         shell: bash
         run: |
           mkdir -p assets/lms/public-guard
@@ -55,7 +28,7 @@ jobs:
           Deny from all
           EOF
 
-      - name: Secure the temporary copy under public_html
+      - name: Deploy the web access deny rule
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.HOSTINGER_FTP_SERVER }}
@@ -96,7 +69,7 @@ jobs:
           done < /tmp/speakathon-videos.tsv
           du -sh assets/lms/videos
 
-      - name: Deploy videos outside public_html
+      - name: Deploy videos to the protected WordPress media folder
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.HOSTINGER_FTP_SERVER }}
