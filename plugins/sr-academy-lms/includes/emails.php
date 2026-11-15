@@ -50,12 +50,12 @@ function sr_lms_email_payment_summary(array $context): string {
         if (!isset($context[$key]) || !is_scalar($context[$key]) || trim((string)$context[$key]) === '') continue;
         $value = esc_html((string)$context[$key]);
         $value_style = $key === 'amount'
-            ? 'font-size:18px;font-weight:700;color:#18382c'
-            : 'display:inline-block;padding:7px 10px;border:1px solid #dce8dc;border-radius:6px;background:#fff;color:#18382c;font-family:Consolas,Monaco,monospace;font-size:13px;line-height:1.5;word-break:break-all';
-        $rows[] = '<tr><td style="padding:9px 12px 9px 0;color:#627268;font-size:13px;vertical-align:top;width:145px">'.esc_html($label).'</td><td style="padding:9px 0;color:#18382c;font-size:14px;vertical-align:top"><span style="'.$value_style.'">'.$value.'</span></td></tr>';
+            ? 'display:block;margin-top:5px;color:#18382c;font-size:20px;font-weight:700;line-height:1.35'
+            : 'display:block;margin-top:6px;padding:10px 12px;border:1px solid #dce8dc;border-radius:6px;background:#fff;color:#18382c;font-family:Consolas,Monaco,monospace;font-size:14px;line-height:1.5;word-break:break-all;overflow-wrap:anywhere';
+        $rows[] = '<tr><td style="padding:12px 16px;border-top:1px solid #e3ece2;color:#627268;font-size:13px;line-height:1.4;vertical-align:top"><span style="display:block">'.esc_html($label).'</span><span style="'.$value_style.'">'.$value.'</span></td></tr>';
     }
     if (!$rows) return '';
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;border:1px solid #dce8dc;border-radius:10px;background:#f5f8f3"><tr><td colspan="2" style="padding:14px 12px 5px;color:#286447;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Payment details</td></tr>'.implode('', $rows).'<tr><td colspan="2" style="height:6px;font-size:1px;line-height:6px">&nbsp;</td></tr></table>';
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;table-layout:fixed;margin:24px 0 8px;border:1px solid #dce8dc;border-radius:10px;background:#f5f8f3"><tr><td style="padding:16px 16px 12px;color:#286447;font-size:12px;font-weight:700;letter-spacing:1px;line-height:1.4;text-transform:uppercase">Payment details</td></tr>'.implode('', $rows).'<tr><td style="height:4px;padding:0;font-size:1px;line-height:4px">&nbsp;</td></tr></table>';
 }
 function sr_lms_email_render(string $type,object $user,array $context=[]): array {
     $settings=sr_lms_email_settings();if(!isset($settings['templates'][$type]))return [];$template=$settings['templates'][$type];
