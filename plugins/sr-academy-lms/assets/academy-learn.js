@@ -6,7 +6,7 @@
   const $ = id => document.getElementById(id);
   const video = $('lesson-media');
   if (!video || !$('outline-list')) return;
-  video.controls = true;
+  video.controls = false;
   const lessons = (course.modules || []).flatMap((module, week) => module.lessons.map(lesson => ({...lesson, week, weekTitle: module.title})));
   if (!lessons.length) return;
   let progress = state.progress || {}, completion = state.completion;
