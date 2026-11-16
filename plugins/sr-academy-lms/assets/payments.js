@@ -11,7 +11,7 @@ function showCourseConfirmation(box,verified,customer,order){
  const email=verified.customer_email||customer.email;
  if(verified.test){
   message.textContent=verified.test_access_granted
-   ? 'Razorpay test payment verified. This approved test account can access the course from the student portal. No live charge was made.'
+   ? 'Razorpay test payment verified. Login details for this approved test account were emailed to '+email+'. No live charge was made.'
    : 'Razorpay test payment verified. No live charge was made, and this test purchase did not grant course access.';
  }else if(verified.email_sent){
   message.textContent=(verified.account_setup_required
