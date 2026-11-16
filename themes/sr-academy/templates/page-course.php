@@ -12,15 +12,3 @@ $sr_schema = ['@context'=>'https://schema.org','@type'=>'Course','name'=>$sr_pub
 <div class="lms-review"><div class="lms-review-person"><img src="<?php echo esc_url(sr_theme_asset('assets/external/e4172fd74a32e067.webp')); ?>" alt="Portrait of Priya K." loading="lazy" width="256" height="256" ><span><strong>Priya K.</strong><small>Team lead · Bengaluru</small></span></div><span class="lms-review-quote">“</span><p>Used to think I needed a whole new wardrobe to improve my style, but this course changed that. I’ve learnt to style what I already own in ways that feel much more like me.</p></div>
 </div></div></section></main>
 
-<?php if ($sr_course_offer && function_exists('sr_lms_render_purchase')) : ?>
-<div class="sr-course-checkout-modal" data-course-checkout-modal hidden aria-hidden="true">
-  <button class="sr-course-checkout-backdrop" type="button" data-course-checkout-close aria-label="Close course checkout"></button>
-  <section class="sr-course-checkout-dialog" role="dialog" aria-modal="true" aria-labelledby="sr-course-checkout-title" aria-describedby="sr-course-checkout-description" tabindex="-1">
-    <button class="sr-course-checkout-close" type="button" data-course-checkout-close aria-label="Close checkout">×</button>
-    <span class="lms-eyebrow">SECURE COURSE CHECKOUT</span>
-    <h2 id="sr-course-checkout-title"><?php echo esc_html($sr_course_offer['title']); ?></h2>
-    <p id="sr-course-checkout-description">Enter your details to continue to secure payment. After successful payment, we’ll email your student login email and a secure link to set your password.</p>
-    <?php sr_lms_render_purchase($sr_course_slug); ?>
-  </section>
-</div>
-<?php endif; ?>
