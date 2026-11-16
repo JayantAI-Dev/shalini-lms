@@ -89,7 +89,9 @@ window.SR_THEME.asset=function(path){return this.assetBase+path.replace(/^\/+/, 
 JS
     , 'before');
     if (in_array(sr_theme_slug(), ['courses','course'], true)) {
-        wp_enqueue_script('sr-catalog', sr_theme_asset('assets/js/catalog.js'), ['sr-site'], $version, true);
+        $catalog_script = get_template_directory() . '/assets/js/catalog.js';
+        $catalog_script_version = is_file($catalog_script) ? (string) filemtime($catalog_script) : $version;
+        wp_enqueue_script('sr-catalog', sr_theme_asset('assets/js/catalog.js'), ['sr-site'], $catalog_script_version, true);
         $courses = function_exists('sr_lms_courses') ? sr_lms_courses() : [];
         wp_add_inline_script('sr-catalog', 'window.SHALINI_COURSES=' . wp_json_encode($courses, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) . ';', 'before');
     }
