@@ -131,7 +131,8 @@
     $('#lms-enroll-cta').textContent='Enroll in course';
     $('#lms-certificate-cta')?.setAttribute('href',enrollmentUrl);
 
-    const courseCheckoutModal = $('[data-course-checkout-modal]');
+    const courseCheckoutModal = $('.sr-course-checkout-modal');
+    if (courseCheckoutModal && !courseCheckoutModal.id) courseCheckoutModal.id = 'sr-course-checkout-modal';
     const courseCheckoutDialog = courseCheckoutModal?.querySelector('.sr-course-checkout-dialog');
     const courseCheckoutClose = courseCheckoutModal?.querySelector('.sr-course-checkout-close');
     let courseCheckoutTrigger = null;
