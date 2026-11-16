@@ -14,13 +14,17 @@ function showCourseConfirmation(box,verified,customer,order){
    ? 'Razorpay test payment verified. Login details for this approved test account were emailed to '+email+'. No live charge was made.'
    : 'Razorpay test payment verified. No live charge was made, and this test purchase did not grant course access.';
  }else if(verified.email_sent){
-  message.textContent=(verified.account_setup_required
-   ? 'We sent a secure password setup link to '
-   : 'We sent a purchase confirmation to ')+email+'. '+(verified.account_setup_required
-   ? 'Set your password, then sign in to access this course.'
-   : 'Sign in to find this course in your student portal.');
+  if(verified.new_account){
+   message.textContent='Your new student account is signed in for 15 minutes. We emailed your sign-in email and a secure password setup link to '+email+'. Set your password from that email to keep access.';
+  }else if(verified.signed_in){
+   message.textContent='You’re signed in and enrolled. We sent your course enrollment email to '+email+'.';
+  }else{
+   message.textContent='Your course enrollment is confirmed. We sent the enrollment email to '+email+'. Sign in to the Student Portal to start learning.';
+  }
  }else{
-  message.textContent='Your payment is confirmed, but we could not verify delivery of the account email to '+email+'. Please do not pay again; contact the Academy for help accessing your course.';
+  message.textContent=verified.temporary_signin
+   ? 'Your payment is confirmed and your new student account is signed in for 15 minutes, but email delivery of the password setup link could not be confirmed. Please do not pay again; contact the Academy for access help.'
+   : 'Your payment is confirmed, but we could not verify delivery of the course email to '+email+'. Please do not pay again; contact the Academy for help accessing your course.';
  }
  const link=document.createElement('a');link.href=box.dataset.dashboard;link.className='sr-lms-course-success-link';link.textContent='Go to student portal';
  view.append(mark,kicker,title,course,message,link);

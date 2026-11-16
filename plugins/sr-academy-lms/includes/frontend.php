@@ -10,7 +10,11 @@ function sr_lms_return_url(string $candidate=''): string {
     if(!isset($parts['scheme']))return str_starts_with($valid,'/')&&!str_starts_with($valid,'//')?home_url($valid):$fallback;
     return $valid;
 }
-function sr_lms_email_is_verified(int $user_id): bool { $status=get_user_meta($user_id,'sr_lms_email_verified',true);return $status===''||$status==='1'; }
+function sr_lms_email_is_verified(int $user_id): bool {
+    $status=get_user_meta($user_id,'sr_lms_email_verified',true);
+    if($status===''||$status==='1')return true;
+    return $status==='0'&&is_user_logged_in()&&get_current_user_id()===$user_id&&(int)get_user_meta($user_id,'sr_lms_payment_access_until',true)>time();
+}
 
 /** Allow the email address shown in purchase emails to be used at student login. */
 add_filter('authenticate', static function($user, $username, $password) {

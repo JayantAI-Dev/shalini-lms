@@ -1,7 +1,7 @@
 <?php
 if (!defined('ABSPATH')) exit;
 function sr_lms_payment_install(): void {
- if(get_option('sr_lms_payment_schema')==='2')return;
+ if(get_option('sr_lms_payment_schema')==='3')return;
  global $wpdb;require_once ABSPATH.'wp-admin/includes/upgrade.php';$c=$wpdb->get_charset_collate();
  dbDelta('CREATE TABLE '.sr_lms_table('payments')." (
  id bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -15,6 +15,8 @@ function sr_lms_payment_install(): void {
  gateway_payment varchar(100) DEFAULT NULL,
  status varchar(24) NOT NULL DEFAULT 'created',
  refunded bigint unsigned NOT NULL DEFAULT 0,
+ account_created tinyint(1) NOT NULL DEFAULT 0,
+ signin_expires bigint unsigned NOT NULL DEFAULT 0,
  email_sent bigint NOT NULL DEFAULT 0,
  created_at datetime NOT NULL,
  updated_at datetime NOT NULL,
@@ -30,7 +32,7 @@ function sr_lms_payment_install(): void {
  PRIMARY KEY  (id),
  UNIQUE KEY event_key (event_key)
  ) ENGINE=InnoDB $c;");
- update_option('sr_lms_payment_schema','2',false);
+ update_option('sr_lms_payment_schema','3',false);
 }
 function sr_lms_payment_settings(): array {return (array)get_option('sr_lms_payment_settings',[]);}
 /** Test purchases may unlock access only for existing, verified accounts explicitly allowlisted by an administrator. */
@@ -70,7 +72,8 @@ function sr_lms_payment_order($r) {
  $customer_name=sanitize_text_field((string)($r['name']??''));$customer_email=sanitize_email((string)($r['email']??''));$customer_phone=sanitize_text_field((string)($r['phone']??''));$phone_digits=preg_replace('/\D/','',$customer_phone);
  if($customer_name===''||strlen($customer_name)>100||!is_email($customer_email)||strlen($customer_email)>100||strlen((string)$phone_digits)<7||strlen((string)$phone_digits)>15)return new WP_Error('customer_details','Enter your name, a valid email address, and a valid phone number.',['status'=>400]);
  $mode=sr_lms_payment_settings()['mode']??'test';$account=get_user_by('email',$customer_email);$user_id=0;
- if(is_user_logged_in()){$current=get_userdata(get_current_user_id());if($current&&strtolower($current->user_email)===strtolower($customer_email))$user_id=(int)$current->ID;}
+ if(is_user_logged_in()){$current=get_userdata(get_current_user_id());if(!$current||strtolower($current->user_email)!==strtolower($customer_email))return new WP_Error('account_mismatch','Use the email address for your signed-in student account.',['status'=>409]);$user_id=(int)$current->ID;}
+ elseif($account&&$mode==='live')return new WP_Error('account_login_required','A student account already uses this email. Please sign in to the Student Portal before purchasing.',['status'=>409]);
  elseif($account)$user_id=(int)$account->ID;
  if($mode!=='test'&&$user_id){$already=true;foreach($o['courses'] as $course)if(!sr_lms_has_access($user_id,$course))$already=false;if($already)return new WP_Error('enrolled','You already have access to this course. Sign in to continue learning.',['status'=>409]);}
  $amount=(int)round((float)$o['price']*100);if($amount<100||$amount>1000000000)return new WP_Error('price','This price cannot be purchased online.',['status'=>400]);
@@ -82,23 +85,23 @@ function sr_lms_payment_order($r) {
  if($wpdb->update(sr_lms_table('payments'),['gateway_order'=>$g['id']],['id'=>$id])!==1)return new WP_Error('storage','Could not link gateway order.');
  return new WP_REST_Response(['id'=>$id,'order_id'=>$g['id'],'key'=>sr_lms_payment_credentials($mode)['key'],'amount'=>$amount,'currency'=>'INR','name'=>'SR Academy','description'=>$o['title'],'prefill'=>['name'=>$customer_name,'email'=>$customer_email,'contact'=>$customer_phone],'customer_email'=>$customer_email,'test'=>$mode==='test']);
 }
-function sr_lms_payment_customer_account(array $notes,int $existing_id=0) {
+function sr_lms_payment_customer_account(array $notes,int $existing_id=0,int $payment_id=0) {
  $email=sanitize_email((string)($notes['customer_email']??''));$name=sanitize_text_field((string)($notes['customer_name']??''));$phone=sanitize_text_field((string)($notes['customer_phone']??''));
  if(!is_email($email)||$name==='')return new WP_Error('customer','Verified order is missing valid customer details.');
  $user=$existing_id?get_userdata($existing_id):get_user_by('email',$email);
  if($user&&strtolower($user->user_email)!==strtolower($email))return new WP_Error('customer','Order email does not match the student account.');
- $initial_password='';
+ $created=false;
  if(!$user){
   $base=sanitize_user(strstr($email,'@',true),true);if(!$base)$base='student';$login=$base;$suffix=1;while(username_exists($login))$login=$base.'-'.$suffix++;
-  $initial_password=wp_generate_password(20,true,true);
-  $id=wp_insert_user(['user_login'=>$login,'user_email'=>$email,'user_pass'=>$initial_password,'display_name'=>$name,'first_name'=>$name,'role'=>'subscriber']);
-  if(is_wp_error($id)){$user=get_user_by('email',$email);if(!$user)return new WP_Error('account','Payment is verified, but the student account could not be created. Please contact the Academy before retrying.');$initial_password='';}
-  else{$user=get_userdata((int)$id);update_user_meta((int)$id,'sr_lms_email_verified','1');delete_user_meta((int)$id,'sr_lms_course_password_setup_pending');}
+  $random_password=wp_generate_password(64,true,true);
+  $id=wp_insert_user(['user_login'=>$login,'user_email'=>$email,'user_pass'=>$random_password,'display_name'=>$name,'first_name'=>$name,'role'=>'subscriber']);
+  if(is_wp_error($id)){$user=get_user_by('email',$email);if(!$user)return new WP_Error('account','Payment is verified, but the student account could not be created. Please contact the Academy before retrying.');}
+  else{$user=get_userdata((int)$id);$created=true;update_user_meta((int)$id,'sr_lms_email_verified','0');update_user_meta((int)$id,'sr_lms_course_password_setup_pending','1');if($payment_id){global $wpdb;$wpdb->update(sr_lms_table('payments'),['account_created'=>1],['id'=>$payment_id],['%d'],['%d']);}}
  }
  if(!$user)return new WP_Error('account','Student account could not be found.');
  if($phone!=='')update_user_meta((int)$user->ID,'sr_lms_phone',$phone);
  if(!sr_lms_email_is_verified((int)$user->ID))update_user_meta((int)$user->ID,'sr_lms_course_password_setup_pending','1');
- return ['user_id'=>(int)$user->ID,'needs_password_setup'=>!sr_lms_email_is_verified((int)$user->ID),'initial_password'=>$initial_password];
+ return ['user_id'=>(int)$user->ID,'needs_password_setup'=>$created||!sr_lms_email_is_verified((int)$user->ID),'account_created'=>$created,'initial_password'=>''];
 }
 /** API verification precedes transactional fulfillment. Row locks serialize callback/webhook/admin retries. */
 function sr_lms_payment_reconcile(int $id,string $payment='') {
@@ -113,7 +116,7 @@ function sr_lms_payment_reconcile(int $id,string $payment='') {
  $customer_order=sr_lms_payment_api($row['mode'],'orders/'.$row['gateway_order']);if(is_wp_error($customer_order))return $customer_order;$notes=(array)($customer_order['notes']??[]);
  if(empty($notes['customer_email'])&&$row['user_id']){$linked=get_userdata((int)$row['user_id']);if($linked){$notes['customer_email']=$linked->user_email;$notes['customer_name']=$linked->display_name;$notes['customer_phone']=get_user_meta((int)$linked->ID,'sr_lms_phone',true);}}
  $payment_full=(int)$refundRaw>=(int)$row['amount']||($p['status']??'')==='refunded';$customer_account=null;$test_access_user_id=$row['mode']==='test'?sr_lms_payment_test_access_user_id($notes,(int)$row['user_id']):0;
- if($row['mode']==='live'&&!$payment_full){$customer_account=sr_lms_payment_customer_account($notes,(int)$row['user_id']);if(is_wp_error($customer_account))return $customer_account;}
+ if($row['mode']==='live'&&!$payment_full){$customer_account=sr_lms_payment_customer_account($notes,(int)$row['user_id'],$id);if(is_wp_error($customer_account))return $customer_account;if(!empty($row['account_created'])){$customer_account['account_created']=true;$customer_account['needs_password_setup']=true;}if(!empty($customer_account['account_created']))$row['account_created']=1;}
  if($wpdb->query('START TRANSACTION')===false)return new WP_Error('transaction','Could not begin payment transaction.');$row=$wpdb->get_row($wpdb->prepare("SELECT * FROM $t WHERE id=%d FOR UPDATE",$id),ARRAY_A);
  if(!$row){$wpdb->query('ROLLBACK');return new WP_Error('transaction','Could not lock payment order.');}
  $refund=max((int)$row['refunded'],(int)($p['amount_refunded']??0));$full=$refund>=(int)$row['amount']||$row['status']==='refunded';$origin='pay:'.$id;$error=null;
@@ -131,24 +134,35 @@ function sr_lms_payment_reconcile(int $id,string $payment='') {
  if(!$full&&function_exists('sr_lms_send_email')){
   $lease=time();$claimed=$wpdb->query($wpdb->prepare("UPDATE $t SET email_sent=%d WHERE id=%d AND (email_sent=0 OR (email_sent<0 AND email_sent > %d))",-$lease,$id,-($lease-300)));
   if($claimed===1){$offer_title=sr_lms_offers()[$row['offer']]['title']??$row['offer'];$email=sanitize_email((string)($notes['customer_email']??''));$name=sanitize_text_field((string)($notes['customer_name']??''));$context=['offer_title'=>$offer_title,'customer_email'=>$email,'customer_phone'=>(string)($notes['customer_phone']??''),'customer_password'=>(string)($customer_account['initial_password']??''),'name'=>$name,'cta_url'=>sr_lms_page_url('student-portal'),'amount'=>'INR '.number_format($row['amount']/100,2),'currency'=>'INR','payment_id'=>$payment,'order_id'=>$row['gateway_order'],'mode'=>$row['mode'],'test_access_message'=>$test_access_user_id?'Course access has been enabled for your approved test account.':'This test transaction does not grant course access.'];
-   if($row['mode']==='test'){
+  if($row['mode']==='test'){
     if($test_access_user_id){$test_password=wp_generate_password(20,true,true);wp_set_password($test_password,$test_access_user_id);$context['customer_password']=$test_password;$context['test_credentials_message']='Use the sign-in details in the Student Portal block below to access your approved test account.';}
     else{$context['test_credentials_message']='Student portal credentials are not issued for unapproved test accounts.';}
     $sent=sr_lms_send_email_to('course_test_purchase',$email,$name,$context);
    }
-   elseif(!empty($customer_account['initial_password'])){$sent=sr_lms_send_email_to('course_access',$email,$name,$context);}
-   elseif(!empty($customer_account['needs_password_setup'])){$user=get_userdata($customer_user_id);$key=$user?get_password_reset_key($user):new WP_Error('account','Student account not found.');if(!is_wp_error($key)){$context['reset_url']=network_site_url('wp-login.php?action=rp&key='.rawurlencode($key).'&login='.rawurlencode($user->user_login),'login');$sent=sr_lms_send_email('course_access',$customer_user_id,$context);}else{$sent=false;}}
-   else{$sent=sr_lms_send_email('purchase',$customer_user_id,$context);}
+   elseif(!empty($row['account_created'])||!empty($customer_account['needs_password_setup'])){$user=get_userdata($customer_user_id);$key=$user?get_password_reset_key($user):new WP_Error('account','Student account not found.');if(!is_wp_error($key)){$context['reset_url']=network_site_url('wp-login.php?action=rp&key='.rawurlencode($key).'&login='.rawurlencode($user->user_login),'login');$sent=sr_lms_send_email('course_access',$customer_user_id,$context);}else{$sent=false;}}
+   else{$sent=sr_lms_send_email('enrollment',$customer_user_id,['offer_title'=>$offer_title,'cta_url'=>sr_lms_page_url('dashboard')]);}
    $wpdb->query($wpdb->prepare("UPDATE $t SET email_sent=%d WHERE id=%d AND email_sent=%d",($sent&&!is_wp_error($sent))?1:0,$id,-$lease));}
  }
 
- return ['status'=>$status,'test'=>$row['mode']==='test','test_access_granted'=>$row['mode']==='test'&&!$full&&(bool)$test_access_user_id,'customer_email'=>sanitize_email((string)($notes['customer_email']??'')),'course_title'=>sr_lms_offers()[$row['offer']]['title']??$row['offer'],'account_setup_required'=>$row['mode']==='live'&&!empty($customer_account['needs_password_setup']),'email_sent'=>(bool)$wpdb->get_var($wpdb->prepare("SELECT email_sent FROM $t WHERE id=%d",$id))];
+ return ['status'=>$status,'test'=>$row['mode']==='test','test_access_granted'=>$row['mode']==='test'&&!$full&&(bool)$test_access_user_id,'customer_email'=>sanitize_email((string)($notes['customer_email']??'')),'course_title'=>sr_lms_offers()[$row['offer']]['title']??$row['offer'],'account_setup_required'=>$row['mode']==='live'&&!empty($customer_account['needs_password_setup']),'new_account'=>$row['mode']==='live'&&(bool)$wpdb->get_var($wpdb->prepare("SELECT account_created FROM $t WHERE id=%d",$id)),'email_sent'=>(bool)$wpdb->get_var($wpdb->prepare("SELECT email_sent FROM $t WHERE id=%d",$id))];
 }
 function sr_lms_payment_verify($r) {
  global $wpdb;$id=absint($r['id']??0);$row=$wpdb->get_row($wpdb->prepare('SELECT * FROM '.sr_lms_table('payments').' WHERE id=%d',$id),ARRAY_A);
  if(!$row)return new WP_Error('order','Unknown order.',['status'=>404]);$payment=(string)($r['razorpay_payment_id']??'');$c=sr_lms_payment_credentials($row['mode']);
  if(($r['razorpay_order_id']??'')!==$row['gateway_order']||!sr_lms_payment_signature($row['gateway_order'].'|'.$payment,(string)($r['razorpay_signature']??''),$c['secret']))return new WP_Error('signature','Payment signature rejected.',['status'=>400]);
- return sr_lms_payment_reconcile($id,$payment);
+ $result=sr_lms_payment_reconcile($id,$payment);if(is_wp_error($result)||!is_array($result))return $result;
+ if(($result['status']??'')==='paid'){
+  $fresh=$wpdb->get_row($wpdb->prepare('SELECT user_id,account_created,signin_expires FROM '.sr_lms_table('payments').' WHERE id=%d',$id),ARRAY_A);$user=$fresh?get_userdata((int)$fresh['user_id']):false;
+  if($user&&strtolower($user->user_email)===strtolower((string)($result['customer_email']??''))){
+   if(!empty($fresh['account_created'])&&(!is_user_logged_in()||get_current_user_id()===(int)$user->ID)){
+    if((int)$fresh['signin_expires']===0){$wpdb->query($wpdb->prepare('UPDATE '.sr_lms_table('payments').' SET signin_expires=%d WHERE id=%d AND signin_expires=0',time()+15*MINUTE_IN_SECONDS,$id));$fresh=$wpdb->get_row($wpdb->prepare('SELECT user_id,account_created,signin_expires FROM '.sr_lms_table('payments').' WHERE id=%d',$id),ARRAY_A);}
+    $remaining=max(0,(int)($fresh['signin_expires']??0)-time());
+    if($remaining>0){update_user_meta((int)$user->ID,'sr_lms_payment_access_until',(int)$fresh['signin_expires']);if(!is_user_logged_in()){$short_session=static fn($expiration,$uid,$remember)=>$uid===(int)$user->ID&&!$remember?$remaining:$expiration;add_filter('auth_cookie_expiration',$short_session,PHP_INT_MAX,3);wp_set_current_user((int)$user->ID);wp_set_auth_cookie((int)$user->ID,false,is_ssl());remove_filter('auth_cookie_expiration',$short_session,PHP_INT_MAX);do_action('wp_login',$user->user_login,$user);$result['temporary_signin']=true;}}
+   }
+   $result['signed_in']=is_user_logged_in()&&get_current_user_id()===(int)$user->ID;
+  }
+ }
+ return $result;
 }
 function sr_lms_payment_webhook($r) {
  global $wpdb;$mode=$r['mode'];$c=sr_lms_payment_credentials($mode);$raw=$r->get_body();if(strlen($raw)>1048576||!sr_lms_payment_signature($raw,$r->get_header('X-Razorpay-Signature'),$c['webhook']??''))return new WP_Error('signature','Webhook signature rejected.',['status'=>400]);
@@ -179,6 +193,7 @@ function sr_lms_render_purchase(string $offer): bool {
  $targets=sr_lms_offers()[$offer]['courses'];$mode=sr_lms_payment_settings()['mode']??'test';$enrolled=is_user_logged_in();foreach($targets as $course)if(!sr_lms_has_access(get_current_user_id(),$course))$enrolled=false;if($enrolled&&$mode!=='test'){echo '<p>You already have access to this course.</p><a class="lms-primary" href="'.esc_url(sr_lms_page_url('dashboard')).'">Open dashboard</a>';return true;}
  wp_enqueue_script('sr-lms-razorpay','https://checkout.razorpay.com/v1/checkout.js',[],null,true);
  wp_enqueue_script('sr-lms-payments',plugins_url('assets/payments.js',dirname(__DIR__).'/sr-academy-lms.php'),['sr-lms-razorpay'],SR_LMS_VERSION,true);
- echo '<form class="sr-lms-purchase" data-dashboard="'.esc_url(sr_lms_page_url('dashboard')).'" data-offer="'.esc_attr($offer).'" data-api="'.esc_url(rest_url('sr-lms/v1/payments/')).'" data-nonce="'.esc_attr(wp_create_nonce('wp_rest')).'" novalidate><div class="sr-lms-customer-fields"><label>Full name<input name="name" type="text" autocomplete="name" maxlength="100" required></label><label>Email address<input name="email" type="email" autocomplete="email" maxlength="100" required></label><label>WhatsApp / phone<input name="phone" type="tel" autocomplete="tel" minlength="7" maxlength="25" required></label></div><p class="sr-lms-password-note">After successful payment, we’ll email your login email and a secure link to set your password.</p><button type="submit" class="lms-primary">'.($mode==='test'?'Continue to Razorpay test payment':'Continue to Razorpay').'</button><p class="sr-lms-payment-note">'.($mode==='test'?'Razorpay test mode · no live charge or course access':'Secure Razorpay checkout').'</p><p role="status" aria-live="polite"></p></form>';if(sr_lms_manual_requests_enabled()){echo '<p>Prefer to request access from the academy?</p><form method="post" action="'.esc_url(admin_url('admin-post.php')).'"><input type="hidden" name="action" value="sr_lms_enroll"><input type="hidden" name="offer" value="'.esc_attr($offer).'">';wp_nonce_field('sr_lms_enroll');echo '<button class="lms-primary" type="submit">Request manual enrollment</button></form>';}return true;
+ $current=is_user_logged_in()?get_userdata(get_current_user_id()):false;$full_name=$current?(string)$current->display_name:'';$email=$current?(string)$current->user_email:'';$phone=$current?(string)get_user_meta((int)$current->ID,'sr_lms_phone',true):'';
+ echo '<form class="sr-lms-purchase" data-dashboard="'.esc_url(sr_lms_page_url('dashboard')).'" data-offer="'.esc_attr($offer).'" data-api="'.esc_url(rest_url('sr-lms/v1/payments/')).'" data-nonce="'.esc_attr(wp_create_nonce('wp_rest')).'" novalidate><div class="sr-lms-customer-fields"><label>Full name<input name="name" type="text" autocomplete="name" maxlength="100" value="'.esc_attr($full_name).'" required></label><label>Email address<input name="email" type="email" autocomplete="email" maxlength="100" value="'.esc_attr($email).'" required></label><label>WhatsApp / phone<input name="phone" type="tel" autocomplete="tel" minlength="7" maxlength="25" value="'.esc_attr($phone).'" required></label></div><p class="sr-lms-password-note">New to the Academy? After payment, we’ll sign you in for 15 minutes and email your sign-in email plus a secure password setup link. If you already have a student account, sign in before checkout.</p><button type="submit" class="lms-primary">'.($mode==='test'?'Continue to Razorpay test payment':'Continue to Razorpay').'</button><p class="sr-lms-payment-note">'.($mode==='test'?'Razorpay test mode · no live charge or course access':'Secure Razorpay checkout').'</p><p role="status" aria-live="polite"></p></form>';if(sr_lms_manual_requests_enabled()){echo '<p>Prefer to request access from the academy?</p><form method="post" action="'.esc_url(admin_url('admin-post.php')).'"><input type="hidden" name="action" value="sr_lms_enroll"><input type="hidden" name="offer" value="'.esc_attr($offer).'">';wp_nonce_field('sr_lms_enroll');echo '<button class="lms-primary" type="submit">Request manual enrollment</button></form>';}return true;
 }
 
