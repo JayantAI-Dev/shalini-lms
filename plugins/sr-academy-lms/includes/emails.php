@@ -80,7 +80,7 @@ function sr_lms_email_render(string $type,object $user,array $context=[]): array
     $body_text = preg_replace('/\R{3,}/', "\n\n", trim($body_text));
     $subject=sanitize_text_field(strtr($template['subject'],$values));$heading=esc_html(strtr($template['heading'],$values));$body=nl2br(esc_html(strtr($body_text,$values)));
     $credentials_html='';
-    if(in_array($type,['course_access','course_test_purchase'],true)&&is_email((string)($context['customer_email']??''))){
+    if(($type==='course_access'||($type==='course_test_purchase'&&!empty($context['customer_password'])))&&is_email((string)($context['customer_email']??''))){
         $login_email=esc_html((string)$context['customer_email']);
         $password=(string)($context['customer_password']??'');
         if($type==='course_access'){

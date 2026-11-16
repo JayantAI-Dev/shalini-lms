@@ -134,10 +134,9 @@ function sr_lms_payment_reconcile(int $id,string $payment='') {
  if(!$full&&function_exists('sr_lms_send_email')){
   $lease=time();$claimed=$wpdb->query($wpdb->prepare("UPDATE $t SET email_sent=%d WHERE id=%d AND (email_sent=0 OR (email_sent<0 AND email_sent > %d))",-$lease,$id,-($lease-300)));
   if($claimed===1){$offer_title=sr_lms_offers()[$row['offer']]['title']??$row['offer'];$email=sanitize_email((string)($notes['customer_email']??''));$name=sanitize_text_field((string)($notes['customer_name']??''));$context=['offer_title'=>$offer_title,'customer_email'=>$email,'customer_phone'=>(string)($notes['customer_phone']??''),'customer_password'=>(string)($customer_account['initial_password']??''),'name'=>$name,'cta_url'=>sr_lms_page_url('student-portal'),'amount'=>'INR '.number_format($row['amount']/100,2),'currency'=>'INR','payment_id'=>$payment,'order_id'=>$row['gateway_order'],'mode'=>$row['mode'],'test_access_message'=>$test_access_user_id?'Course access has been enabled for your approved test account.':'This test transaction does not grant course access.'];
-  if($row['mode']==='test'){
-    if($test_access_user_id){$test_password=wp_generate_password(20,true,true);wp_set_password($test_password,$test_access_user_id);$context['customer_password']=$test_password;$context['test_credentials_message']='Use the sign-in details in the Student Portal block below to access your approved test account.';}
-    else{$context['test_credentials_message']='Student portal credentials are not issued for unapproved test accounts.';}
-    $sent=sr_lms_send_email_to('course_test_purchase',$email,$name,$context);
+   if($row['mode']==='test'){
+    if($test_access_user_id){$sent=sr_lms_send_email('enrollment',$test_access_user_id,['offer_title'=>$offer_title,'cta_url'=>sr_lms_page_url('dashboard')]);}
+    else{$context['test_credentials_message']='Student portal credentials and course access are not issued for unapproved test accounts.';$sent=sr_lms_send_email_to('course_test_purchase',$email,$name,$context);}
    }
    elseif(!empty($row['account_created'])||!empty($customer_account['needs_password_setup'])){$user=get_userdata($customer_user_id);$key=$user?get_password_reset_key($user):new WP_Error('account','Student account not found.');if(!is_wp_error($key)){$context['reset_url']=network_site_url('wp-login.php?action=rp&key='.rawurlencode($key).'&login='.rawurlencode($user->user_login),'login');$sent=sr_lms_send_email('course_access',$customer_user_id,$context);}else{$sent=false;}}
    else{$sent=sr_lms_send_email('enrollment',$customer_user_id,['offer_title'=>$offer_title,'cta_url'=>sr_lms_page_url('dashboard')]);}
@@ -151,10 +150,11 @@ function sr_lms_payment_verify($r) {
  if(!$row)return new WP_Error('order','Unknown order.',['status'=>404]);$payment=(string)($r['razorpay_payment_id']??'');$c=sr_lms_payment_credentials($row['mode']);
  if(($r['razorpay_order_id']??'')!==$row['gateway_order']||!sr_lms_payment_signature($row['gateway_order'].'|'.$payment,(string)($r['razorpay_signature']??''),$c['secret']))return new WP_Error('signature','Payment signature rejected.',['status'=>400]);
  $result=sr_lms_payment_reconcile($id,$payment);if(is_wp_error($result)||!is_array($result))return $result;
- if(($result['status']??'')==='paid'){
+ if(in_array(($result['status']??''),['paid','test_paid'],true)){
   $fresh=$wpdb->get_row($wpdb->prepare('SELECT user_id,account_created,signin_expires FROM '.sr_lms_table('payments').' WHERE id=%d',$id),ARRAY_A);$user=$fresh?get_userdata((int)$fresh['user_id']):false;
   if($user&&strtolower($user->user_email)===strtolower((string)($result['customer_email']??''))){
-   if(!empty($fresh['account_created'])&&(!is_user_logged_in()||get_current_user_id()===(int)$user->ID)){
+   $may_start_session=!empty($fresh['account_created'])||!empty($result['test_access_granted']);
+   if($may_start_session&&(!is_user_logged_in()||get_current_user_id()===(int)$user->ID)){
     if((int)$fresh['signin_expires']===0){$wpdb->query($wpdb->prepare('UPDATE '.sr_lms_table('payments').' SET signin_expires=%d WHERE id=%d AND signin_expires=0',time()+15*MINUTE_IN_SECONDS,$id));$fresh=$wpdb->get_row($wpdb->prepare('SELECT user_id,account_created,signin_expires FROM '.sr_lms_table('payments').' WHERE id=%d',$id),ARRAY_A);}
     $remaining=max(0,(int)($fresh['signin_expires']??0)-time());
     if($remaining>0){update_user_meta((int)$user->ID,'sr_lms_payment_access_until',(int)$fresh['signin_expires']);if(!is_user_logged_in()){$short_session=static fn($expiration,$uid,$remember)=>$uid===(int)$user->ID&&!$remember?$remaining:$expiration;add_filter('auth_cookie_expiration',$short_session,PHP_INT_MAX,3);wp_set_current_user((int)$user->ID);wp_set_auth_cookie((int)$user->ID,false,is_ssl());remove_filter('auth_cookie_expiration',$short_session,PHP_INT_MAX);do_action('wp_login',$user->user_login,$user);$result['temporary_signin']=true;}}

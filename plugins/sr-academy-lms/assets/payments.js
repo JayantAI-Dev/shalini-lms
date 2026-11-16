@@ -5,28 +5,28 @@ function showCourseConfirmation(box,verified,customer,order){
  const view=document.createElement('section');view.className='sr-lms-course-success';view.setAttribute('aria-labelledby','sr-lms-course-success-title');
  const mark=document.createElement('div');mark.className='sr-lms-course-success-mark';mark.setAttribute('aria-hidden','true');mark.textContent='✓';
  const kicker=document.createElement('p');kicker.className='sr-lms-course-success-kicker';kicker.textContent='PAYMENT CONFIRMED';
- const title=document.createElement('h2');title.id='sr-lms-course-success-title';title.textContent='Thank you for your purchase!';
+ const title=document.createElement('h2');title.id='sr-lms-course-success-title';title.textContent=verified.test&&!verified.test_access_granted?'Test payment verified':'Course enrollment complete';
  const course=document.createElement('p');course.className='sr-lms-course-success-course';course.textContent=verified.course_title||order.description||'Your course';
  const message=document.createElement('p');message.className='sr-lms-course-success-message';
  const email=verified.customer_email||customer.email;
  if(verified.test){
   message.textContent=verified.test_access_granted
-   ? 'Razorpay test payment verified. Login details for this approved test account were emailed to '+email+'. No live charge was made.'
-   : 'Razorpay test payment verified. No live charge was made, and this test purchase did not grant course access.';
+   ? 'Your test enrollment is complete. '+(verified.signed_in?'You’re signed in and can open your dashboard.':'You’re signed in for 15 minutes and can open your dashboard.')+' '+(verified.email_sent?'We sent the course enrollment email to '+email+'.':'Course email delivery could not be confirmed; contact the Academy if you need help.')+' No live charge was made.'
+   : 'Razorpay test payment verified, but this test account is not approved for course access. No live charge was made. Ask the Academy to add the student email to the approved test accounts.';
  }else if(verified.email_sent){
   if(verified.new_account){
-   message.textContent='Your new student account is signed in for 15 minutes. We emailed your sign-in email and a secure password setup link to '+email+'. Set your password from that email to keep access.';
+   message.textContent='Your course enrollment is complete. You’re signed in for 15 minutes, and we emailed your sign-in email plus a secure password setup link to '+email+'. Set your password from that email to keep access after the temporary session ends.';
   }else if(verified.signed_in){
-   message.textContent='You’re signed in and enrolled. We sent your course enrollment email to '+email+'.';
+   message.textContent='Your course enrollment is complete. You’re signed in and can open your dashboard now. We sent the course enrollment email to '+email+'.';
   }else{
-   message.textContent='Your course enrollment is confirmed. We sent the enrollment email to '+email+'. Sign in to the Student Portal to start learning.';
+   message.textContent='Your course enrollment is complete. We sent the enrollment email to '+email+'. Sign in to the Student Portal to open your dashboard.';
   }
  }else{
   message.textContent=verified.temporary_signin
-   ? 'Your payment is confirmed and your new student account is signed in for 15 minutes, but email delivery of the password setup link could not be confirmed. Please do not pay again; contact the Academy for access help.'
-   : 'Your payment is confirmed, but we could not verify delivery of the course email to '+email+'. Please do not pay again; contact the Academy for help accessing your course.';
+   ? 'Your course enrollment is complete and you’re signed in for 15 minutes, but delivery of the password setup email could not be confirmed. Please do not pay again; contact the Academy for access help.'
+   : 'Your course enrollment is complete, but delivery of the course email to '+email+' could not be confirmed. Please do not pay again; contact the Academy for access help.';
  }
- const link=document.createElement('a');link.href=box.dataset.dashboard;link.className='sr-lms-course-success-link';link.textContent='Go to student portal';
+ const link=document.createElement('a');link.href=box.dataset.dashboard;link.className='sr-lms-course-success-link';link.textContent=verified.test&&!verified.test_access_granted?'Go to Student Portal':'Open student dashboard';
  view.append(mark,kicker,title,course,message,link);
  dialog.replaceChildren(...(close?[close]:[]),view);
  view.querySelector('a').focus();
