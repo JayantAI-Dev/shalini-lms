@@ -130,7 +130,7 @@ function sr_lms_payment_reconcile(int $id,string $payment='') {
    $wpdb->query($wpdb->prepare("UPDATE $t SET email_sent=%d WHERE id=%d AND email_sent=%d",($sent&&!is_wp_error($sent))?1:0,$id,-$lease));}
  }
 
- return ['status'=>$status,'test'=>$row['mode']==='test','test_access_granted'=>$row['mode']==='test'&&!$full&&(bool)$test_access_user_id,'customer_email'=>sanitize_email((string)($notes['customer_email']??'')),'course_title'=>sr_lms_offers()[$row['offer']]['title']??$row['offer'],'account_setup_required'=>$row['mode']==='live'&&!empty($customer_account['needs_password_setup'])];
+ return ['status'=>$status,'test'=>$row['mode']==='test','test_access_granted'=>$row['mode']==='test'&&!$full&&(bool)$test_access_user_id,'customer_email'=>sanitize_email((string)($notes['customer_email']??'')),'course_title'=>sr_lms_offers()[$row['offer']]['title']??$row['offer'],'account_setup_required'=>$row['mode']==='live'&&!empty($customer_account['needs_password_setup']),'email_sent'=>(bool)$wpdb->get_var($wpdb->prepare("SELECT email_sent FROM $t WHERE id=%d",$id))];
 }
 function sr_lms_payment_verify($r) {
  global $wpdb;$id=absint($r['id']??0);$row=$wpdb->get_row($wpdb->prepare('SELECT * FROM '.sr_lms_table('payments').' WHERE id=%d',$id),ARRAY_A);
