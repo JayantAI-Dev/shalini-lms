@@ -153,7 +153,7 @@
     };
     document.querySelectorAll('#lms-enroll-cta,#lms-curriculum-enroll,#lms-certificate-cta').forEach(trigger => {
       trigger.setAttribute('aria-haspopup', 'dialog');
-      trigger.setAttribute('aria-controls', 'sr-course-checkout-title');
+      trigger.setAttribute('aria-controls', 'sr-course-checkout-modal');
       trigger.addEventListener('click', openCourseCheckout);
     });
     courseCheckoutModal?.querySelectorAll('[data-course-checkout-close]').forEach(button => button.addEventListener('click', closeCourseCheckout));
