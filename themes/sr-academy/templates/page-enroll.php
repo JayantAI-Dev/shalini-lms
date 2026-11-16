@@ -1,5 +1,5 @@
 <?php defined('ABSPATH') || exit;
-if (!sr_theme_is_coaching_offer()) { ?><main id="main-content"><?php if (function_exists('sr_lms_render_enrollment')) { sr_lms_render_enrollment(); } else { sr_theme_lms_notice(); } ?></main><?php } else { ?>
+if (!sr_theme_is_coaching_offer()) { ?><div class="lms-shell"><main id="main-content"><?php if (function_exists('sr_lms_render_enrollment')) { sr_lms_render_enrollment(); } else { sr_theme_lms_notice(); } ?></main></div><?php } else { ?>
 <main class="package-page-main" id="main-content">
     <section class="package-hero package-page-grid" aria-labelledby="package-hero-title">
       <div class="package-hero-copy">
