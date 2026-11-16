@@ -87,11 +87,18 @@ function sr_lms_payment_customer_account(array $notes,int $existing_id=0) {
  if(!is_email($email)||$name==='')return new WP_Error('customer','Verified order is missing valid customer details.');
  $user=$existing_id?get_userdata($existing_id):get_user_by('email',$email);
  if($user&&strtolower($user->user_email)!==strtolower($email))return new WP_Error('customer','Order email does not match the student account.');
- if(!$user){$base=sanitize_user(strstr($email,'@',true),true);if(!$base)$base='student';$login=$base;$suffix=1;while(username_exists($login))$login=$base.'-'.$suffix++;$id=wp_insert_user(['user_login'=>$login,'user_email'=>$email,'user_pass'=>wp_generate_password(48,true,true),'display_name'=>$name,'first_name'=>$name,'role'=>'subscriber']);if(is_wp_error($id)){$user=get_user_by('email',$email);if(!$user)return new WP_Error('account','Payment is verified, but the student account could not be created. Please contact the Academy before retrying.');}else{$user=get_userdata((int)$id);update_user_meta((int)$id,'sr_lms_email_verified','0');update_user_meta((int)$id,'sr_lms_course_password_setup_pending','1');}}
+ $initial_password='';
+ if(!$user){
+  $base=sanitize_user(strstr($email,'@',true),true);if(!$base)$base='student';$login=$base;$suffix=1;while(username_exists($login))$login=$base.'-'.$suffix++;
+  $initial_password=wp_generate_password(20,true,true);
+  $id=wp_insert_user(['user_login'=>$login,'user_email'=>$email,'user_pass'=>$initial_password,'display_name'=>$name,'first_name'=>$name,'role'=>'subscriber']);
+  if(is_wp_error($id)){$user=get_user_by('email',$email);if(!$user)return new WP_Error('account','Payment is verified, but the student account could not be created. Please contact the Academy before retrying.');$initial_password='';}
+  else{$user=get_userdata((int)$id);update_user_meta((int)$id,'sr_lms_email_verified','1');delete_user_meta((int)$id,'sr_lms_course_password_setup_pending');}
+ }
  if(!$user)return new WP_Error('account','Student account could not be found.');
  if($phone!=='')update_user_meta((int)$user->ID,'sr_lms_phone',$phone);
  if(!sr_lms_email_is_verified((int)$user->ID))update_user_meta((int)$user->ID,'sr_lms_course_password_setup_pending','1');
- return ['user_id'=>(int)$user->ID,'needs_password_setup'=>!sr_lms_email_is_verified((int)$user->ID)];
+ return ['user_id'=>(int)$user->ID,'needs_password_setup'=>!sr_lms_email_is_verified((int)$user->ID),'initial_password'=>$initial_password];
 }
 /** API verification precedes transactional fulfillment. Row locks serialize callback/webhook/admin retries. */
 function sr_lms_payment_reconcile(int $id,string $payment='') {
@@ -123,8 +130,9 @@ function sr_lms_payment_reconcile(int $id,string $payment='') {
  // Claim with a short database lease; failed delivery can be retried by reconciliation.
  if(!$full&&function_exists('sr_lms_send_email')){
   $lease=time();$claimed=$wpdb->query($wpdb->prepare("UPDATE $t SET email_sent=%d WHERE id=%d AND (email_sent=0 OR (email_sent<0 AND email_sent > %d))",-$lease,$id,-($lease-300)));
-  if($claimed===1){$offer_title=sr_lms_offers()[$row['offer']]['title']??$row['offer'];$email=sanitize_email((string)($notes['customer_email']??''));$name=sanitize_text_field((string)($notes['customer_name']??''));$context=['offer_title'=>$offer_title,'customer_email'=>$email,'customer_phone'=>(string)($notes['customer_phone']??''),'name'=>$name,'cta_url'=>sr_lms_page_url('dashboard'),'amount'=>'INR '.number_format($row['amount']/100,2),'currency'=>'INR','payment_id'=>$payment,'order_id'=>$row['gateway_order'],'mode'=>$row['mode'],'test_access_message'=>$test_access_user_id?'A limited course access grant was enabled for your approved test account.':'No course access was activated.'];
+  if($claimed===1){$offer_title=sr_lms_offers()[$row['offer']]['title']??$row['offer'];$email=sanitize_email((string)($notes['customer_email']??''));$name=sanitize_text_field((string)($notes['customer_name']??''));$context=['offer_title'=>$offer_title,'customer_email'=>$email,'customer_phone'=>(string)($notes['customer_phone']??''),'customer_password'=>(string)($customer_account['initial_password']??''),'name'=>$name,'cta_url'=>sr_lms_page_url('student-portal'),'amount'=>'INR '.number_format($row['amount']/100,2),'currency'=>'INR','payment_id'=>$payment,'order_id'=>$row['gateway_order'],'mode'=>$row['mode'],'test_access_message'=>$test_access_user_id?'A limited course access grant was enabled for your approved test account.':'No course access was activated.'];
    if($row['mode']==='test'){$sent=sr_lms_send_email_to('course_test_purchase',$email,$name,$context);}
+   elseif(!empty($customer_account['initial_password'])){$sent=sr_lms_send_email_to('course_access',$email,$name,$context);}
    elseif(!empty($customer_account['needs_password_setup'])){$user=get_userdata($customer_user_id);$key=$user?get_password_reset_key($user):new WP_Error('account','Student account not found.');if(!is_wp_error($key)){$context['reset_url']=network_site_url('wp-login.php?action=rp&key='.rawurlencode($key).'&login='.rawurlencode($user->user_login),'login');$sent=sr_lms_send_email('course_access',$customer_user_id,$context);}else{$sent=false;}}
    else{$sent=sr_lms_send_email('purchase',$customer_user_id,$context);}
    $wpdb->query($wpdb->prepare("UPDATE $t SET email_sent=%d WHERE id=%d AND email_sent=%d",($sent&&!is_wp_error($sent))?1:0,$id,-$lease));}
