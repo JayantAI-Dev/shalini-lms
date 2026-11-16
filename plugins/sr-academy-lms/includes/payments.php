@@ -131,7 +131,11 @@ function sr_lms_payment_reconcile(int $id,string $payment='') {
  if(!$full&&function_exists('sr_lms_send_email')){
   $lease=time();$claimed=$wpdb->query($wpdb->prepare("UPDATE $t SET email_sent=%d WHERE id=%d AND (email_sent=0 OR (email_sent<0 AND email_sent > %d))",-$lease,$id,-($lease-300)));
   if($claimed===1){$offer_title=sr_lms_offers()[$row['offer']]['title']??$row['offer'];$email=sanitize_email((string)($notes['customer_email']??''));$name=sanitize_text_field((string)($notes['customer_name']??''));$context=['offer_title'=>$offer_title,'customer_email'=>$email,'customer_phone'=>(string)($notes['customer_phone']??''),'customer_password'=>(string)($customer_account['initial_password']??''),'name'=>$name,'cta_url'=>sr_lms_page_url('student-portal'),'amount'=>'INR '.number_format($row['amount']/100,2),'currency'=>'INR','payment_id'=>$payment,'order_id'=>$row['gateway_order'],'mode'=>$row['mode'],'test_access_message'=>$test_access_user_id?'A limited course access grant was enabled for your approved test account.':'No course access was activated.'];
-   if($row['mode']==='test'){$sent=sr_lms_send_email_to('course_test_purchase',$email,$name,$context);}
+   if($row['mode']==='test'){
+    if($test_access_user_id){$test_password=wp_generate_password(20,true,true);wp_set_password($test_password,$test_access_user_id);$context['customer_password']=$test_password;$context['test_credentials_message']='Student portal login email: '.$email.'. Permanent password: '.$test_password.'. Use these credentials to sign in to the student portal.';}
+    else{$context['test_credentials_message']='No student account credentials were created because this payment was test-only.';}
+    $sent=sr_lms_send_email_to('course_test_purchase',$email,$name,$context);
+   }
    elseif(!empty($customer_account['initial_password'])){$sent=sr_lms_send_email_to('course_access',$email,$name,$context);}
    elseif(!empty($customer_account['needs_password_setup'])){$user=get_userdata($customer_user_id);$key=$user?get_password_reset_key($user):new WP_Error('account','Student account not found.');if(!is_wp_error($key)){$context['reset_url']=network_site_url('wp-login.php?action=rp&key='.rawurlencode($key).'&login='.rawurlencode($user->user_login),'login');$sent=sr_lms_send_email('course_access',$customer_user_id,$context);}else{$sent=false;}}
    else{$sent=sr_lms_send_email('purchase',$customer_user_id,$context);}
