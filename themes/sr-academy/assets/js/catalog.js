@@ -129,8 +129,44 @@
     const enrollmentUrl=window.SR_THEME.url('package-enroll.html?course='+encodeURIComponent(slug));
     $('#lms-enroll-cta').href=enrollmentUrl;
     $('#lms-enroll-cta').textContent='Enroll in course';
-    $('#lms-curriculum-enroll')?.addEventListener('click',()=>{window.location.href=enrollmentUrl;});
     $('#lms-certificate-cta')?.setAttribute('href',enrollmentUrl);
+
+    const courseCheckoutModal = $('[data-course-checkout-modal]');
+    const courseCheckoutDialog = courseCheckoutModal?.querySelector('.sr-course-checkout-dialog');
+    const courseCheckoutClose = courseCheckoutModal?.querySelector('.sr-course-checkout-close');
+    let courseCheckoutTrigger = null;
+    const openCourseCheckout = event => {
+      event.preventDefault();
+      if (!courseCheckoutModal || !courseCheckoutDialog) return;
+      courseCheckoutTrigger = event.currentTarget;
+      courseCheckoutModal.hidden = false;
+      courseCheckoutModal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('sr-course-checkout-open');
+      window.requestAnimationFrame(() => courseCheckoutClose?.focus());
+    };
+    const closeCourseCheckout = () => {
+      if (!courseCheckoutModal) return;
+      courseCheckoutModal.hidden = true;
+      courseCheckoutModal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('sr-course-checkout-open');
+      courseCheckoutTrigger?.focus();
+    };
+    document.querySelectorAll('#lms-enroll-cta,#lms-curriculum-enroll,#lms-certificate-cta').forEach(trigger => {
+      trigger.setAttribute('aria-haspopup', 'dialog');
+      trigger.setAttribute('aria-controls', 'sr-course-checkout-title');
+      trigger.addEventListener('click', openCourseCheckout);
+    });
+    courseCheckoutModal?.querySelectorAll('[data-course-checkout-close]').forEach(button => button.addEventListener('click', closeCourseCheckout));
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && courseCheckoutModal && !courseCheckoutModal.hidden) closeCourseCheckout();
+      if (event.key !== 'Tab' || !courseCheckoutModal || courseCheckoutModal.hidden) return;
+      const focusable = Array.from(courseCheckoutDialog.querySelectorAll('button:not([disabled]),input:not([disabled]),a[href]'));
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
     if (slug === 'dining-etiquette') {
       const previewSection=$('#lms-previews');
       const previewHeading=previewSection?.querySelector('.lms-section-heading h2');
