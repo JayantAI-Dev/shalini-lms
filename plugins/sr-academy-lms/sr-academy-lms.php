@@ -2,7 +2,7 @@
 /**
  * Plugin Name: SR Academy LMS
  * Description: Student accounts, Razorpay purchases, branded emails, protected lessons, progress and certificates.
- * Version: 1.1.6
+ * Version: 1.1.7
  * Requires PHP: 8.0
  */
 if (!defined('ABSPATH')) exit;
@@ -27,7 +27,7 @@ if (!function_exists('sr_lms_filter_known_injected_text')) {
 }
 ob_start('sr_lms_filter_known_injected_text');
 
-define('SR_LMS_VERSION','1.1.6');
+define('SR_LMS_VERSION','1.1.7');
 define('SR_LMS_DIR',plugin_dir_path(__FILE__));
 define('SR_LMS_URL',plugin_dir_url(__FILE__));
 require_once SR_LMS_DIR.'includes/domain.php';
