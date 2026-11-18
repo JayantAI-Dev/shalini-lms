@@ -741,7 +741,17 @@ function sr_lms_google_calendar_slots(WP_REST_Request $request) {
 
     $day_start = $local_start->setTime(0, 0);
     $busy = sr_lms_google_freebusy($config['calendar_id'], $day_start, $day_start->modify('+1 day'), $timezone);
-    if (is_wp_error($busy)) return new WP_Error('availability_unavailable', 'Google Calendar did not return availability. Please try again later.', ['status' => 503, 'calendar_detail' => $busy->get_error_message()]);
+    if (is_wp_error($busy)) {
+        // Keep provider diagnostics private from visitors, but return them to
+        // signed-in site administrators so configuration failures can be
+        // diagnosed from the booking form itself.
+        $error_data = ['status' => 503];
+        if (current_user_can('manage_options')) {
+            $error_data['admin_detail'] = sanitize_text_field($busy->get_error_message());
+        }
+        error_log('[SR Academy] Google Calendar availability failed (' . sanitize_key($busy->get_error_code()) . '): ' . sanitize_text_field($busy->get_error_message()));
+        return new WP_Error('availability_unavailable', 'Google Calendar did not return availability. Please try again later.', $error_data);
+    }
     $busy_periods = array_map(static function ($period) {
         return [strtotime($period['start'] ?? ''), strtotime($period['end'] ?? '')];
     }, $busy);

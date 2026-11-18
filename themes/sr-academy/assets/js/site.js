@@ -704,7 +704,11 @@ if (bookingModal) {
       const jsonStart = responseText.indexOf('{');
       if (jsonStart === -1) throw new Error('Calendar availability returned an invalid response. Please try again.');
       const payload = JSON.parse(responseText.slice(jsonStart));
-      if (!response.ok || !Array.isArray(payload.slots)) throw new Error(payload.message || 'Could not check calendar availability. Please try again.');
+      if (!response.ok || !Array.isArray(payload.slots)) {
+        const adminDetail = payload?.data?.admin_detail;
+        const message = payload.message || 'Could not check calendar availability. Please try again.';
+        throw new Error(adminDetail ? `${message} (${adminDetail})` : message);
+      }
       if (requestId !== availabilityRequest) return;
       if (!payload.slots.length && bookingDate.value === todayInIndia()) {
         const tomorrow = new Date(bookingDate.value + 'T12:00:00Z');
