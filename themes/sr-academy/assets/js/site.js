@@ -736,9 +736,36 @@ if (bookingModal) {
         : 'No available times for this date. Choose another date.';
     } catch (error) {
       if (requestId !== availabilityRequest) return;
-      availabilityState = 'error';
-      if (note) note.textContent = error.message || 'Live availability could not be checked. Please try again.';
-      Array.from(bookingTime.options).forEach((option) => { option.disabled = true; });
+
+      // If today's remaining slots are all inside the two-hour notice window,
+      // move to tomorrow even when Google Calendar is temporarily unavailable.
+      const today = todayInIndia();
+      const nowParts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+      }).formatToParts(new Date()).map((part) => [part.type, part.value]));
+      const nowMinutes = Number(nowParts.hour) * 60 + Number(nowParts.minute);
+      const hasBookableTodaySlot = Array.from(bookingTime.options).some((option) => {
+        const start = toMinutes(option.value.split(' - ')[0]);
+        return start !== null && start >= nowMinutes + 120;
+      });
+      if (bookingDate.value === today && !hasBookableTodaySlot) {
+        const tomorrow = new Date(today + 'T12:00:00Z');
+        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+        bookingDate.value = tomorrow.toISOString().slice(0, 10);
+        updateTimeSlots();
+        return refreshAvailability();
+      }
+
+      // Keep time selection usable during a calendar outage. The order endpoint
+      // independently checks Google Calendar again before it can open checkout.
+      availabilityState = 'unverified';
+      Array.from(bookingTime.options).forEach((option) => {
+        const start = toMinutes(option.value.split(' - ')[0]);
+        const tooSoon = bookingDate.value === today && start !== null && start < nowMinutes + 120;
+        option.disabled = tooSoon;
+        option.textContent = tooSoon ? `${option.value} · Too soon to book` : option.value;
+      });
+      if (note) note.textContent = 'Google Calendar is temporarily unavailable. Choose a time to continue; availability will be checked again before payment.';
     } finally {
       if (requestId === availabilityRequest) bookingContinue?.removeAttribute('aria-busy');
     }
@@ -897,7 +924,7 @@ if (bookingModal) {
       bookingDate.showPicker?.();
       return;
     }
-    if (offering.needsSchedule && availabilityState !== 'ready') {
+    if (offering.needsSchedule && availabilityState !== 'ready' && availabilityState !== 'unverified') {
       if (availabilityState === 'unchecked' || availabilityState === 'error') refreshAvailability();
       bookingModal.querySelector('#booking-schedule-note')?.scrollIntoView({block: 'nearest'});
       return;
