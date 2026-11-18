@@ -37,6 +37,7 @@ require_once SR_LMS_DIR.'includes/media.php';
 require_once SR_LMS_DIR.'includes/frontend.php';
 require_once SR_LMS_DIR.'includes/admin.php';
 require_once SR_LMS_DIR.'includes/emails.php';
+require_once SR_LMS_DIR.'includes/whatsapp.php';
 require_once SR_LMS_DIR.'includes/payments.php';
 require_once SR_LMS_DIR.'includes/payment-admin.php';
 require_once SR_LMS_DIR.'includes/course-admin.php';

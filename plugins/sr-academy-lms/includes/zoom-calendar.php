@@ -7,7 +7,7 @@ const SR_LMS_GOOGLE_CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.f
 const SR_LMS_ZOOM_OPTION = 'sr_lms_zoom_meetings';
 
 function sr_lms_consultation_install(): void {
-    if (version_compare((string) get_option('sr_lms_consultation_schema', '0'), '2', '>=')) return;
+    if (version_compare((string) get_option('sr_lms_consultation_schema', '0'), '3', '>=')) return;
     global $wpdb;
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
     $charset = $wpdb->get_charset_collate();
@@ -27,6 +27,7 @@ function sr_lms_consultation_install(): void {
         customer_email varchar(190) NOT NULL,
         customer_phone varchar(40) NOT NULL,
         challenge text NOT NULL,
+        whatsapp_opt_in tinyint unsigned NOT NULL DEFAULT 0,
         zoom_meeting varchar(80) DEFAULT NULL,
         google_event varchar(190) DEFAULT NULL,
         created_at datetime NOT NULL,
@@ -37,7 +38,7 @@ function sr_lms_consultation_install(): void {
         KEY customer_email (customer_email),
         KEY status (status)
     ) ENGINE=InnoDB $charset;");
-    update_option('sr_lms_consultation_schema', '2', false);
+    update_option('sr_lms_consultation_schema', '3', false);
 }
 add_action('init', 'sr_lms_consultation_install', 12);
 
@@ -430,6 +431,12 @@ function sr_lms_consultation_discovery(WP_REST_Request $request) {
     ];
     $result = sr_lms_create_consultation_meeting($booking);
     if (is_wp_error($result)) return new WP_Error($result->get_error_code(), $result->get_error_message(), ['status'=>409]);
+    if ($request->get_param('whatsapp_opt_in') === '1') {
+        sr_lms_queue_whatsapp('discovery:' . $result['event_id'], 'live', $phone, 'sr_call_confirmation', [
+            'customer_name'=>$name, 'service_name'=>$booking['service'],
+            'appointment'=>$result['date_label'], 'join_url'=>$result['join_url'],
+        ]);
+    }
     return rest_ensure_response([
         'confirmed'=>true,
         'service'=>$booking['service'],
@@ -494,6 +501,7 @@ function sr_lms_consultation_order(WP_REST_Request $request) {
         'order_id'=>$gateway['id'], 'mode'=>$mode, 'amount'=>$amount, 'offer'=>$offer, 'duration'=>$is_package ? 0 : $duration,
         'name'=>$name, 'email'=>$email, 'phone'=>$phone, 'challenge'=>$challenge, 'date'=>$date, 'time'=>$time,
         'service'=>$service_names[$offer], 'package'=>$is_package, 'created'=>time(), 'status'=>'pending',
+        'whatsapp_opt_in'=>$request->get_param('whatsapp_opt_in') === '1',
     ];
     global $wpdb;
     $now = current_time('mysql', true);
@@ -501,6 +509,7 @@ function sr_lms_consultation_order(WP_REST_Request $request) {
         'gateway_order'=>$gateway['id'], 'mode'=>$mode, 'amount'=>$amount, 'status'=>'created', 'offer'=>$offer,
         'duration'=>$is_package ? 0 : $duration, 'booking_date'=>$is_package ? '2099-01-01' : $date, 'booking_time'=>$is_package ? 'PACKAGE' : $time,
         'customer_name'=>$name, 'customer_email'=>$email, 'customer_phone'=>$phone, 'challenge'=>$challenge,
+        'whatsapp_opt_in'=>(int) $payload['whatsapp_opt_in'],
         'created_at'=>$now, 'updated_at'=>$now,
     ]);
     if (!$saved) { error_log('[SR Academy] Purchase request storage failed: ' . sanitize_text_field((string)$wpdb->last_error)); return new WP_Error('booking_storage', 'Could not save the purchase request. Please retry before paying.', ['status'=>500]); }
@@ -642,7 +651,7 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
         $service_names = ['comm-call'=>'1:1 Communication & Confidence','comm-core'=>'Core Communication Package','comm-presence'=>'Powerful Presence Package','comm-commanding'=>'Commanding Presence Package','style-signature'=>'Signature Experience Package','style-exclusive'=>'Exclusive Transformation Package','style-vip'=>'VIP Makeover Experience Package','style-call'=>'1:1 Image Styling & Confidence','color-call'=>'Personalised Colour Analysis Consultation','occasion-call'=>'Personalised Occasion Styling'];
         if ($stored && isset($service_names[$stored['offer']])) {
             $is_package = in_array($stored['offer'], ['comm-core','comm-presence','comm-commanding','style-signature','style-exclusive','style-vip'], true);
-            $booking = ['order_id'=>$order_id,'mode'=>$stored['mode'],'amount'=>(int)$stored['amount'],'offer'=>$stored['offer'],'duration'=>(int)$stored['duration'],'name'=>$stored['customer_name'],'email'=>$stored['customer_email'],'phone'=>$stored['customer_phone'],'challenge'=>$stored['challenge'],'date'=>$stored['booking_date'],'time'=>$stored['booking_time'],'service'=>$service_names[$stored['offer']],'package'=>$is_package,'status'=>$stored['status']==='confirmed'?'complete':'pending'];
+            $booking = ['order_id'=>$order_id,'mode'=>$stored['mode'],'amount'=>(int)$stored['amount'],'offer'=>$stored['offer'],'duration'=>(int)$stored['duration'],'name'=>$stored['customer_name'],'email'=>$stored['customer_email'],'phone'=>$stored['customer_phone'],'challenge'=>$stored['challenge'],'whatsapp_opt_in'=>!empty($stored['whatsapp_opt_in']),'date'=>$stored['booking_date'],'time'=>$stored['booking_time'],'service'=>$service_names[$stored['offer']],'package'=>$is_package,'status'=>$stored['status']==='confirmed'?'complete':'pending'];
             if ($booking['status']==='complete' && !$is_package) {
                 $slot = sr_lms_booking_slot_from_request(['booking_date'=>$booking['date'],'booking_time'=>$booking['time'],'booking_duration'=>$booking['duration']], false);
                 if (!is_wp_error($slot)) $booking['date_label'] = wp_date('j F Y', $slot['start']->getTimestamp(), $slot['start']->getTimezone()) . ' · ' . $slot['start']->format('g:i A') . ' – ' . $slot['end']->format('g:i A') . ' ' . $slot['timezone'];
@@ -704,7 +713,15 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
     if ($is_package) { $booking['email_sent'] = !empty($result['email_sent']); $booking['team_notified'] = !empty($result['team_notified']); }
     else { $booking['date_label'] = $result['date_label']; $booking['calendar_invite_sent'] = !empty($result['calendar_invite_sent']); $booking['email_sent'] = !empty($result['email_sent']); $booking['team_notified'] = !empty($result['team_notified']); }
     set_transient($key, $booking, DAY_IN_SECONDS);
-    $wpdb->update($table, ['status'=>'confirmed','zoom_meeting'=>$result['meeting_id'] ?? null,'google_event'=>$result['event_id'] ?? null,'updated_at'=>current_time('mysql',true)], ['gateway_order'=>$order_id]);
+    $confirmed_saved = $wpdb->update($table, ['status'=>'confirmed','zoom_meeting'=>$result['meeting_id'] ?? null,'google_event'=>$result['event_id'] ?? null,'updated_at'=>current_time('mysql',true)], ['gateway_order'=>$order_id]);
+    if ($confirmed_saved !== false && !empty($booking['whatsapp_opt_in'])) {
+        $fields = ['customer_name'=>$booking['name'], 'service_name'=>$booking['service']];
+        if (!$is_package) {
+            $fields['appointment'] = $result['date_label'];
+            $fields['join_url'] = $result['join_url'];
+        }
+        sr_lms_queue_whatsapp($order_id, $booking['mode'], $booking['phone'], $is_package ? 'sr_package_confirmation' : 'sr_call_confirmation', $fields);
+    }
     $response = ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service']];
     if ($is_package) { $response['follow_up'] = 'Our team will contact you within 48 hours.'; $response['email_sent'] = !empty($booking['email_sent']); $response['team_notified'] = !empty($booking['team_notified']); }
     else { $response['date_label'] = $result['date_label']; $response['calendar_invite_sent'] = !empty($booking['calendar_invite_sent']); $response['email_sent'] = !empty($booking['email_sent']); $response['team_notified'] = !empty($booking['team_notified']); }

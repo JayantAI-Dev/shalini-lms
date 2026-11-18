@@ -983,6 +983,7 @@ if (bookingModal) {
         name: bookingName?.value.trim() || '',
         email: bookingEmail?.value.trim() || '',
         phone: bookingPhone?.value.trim() || '',
+        whatsapp_opt_in: bookingModal.querySelector('[name=whatsapp_opt_in]')?.checked ? '1' : '0',
         challenge: bookingChallenge?.value.trim() || ''
       };
       const post = async (route, data) => {
