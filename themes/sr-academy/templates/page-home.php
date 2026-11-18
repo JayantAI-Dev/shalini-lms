@@ -480,7 +480,7 @@
         </div>
       </div>
 
-      <div class="booking-step booking-step-two" data-booking-step="2" hidden><?php echo sr_theme_cf7_form('Consultation and service request', 'booking-cf7-form'); ?></div>
+      <div class="booking-step booking-step-two" data-booking-step="2" hidden><?php echo sr_theme_cf7_form('Consultation and service request', 'booking-cf7-form'); if (function_exists('sr_lms_whatsapp_opt_in')) echo sr_lms_whatsapp_opt_in(); ?></div>
 
       <div class="booking-step booking-step-three" data-booking-step="3" hidden>
         <div class="booking-confirmation-icon">

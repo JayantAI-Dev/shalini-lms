@@ -48,7 +48,7 @@ function showCourseConfirmation(box,verified,customer,order){
    if(customer.name.length>100||customer.email.length>100||phoneDigits.length<7||phoneDigits.length>15){status.textContent='Check your name, email address, and phone number.';return;}
    button.disabled=true;let paymentReceived=false;status.textContent='Creating secure checkout…';
    try{
-    const order=await request('order',{offer:box.dataset.offer,...customer});
+    const order=await request('order',{offer:box.dataset.offer,...customer,whatsapp_opt_in:box.elements.whatsapp_opt_in?.checked?'1':'0'});
     if(!window.Razorpay)throw new Error('Checkout could not load. Please reload and try again.');
     const checkout=new window.Razorpay({...order,prefill:order.prefill,theme:{color:'#194c3b'},handler:async payment=>{
      paymentReceived=true;status.textContent='Verifying payment…';

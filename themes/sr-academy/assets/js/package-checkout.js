@@ -171,6 +171,7 @@
           name: details.name,
           email: details.email,
           phone: details.phone,
+          whatsapp_opt_in: details.whatsapp_opt_in || '0',
           date: details.date,
           time: selectedTime
         });
@@ -197,7 +198,7 @@
     const submit = submitButton; submit.disabled = true; say('Preparing secure test checkout…');
     try {
       const details = Object.fromEntries(new FormData(form));
-      const order = await api('order', {offer:selectedPlan, duration:0, name:details.name, email:details.email, phone:details.phone});
+      const order = await api('order', {offer:selectedPlan, duration:0, name:details.name, email:details.email, phone:details.phone, whatsapp_opt_in:details.whatsapp_opt_in || '0'});
       if (!order.test || !window.Razorpay) throw new Error('Razorpay test checkout did not initialize. No payment was made.');
       const checkout = new Razorpay({key:order.key, order_id:order.order_id, amount:order.amount, currency:order.currency, name:order.name, description:order.description, prefill:{name:details.name,email:details.email,contact:details.phone}, theme:{color:'#194c3b'}, handler:async (payment) => {
         try {

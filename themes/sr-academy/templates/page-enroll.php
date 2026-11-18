@@ -343,6 +343,7 @@ if (!sr_theme_is_coaching_offer()) { ?><div class="lms-shell"><main id="main-con
         </div></fieldset>
         <fieldset class="package-booking-choice-group" data-booking-schedule hidden><legend>Select Preferred Date:</legend><div class="package-booking-options package-booking-dates" data-date-options></div><input class="package-booking-date-input" id="package-booking-date" name="date" type="date" required tabindex="-1" aria-hidden="true"></fieldset>
         <fieldset class="package-booking-choice-group" data-booking-schedule hidden><legend>Available Time Slot:</legend><div class="package-booking-options" data-slot-options><p>Select a date to load live availability.</p></div></fieldset>
+        <?php if (function_exists('sr_lms_whatsapp_opt_in')) echo sr_lms_whatsapp_opt_in(); ?>
         <div class="package-booking-submit-row"><p data-booking-note>Razorpay test mode · no live charge</p><button class="package-booking-submit" type="submit">Continue to test payment</button></div>
         <p class="package-booking-status" data-booking-status role="status" aria-live="polite"></p>
       </form>
