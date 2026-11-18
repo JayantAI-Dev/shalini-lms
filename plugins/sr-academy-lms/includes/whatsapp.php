@@ -1,10 +1,25 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+function sr_lms_whatsapp_settings(): array {
+    return (array) get_option('sr_lms_whatsapp_settings', []);
+}
+
+function sr_lms_whatsapp_credentials(): array {
+    $settings = sr_lms_whatsapp_settings();
+    return [
+        'host'=>defined('SR_LMS_WATI_HOST') ? SR_LMS_WATI_HOST : ($settings['host'] ?? ''),
+        'token'=>defined('SR_LMS_WATI_TOKEN') ? SR_LMS_WATI_TOKEN : sr_lms_payment_decrypt($settings['token'] ?? ''),
+    ];
+}
+
+function sr_lms_whatsapp_valid_host(string $host): bool {
+    return (bool) preg_match('~^https://[a-z0-9-]+\.wati\.io/?$~iD', $host);
+}
+
 function sr_lms_whatsapp_ready(): bool {
-    return defined('SR_LMS_WATI_HOST') && defined('SR_LMS_WATI_TOKEN')
-        && SR_LMS_WATI_TOKEN !== ''
-        && (bool) preg_match('~^https://[a-z0-9-]+\.wati\.io/?$~iD', SR_LMS_WATI_HOST);
+    $credentials = sr_lms_whatsapp_credentials();
+    return sr_lms_whatsapp_valid_host($credentials['host']) && $credentials['token'] !== '';
 }
 
 function sr_lms_whatsapp_opt_in(): string {
@@ -18,9 +33,10 @@ function sr_lms_queue_whatsapp(string $reference, string $mode, string $phone, s
     if (!str_starts_with(trim($phone), '+') && strlen($digits) === 10) $digits = '91' . $digits;
     if (!preg_match('/^[1-9][0-9]{7,14}$/D', $digits)) return;
     // Restrict all traffic to one recipient unless production sending is explicitly enabled.
-    $live_enabled = defined('SR_LMS_WATI_LIVE') && SR_LMS_WATI_LIVE === true;
-    if (($mode === 'test' || !$live_enabled)
-        && (!defined('SR_LMS_WATI_TEST_NUMBER') || $digits !== SR_LMS_WATI_TEST_NUMBER)) return;
+    $settings = sr_lms_whatsapp_settings();
+    $live_enabled = defined('SR_LMS_WATI_LIVE') ? SR_LMS_WATI_LIVE === true : !empty($settings['live']);
+    $test_number = defined('SR_LMS_WATI_TEST_NUMBER') ? SR_LMS_WATI_TEST_NUMBER : ($settings['test_number'] ?? '');
+    if (($mode === 'test' || !$live_enabled) && $digits !== $test_number) return;
 
     global $wpdb;
     $key = 'sr_lms_wa_' . hash('sha256', $reference);
@@ -58,10 +74,11 @@ function sr_lms_send_whatsapp(string $key): void {
     foreach ($notice['fields'] as $name => $value) {
         $params[] = ['name'=>$name, 'value'=>trim(preg_replace('/\s+/', ' ', (string) $value))];
     }
-    $response = wp_safe_remote_post(rtrim(SR_LMS_WATI_HOST, '/') . '/api/ext/v3/messageTemplates/send', [
+    $credentials = sr_lms_whatsapp_credentials();
+    $response = wp_safe_remote_post(rtrim($credentials['host'], '/') . '/api/ext/v3/messageTemplates/send', [
         'timeout'=>15,
         'redirection'=>0,
-        'headers'=>['Authorization'=>'Bearer ' . SR_LMS_WATI_TOKEN, 'Content-Type'=>'application/json'],
+        'headers'=>['Authorization'=>'Bearer ' . $credentials['token'], 'Content-Type'=>'application/json'],
         'body'=>wp_json_encode([
             'template_name'=>$notice['template'],
             'broadcast_name'=>$notice['template'],
@@ -72,3 +89,61 @@ function sr_lms_send_whatsapp(string $key): void {
     error_log('[SR Academy] WATI submission ' . $key . ' HTTP ' . (int) $status);
 }
 add_action('sr_lms_send_whatsapp', 'sr_lms_send_whatsapp');
+
+add_action('admin_menu', static function (): void {
+    add_submenu_page('sr-academy-lms', 'WhatsApp confirmations', 'WhatsApp', 'manage_options', 'sr-lms-whatsapp', 'sr_lms_whatsapp_admin');
+});
+
+function sr_lms_whatsapp_admin(): void {
+    if (!current_user_can('manage_options')) return;
+    $settings = sr_lms_whatsapp_settings();
+    ?>
+    <div class="wrap">
+        <h1>WhatsApp confirmations</h1>
+        <?php if (isset($_GET['updated'])): ?>
+            <div class="notice notice-success"><p>WhatsApp settings saved.</p></div>
+        <?php endif; ?>
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="sr_lms_save_whatsapp">
+            <?php wp_nonce_field('sr_lms_save_whatsapp'); ?>
+            <p><label>WATI API host
+                <input class="regular-text" type="url" name="host" required value="<?php echo esc_attr($settings['host'] ?? ''); ?>">
+            </label></p>
+            <p><label>WATI API key
+                <input class="regular-text" type="password" name="token" autocomplete="new-password">
+            </label> <?php echo empty($settings['token']) ? 'Enter the template-write key.' : 'A key is stored. Leave blank to keep it.'; ?></p>
+            <p><label>Test WhatsApp number
+                <input type="tel" name="test_number" autocomplete="off" value="<?php echo esc_attr($settings['test_number'] ?? ''); ?>">
+            </label> Include the country code.</p>
+            <p><label>
+                <input type="checkbox" name="live" value="1" <?php checked(!empty($settings['live'])); ?>>
+                Send live confirmations to customers who opt in
+            </label></p>
+            <?php submit_button(); ?>
+        </form>
+    </div>
+    <?php
+}
+
+add_action('admin_post_sr_lms_save_whatsapp', static function (): void {
+    if (!current_user_can('manage_options')) wp_die('Access denied.', '', ['response'=>403]);
+    check_admin_referer('sr_lms_save_whatsapp');
+    $host = trim((string) wp_unslash($_POST['host'] ?? ''));
+    $number = preg_replace('/\D/', '', (string) wp_unslash($_POST['test_number'] ?? ''));
+    if (!sr_lms_whatsapp_valid_host($host) || ($number !== '' && !preg_match('/^[1-9][0-9]{7,14}$/D', $number))) {
+        wp_die('Enter an HTTPS WATI API host and a valid international test number.', '', ['response'=>400]);
+    }
+    $token = trim((string) wp_unslash($_POST['token'] ?? ''));
+    $settings = sr_lms_whatsapp_settings();
+    if ($token !== '') {
+        $encrypted = sr_lms_payment_encrypt($token);
+        if (is_wp_error($encrypted)) wp_die('WordPress could not encrypt the WATI API key.');
+        $settings['token'] = $encrypted;
+    }
+    $settings['host'] = rtrim($host, '/');
+    $settings['test_number'] = $number;
+    $settings['live'] = ($_POST['live'] ?? null) === '1';
+    update_option('sr_lms_whatsapp_settings', $settings, false);
+    wp_safe_redirect(add_query_arg(['page'=>'sr-lms-whatsapp', 'updated'=>'1'], admin_url('admin.php')));
+    exit;
+});
