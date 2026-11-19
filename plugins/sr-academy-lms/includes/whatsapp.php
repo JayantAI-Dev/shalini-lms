@@ -32,11 +32,15 @@ function sr_lms_queue_whatsapp(string $reference, string $mode, string $phone, s
     $digits = preg_replace('/\D/', '', $phone);
     if (!str_starts_with(trim($phone), '+') && strlen($digits) === 10) $digits = '91' . $digits;
     if (!preg_match('/^[1-9][0-9]{7,14}$/D', $digits)) return;
-    // Restrict all traffic to one recipient unless production sending is explicitly enabled.
+    // Restrict test traffic by default, including when production sending is enabled.
     $settings = sr_lms_whatsapp_settings();
     $live_enabled = defined('SR_LMS_WATI_LIVE') ? SR_LMS_WATI_LIVE === true : !empty($settings['live']);
     $test_number = defined('SR_LMS_WATI_TEST_NUMBER') ? SR_LMS_WATI_TEST_NUMBER : ($settings['test_number'] ?? '');
-    if (($mode === 'test' || !$live_enabled) && $digits !== $test_number) return;
+    // The staging booking checkout can send a sandbox confirmation to the opted-in form number.
+    $public_staging_booking = $mode === 'test'
+        && $template === 'sr_call_confirmation'
+        && wp_parse_url(home_url(), PHP_URL_HOST) === 'darkorange-pheasant-779963.hostingersite.com';
+    if (!$public_staging_booking && ($mode === 'test' || !$live_enabled) && $digits !== $test_number) return;
 
     global $wpdb;
     $key = 'sr_lms_wa_' . hash('sha256', $reference);
