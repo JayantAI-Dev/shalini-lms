@@ -432,7 +432,7 @@ function sr_lms_consultation_discovery(WP_REST_Request $request) {
     $result = sr_lms_create_consultation_meeting($booking);
     if (is_wp_error($result)) return new WP_Error($result->get_error_code(), $result->get_error_message(), ['status'=>409]);
     if ($request->get_param('whatsapp_opt_in') === '1') {
-        sr_lms_queue_whatsapp('discovery:' . $result['event_id'], 'live', $phone, 'sr_call_confirmation', [
+        sr_lms_queue_whatsapp('discovery:' . $result['event_id'], 'live', $phone, SR_LMS_WATI_CALL_TEMPLATE, [
             'customer_name'=>$name, 'service_name'=>$booking['service'],
             'appointment'=>$result['date_label'], 'join_url'=>$result['join_url'],
         ]);
@@ -720,7 +720,7 @@ function sr_lms_consultation_verify(WP_REST_Request $request) {
             $fields['appointment'] = $result['date_label'];
             $fields['join_url'] = $result['join_url'];
         }
-        sr_lms_queue_whatsapp($order_id, $booking['mode'], $booking['phone'], $is_package ? 'sr_package_confirmation' : 'sr_call_confirmation', $fields);
+        sr_lms_queue_whatsapp($order_id, $booking['mode'], $booking['phone'], $is_package ? 'sr_package_confirmation' : SR_LMS_WATI_CALL_TEMPLATE, $fields);
     }
     $response = ['confirmed'=>true,'name'=>$booking['name'],'service'=>$booking['service']];
     if ($is_package) { $response['follow_up'] = 'Our team will contact you within 48 hours.'; $response['email_sent'] = !empty($booking['email_sent']); $response['team_notified'] = !empty($booking['team_notified']); }
