@@ -82,6 +82,7 @@
 </div>
 <h2 id="appearances-title">2x TEDx Speaker, Top Podcasts &amp; <em>Celebrity Interviews</em></h2>
 <p>From two TEDx keynote stages to leading business podcasts, celebrity styling<br class="appearances-desktop-break"/> dialogues, and leadership panel interviews.</p>
+<a class="btn btn-primary" style="margin-top: 14px; white-space: normal;" href="mailto:shalinirathodofficial@gmail.com?subject=TEDx%20Coaching%20Enquiry&amp;body=Hi%20Shalini%2C%0D%0A%0D%0AI%E2%80%99m%20interested%20in%20TEDx%20preparation%20and%20coaching.%0D%0A%0D%0AName%3A%20%0D%0APreferred%20contact%20details%3A%20%0D%0A%0D%0AThank%20you%21">Enquire About TEDx Coaching</a>
 </div>
 <div aria-label="Appearance carousel controls" class="carousel-controls">
 <button aria-label="Previous appearances" class="carousel-arrow carousel-prev" type="button"><svg aria-hidden="true" class="icon icon-chevron" viewbox="0 0 20 20"><path d="M11.75 5.5 7.25 10l4.5 4.5"></path></svg></button>
