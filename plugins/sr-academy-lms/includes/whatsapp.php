@@ -38,11 +38,11 @@ function sr_lms_queue_whatsapp(string $reference, string $mode, string $phone, s
     $settings = sr_lms_whatsapp_settings();
     $live_enabled = defined('SR_LMS_WATI_LIVE') ? SR_LMS_WATI_LIVE === true : !empty($settings['live']);
     $test_number = defined('SR_LMS_WATI_TEST_NUMBER') ? SR_LMS_WATI_TEST_NUMBER : ($settings['test_number'] ?? '');
-    // The staging booking checkout can send a sandbox confirmation to the opted-in form number.
-    $public_staging_booking = $mode === 'test'
-        && $template === SR_LMS_WATI_CALL_TEMPLATE
+    // Staging course and consultation checkouts send sandbox confirmations to opted-in form numbers.
+    $public_staging_checkout = $mode === 'test'
+        && in_array($template, [SR_LMS_WATI_CALL_TEMPLATE, 'sr_course_confirmation'], true)
         && wp_parse_url(home_url(), PHP_URL_HOST) === 'darkorange-pheasant-779963.hostingersite.com';
-    if (!$public_staging_booking && ($mode === 'test' || !$live_enabled) && $digits !== $test_number) return;
+    if (!$public_staging_checkout && ($mode === 'test' || !$live_enabled) && $digits !== $test_number) return;
 
     global $wpdb;
     $key = 'sr_lms_wa_' . hash('sha256', $reference);
