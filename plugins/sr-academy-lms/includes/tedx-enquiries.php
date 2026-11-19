@@ -92,22 +92,35 @@ function sr_lms_tedx_email_html(string $heading, string $intro, array $details =
     return '<!doctype html><html><body style="margin:0;background:#f2f6f3;font-family:Arial,sans-serif;color:#20372d"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:28px 12px"><table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#fff;border-radius:16px"><tr><td style="padding:36px"><p style="margin:0 0 18px;color:' . esc_attr($color) . ';font-size:15px;line-height:1.5">' . esc_html($brand) . '</p><h1 style="margin:0 0 20px;color:#20372d;font-size:28px;line-height:1.25">' . esc_html($heading) . '</h1><p style="margin:0;color:#52645a;font-size:16px;line-height:1.75">' . nl2br(esc_html($intro)) . '</p>' . $detail_table . '<p style="margin:28px 0 0;color:#66766e;font-size:13px;line-height:1.7">Warmly,<br>' . esc_html($brand) . '</p></td></tr></table></td></tr></table></body></html>';
 }
 
-add_action('wp_ajax_sr_lms_tedx_enquiry', 'sr_lms_tedx_enquiry_submit');
-add_action('wp_ajax_nopriv_sr_lms_tedx_enquiry', 'sr_lms_tedx_enquiry_submit');
-function sr_lms_tedx_enquiry_submit(): void {
-    check_ajax_referer('sr_lms_tedx_enquiry', 'nonce');
-    if (!empty($_POST['website'])) wp_send_json_error(['message' => 'We could not submit this request. Please try again.'], 400);
+add_action('rest_api_init', static function (): void {
+    register_rest_route('sr-lms/v1', '/tedx-enquiry', [
+        'methods' => WP_REST_Server::CREATABLE,
+        'permission_callback' => '__return_true',
+        'callback' => 'sr_lms_tedx_enquiry_rest_submit',
+    ]);
+});
+
+function sr_lms_tedx_enquiry_rest_submit(WP_REST_Request $request) {
+    $result = sr_lms_tedx_process_enquiry((array) $request->get_json_params());
+    if (is_wp_error($result)) return $result;
+    $response = new WP_REST_Response(['success' => true, 'data' => $result]);
+    $response->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    return $response;
+}
+
+function sr_lms_tedx_process_enquiry(array $input) {
+    if (!empty($input['website'])) return new WP_Error('invalid_submission', 'We could not submit this request. Please try again.', ['status' => 400]);
 
     $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
     $rate_key = 'sr_tedx_rate_' . hash('sha256', $ip);
-    if ($ip && get_transient($rate_key)) wp_send_json_error(['message' => 'Please wait a moment before sending another enquiry.'], 429);
+    if ($ip && get_transient($rate_key)) return new WP_Error('rate_limited', 'Please wait a moment before sending another enquiry.', ['status' => 429]);
 
-    $name = sanitize_text_field(wp_unslash((string) ($_POST['name'] ?? '')));
-    $email = sanitize_email(wp_unslash((string) ($_POST['email'] ?? '')));
-    $phone = sanitize_text_field(wp_unslash((string) ($_POST['phone'] ?? '')));
-    $message = sanitize_textarea_field(wp_unslash((string) ($_POST['message'] ?? '')));
+    $name = sanitize_text_field((string) ($input['name'] ?? ''));
+    $email = sanitize_email((string) ($input['email'] ?? ''));
+    $phone = sanitize_text_field((string) ($input['phone'] ?? ''));
+    $message = sanitize_textarea_field((string) ($input['message'] ?? ''));
     if ($name === '' || strlen($name) > 100 || !is_email($email) || strlen($email) > 190 || $phone === '' || strlen($phone) > 40 || $message === '' || strlen($message) > 3000) {
-        wp_send_json_error(['message' => 'Please enter your name, a valid email, phone number, and a short message.'], 422);
+        return new WP_Error('invalid_fields', 'Please enter your name, a valid email, phone number, and a short message.', ['status' => 422]);
     }
 
     $lead_id = wp_insert_post([
@@ -116,7 +129,7 @@ function sr_lms_tedx_enquiry_submit(): void {
         'post_title' => $name,
         'post_content' => $message,
     ], true);
-    if (is_wp_error($lead_id)) wp_send_json_error(['message' => 'We could not save your enquiry. Please try again or email the Academy.'], 500);
+    if (is_wp_error($lead_id)) return new WP_Error('save_failed', 'We could not save your enquiry. Please try again or email the Academy.', ['status' => 500]);
     update_post_meta($lead_id, '_sr_tedx_email', $email);
     update_post_meta($lead_id, '_sr_tedx_phone', $phone);
     update_post_meta($lead_id, '_sr_tedx_received_at', current_time('mysql'));
@@ -137,5 +150,5 @@ function sr_lms_tedx_enquiry_submit(): void {
     update_post_meta($lead_id, '_sr_tedx_user_email_sent', $user_sent ? '1' : '0');
     update_post_meta($lead_id, '_sr_tedx_admin_email_sent', $admin_sent ? '1' : '0');
 
-    wp_send_json_success(['message' => 'Thank you, ' . $name . '. Your TEDx coaching enquiry has been received. We’ll get back to you shortly.']);
+    return ['message' => 'Thank you, ' . $name . '. Your TEDx coaching enquiry has been received. We’ll get back to you shortly.'];
 }

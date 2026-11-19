@@ -188,9 +188,7 @@
     <p class="tedx-coaching-kicker">TEDx PREPARATION &amp; COACHING</p>
     <h2 id="tedx-enquiry-title">Let’s prepare your <em>TEDx talk.</em></h2>
     <p id="tedx-enquiry-intro" class="tedx-enquiry-intro">Share a few details and the Academy will get back to you shortly.</p>
-    <form class="tedx-enquiry-form" id="tedx-enquiry-form" action="<?php echo esc_url(admin_url('admin-ajax.php')); ?>" method="post">
-      <input type="hidden" name="action" value="sr_lms_tedx_enquiry">
-      <input type="hidden" name="nonce" value="<?php echo esc_attr(wp_create_nonce('sr_lms_tedx_enquiry')); ?>">
+    <form class="tedx-enquiry-form" id="tedx-enquiry-form" action="<?php echo esc_url(rest_url('sr-lms/v1/tedx-enquiry')); ?>" method="post">
       <label class="tedx-enquiry-honeypot" aria-hidden="true">Leave this field empty<input name="website" tabindex="-1" autocomplete="off"></label>
       <div class="tedx-enquiry-fields">
         <label>Full name<input name="name" type="text" autocomplete="name" maxlength="100" required></label>
@@ -230,9 +228,12 @@
     event.preventDefault();status.textContent='Sending your enquiry…';status.classList.remove('is-error');
     var submit=form.querySelector('[type="submit"]');submit.disabled=true;
     try{
-      var response=await fetch(form.action,{method:'POST',body:new FormData(form),credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest'}});
-      var result=await response.json();
-      if(!response.ok||!result.success)throw new Error(result.data&&result.data.message?result.data.message:'We could not send your enquiry. Please try again.');
+      var fields=Object.fromEntries(new FormData(form).entries());
+      var response=await fetch(form.action,{method:'POST',body:JSON.stringify(fields),credentials:'same-origin',headers:{'Accept':'application/json','Content-Type':'application/json'}});
+      var responseText=await response.text();
+      var result;
+      try{result=JSON.parse(responseText);}catch(parseError){throw new Error('The form service returned an unexpected response. Please try again in a moment or email the Academy directly.');}
+      if(!response.ok||!result.success)throw new Error((result.data&&result.data.message)||result.message||'We could not send your enquiry. Please try again.');
       form.reset();form.hidden=true;status.textContent='';successText.textContent=result.data.message;success.hidden=false;success.focus();
     }catch(error){status.textContent=error.message||'We could not send your enquiry. Please try again.';status.classList.add('is-error');}
     finally{submit.disabled=false;}
