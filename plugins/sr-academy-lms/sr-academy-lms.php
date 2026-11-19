@@ -44,6 +44,7 @@ require_once SR_LMS_DIR.'includes/payment-admin.php';
 require_once SR_LMS_DIR.'includes/course-admin.php';
 require_once SR_LMS_DIR.'includes/content-management.php';
 require_once SR_LMS_DIR.'includes/zoom-calendar.php';
+require_once SR_LMS_DIR.'includes/tedx-enquiries.php';
 add_action('init','sr_lms_payment_install');
 register_activation_hook(__FILE__,'sr_lms_install');
 add_action('admin_init',static function(){if(get_option('sr_lms_version')!==SR_LMS_VERSION)sr_lms_install();});

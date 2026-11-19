@@ -82,7 +82,6 @@
 </div>
 <h2 id="appearances-title">2x TEDx Speaker, Top Podcasts &amp; <em>Celebrity Interviews</em></h2>
 <p>From two TEDx keynote stages to leading business podcasts, celebrity styling<br class="appearances-desktop-break"/> dialogues, and leadership panel interviews.</p>
-<a class="btn btn-primary" style="margin-top: 14px; white-space: normal;" href="mailto:shalinirathodofficial@gmail.com?subject=TEDx%20Coaching%20Enquiry&amp;body=Hi%20Shalini%2C%0D%0A%0D%0AI%E2%80%99m%20interested%20in%20TEDx%20preparation%20and%20coaching.%0D%0A%0D%0AName%3A%20%0D%0APreferred%20contact%20details%3A%20%0D%0A%0D%0AThank%20you%21">Enquire About TEDx Coaching</a>
 </div>
 <div aria-label="Appearance carousel controls" class="carousel-controls">
 <button aria-label="Previous appearances" class="carousel-arrow carousel-prev" type="button"><svg aria-hidden="true" class="icon icon-chevron" viewbox="0 0 20 20"><path d="M11.75 5.5 7.25 10l4.5 4.5"></path></svg></button>
@@ -163,6 +162,83 @@
 </div>
 </div>
 </section>
+<section aria-labelledby="tedx-coaching-title" class="tedx-coaching-section">
+  <div class="tedx-coaching-inner">
+    <div class="tedx-coaching-copy">
+      <p class="tedx-coaching-kicker">TEDx PREPARATION &amp; COACHING</p>
+      <h2 id="tedx-coaching-title">Ready to make your TEDx talk <em> unforgettable?</em></h2>
+      <p>If you need TEDx preparation or coaching, share your details and what you’re working on. The Academy will get back to you shortly.</p>
+      <button class="btn tedx-coaching-cta" type="button" data-tedx-open>Enquire about TEDx coaching <svg aria-hidden="true" class="icon icon-arrow-right" viewBox="0 0 20 20"><path d="M3.5 10h13M11 4.5 16.5 10 11 15.5"></path></svg></button>
+    </div>
+    <article class="tedx-testimonial-placeholder">
+      <img src="<?php echo esc_url(sr_theme_asset('assets/tedx-testimonial-placeholder.png')); ?>" alt="Illustrative placeholder portrait, not an actual client" loading="lazy" width="1122" height="1402">
+      <div class="tedx-testimonial-copy">
+        <p class="tedx-testimonial-label">DEMO PLACEHOLDER · REPLACE BEFORE PUBLISHING</p>
+        <span class="tedx-testimonial-quote-mark" aria-hidden="true">“</span>
+        <blockquote>Coaching helped me find the heart of my idea, shape it into a clear story, and deliver it with confidence.</blockquote>
+        <p class="tedx-testimonial-attribution">Placeholder client <span>Replace with the client’s approved name and testimonial</span></p>
+      </div>
+    </article>
+  </div>
+</section>
+<div class="tedx-enquiry-modal" id="tedx-enquiry-modal" hidden aria-hidden="true">
+  <button class="tedx-enquiry-backdrop" type="button" data-tedx-close aria-label="Close TEDx enquiry"></button>
+  <section class="tedx-enquiry-dialog" role="dialog" aria-modal="true" aria-labelledby="tedx-enquiry-title" aria-describedby="tedx-enquiry-intro" tabindex="-1">
+    <button class="tedx-enquiry-close" type="button" data-tedx-close aria-label="Close">×</button>
+    <p class="tedx-coaching-kicker">TEDx PREPARATION &amp; COACHING</p>
+    <h2 id="tedx-enquiry-title">Let’s prepare your <em>TEDx talk.</em></h2>
+    <p id="tedx-enquiry-intro" class="tedx-enquiry-intro">Share a few details and the Academy will get back to you shortly.</p>
+    <form class="tedx-enquiry-form" id="tedx-enquiry-form" action="<?php echo esc_url(admin_url('admin-ajax.php')); ?>" method="post">
+      <input type="hidden" name="action" value="sr_lms_tedx_enquiry">
+      <input type="hidden" name="nonce" value="<?php echo esc_attr(wp_create_nonce('sr_lms_tedx_enquiry')); ?>">
+      <label class="tedx-enquiry-honeypot" aria-hidden="true">Leave this field empty<input name="website" tabindex="-1" autocomplete="off"></label>
+      <div class="tedx-enquiry-fields">
+        <label>Full name<input name="name" type="text" autocomplete="name" maxlength="100" required></label>
+        <label>Email address<input name="email" type="email" autocomplete="email" maxlength="100" required></label>
+        <label class="tedx-enquiry-phone">Phone / WhatsApp<input name="phone" type="tel" autocomplete="tel" maxlength="40" required></label>
+        <label class="tedx-enquiry-message">What do you need coaching for?<textarea name="message" rows="4" maxlength="3000" placeholder="Tell us a little about your TEDx talk or preparation goals…" required></textarea></label>
+      </div>
+      <p class="tedx-enquiry-status" id="tedx-enquiry-status" role="status" aria-live="polite"></p>
+      <button class="btn tedx-coaching-cta tedx-enquiry-submit" type="submit">Send enquiry <svg aria-hidden="true" class="icon icon-arrow-right" viewBox="0 0 20 20"><path d="M3.5 10h13M11 4.5 16.5 10 11 15.5"></path></svg></button>
+    </form>
+    <div class="tedx-enquiry-success" id="tedx-enquiry-success" hidden tabindex="-1">
+      <span class="tedx-enquiry-success-mark" aria-hidden="true">✓</span>
+      <h3>Enquiry received</h3>
+      <p></p>
+      <button class="btn tedx-coaching-cta" type="button" data-tedx-close>Done</button>
+    </div>
+  </section>
+</div>
+<script>
+(function(){
+  var modal=document.getElementById('tedx-enquiry-modal');
+  var form=document.getElementById('tedx-enquiry-form');
+  if(!modal||!form)return;
+  var dialog=modal.querySelector('.tedx-enquiry-dialog');
+  var status=document.getElementById('tedx-enquiry-status');
+  var success=document.getElementById('tedx-enquiry-success');
+  var successText=success.querySelector('p');
+  var lastFocus=null;
+  function close(){modal.hidden=true;modal.setAttribute('aria-hidden','true');document.body.classList.remove('tedx-enquiry-open');if(lastFocus)lastFocus.focus();}
+  document.addEventListener('click',function(event){
+    var trigger=event.target.closest('[data-tedx-open]');
+    if(trigger){event.preventDefault();lastFocus=trigger;form.hidden=false;success.hidden=true;status.textContent='';modal.hidden=false;modal.setAttribute('aria-hidden','false');document.body.classList.add('tedx-enquiry-open');window.setTimeout(function(){var first=form.querySelector('input[name="name"]');if(first)first.focus();},20);return;}
+    if(event.target.closest('[data-tedx-close]')&&modal.contains(event.target))close();
+  });
+  document.addEventListener('keydown',function(event){if(event.key==='Escape'&&!modal.hidden)close();});
+  form.addEventListener('submit',async function(event){
+    event.preventDefault();status.textContent='Sending your enquiry…';status.classList.remove('is-error');
+    var submit=form.querySelector('[type="submit"]');submit.disabled=true;
+    try{
+      var response=await fetch(form.action,{method:'POST',body:new FormData(form),credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest'}});
+      var result=await response.json();
+      if(!response.ok||!result.success)throw new Error(result.data&&result.data.message?result.data.message:'We could not send your enquiry. Please try again.');
+      form.reset();form.hidden=true;status.textContent='';successText.textContent=result.data.message;success.hidden=false;success.focus();
+    }catch(error){status.textContent=error.message||'We could not send your enquiry. Please try again.';status.classList.add('is-error');}
+    finally{submit.disabled=false;}
+  });
+}());
+</script>
 <section aria-labelledby="recognition-title" class="recognition-section">
 <div class="recognition-heading">
 <p>RECOGNITION &amp; MEDIA APPEARANCES</p>
