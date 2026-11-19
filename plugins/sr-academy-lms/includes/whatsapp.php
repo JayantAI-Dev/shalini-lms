@@ -1,6 +1,8 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+const SR_LMS_WATI_CALL_TEMPLATE = 'sr_call_confirmation_v2';
+
 function sr_lms_whatsapp_settings(): array {
     return (array) get_option('sr_lms_whatsapp_settings', []);
 }
@@ -38,7 +40,7 @@ function sr_lms_queue_whatsapp(string $reference, string $mode, string $phone, s
     $test_number = defined('SR_LMS_WATI_TEST_NUMBER') ? SR_LMS_WATI_TEST_NUMBER : ($settings['test_number'] ?? '');
     // The staging booking checkout can send a sandbox confirmation to the opted-in form number.
     $public_staging_booking = $mode === 'test'
-        && $template === 'sr_call_confirmation'
+        && $template === SR_LMS_WATI_CALL_TEMPLATE
         && wp_parse_url(home_url(), PHP_URL_HOST) === 'darkorange-pheasant-779963.hostingersite.com';
     if (!$public_staging_booking && ($mode === 'test' || !$live_enabled) && $digits !== $test_number) return;
 
