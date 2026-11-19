@@ -502,6 +502,7 @@ if (bookingModal) {
   const bookingName = bookingModal.querySelector('[name="booking_name"]');
   const bookingEmail = bookingModal.querySelector('[name="booking_email"]');
   const bookingPhone = bookingModal.querySelector('[name="booking_phone"]');
+  const whatsappOptIn = bookingModal.querySelector('[name=whatsapp_opt_in]');
   const bookingChallenge = bookingModal.querySelector('[name="booking_challenge"]');
   const summaryTitle = bookingModal.querySelector('#booking-summary-title');
   const summaryDate = bookingModal.querySelector('#booking-summary-date');
@@ -626,6 +627,12 @@ if (bookingModal) {
     });
     if (bookingStepCount) bookingStepCount.textContent = `STEP ${step} OF 3`;
     if (bookingDialog) bookingDialog.scrollTop = 0;
+  };
+
+  const clearBookingSelections = () => {
+    if (whatsappOptIn) whatsappOptIn.checked = false;
+    if (bookingDate) bookingDate.value = '';
+    if (bookingTime) bookingTime.value = '';
   };
 
   const setDuration = (duration) => {
@@ -983,7 +990,7 @@ if (bookingModal) {
         name: bookingName?.value.trim() || '',
         email: bookingEmail?.value.trim() || '',
         phone: bookingPhone?.value.trim() || '',
-        whatsapp_opt_in: bookingModal.querySelector('[name=whatsapp_opt_in]')?.checked ? '1' : '0',
+        whatsapp_opt_in: whatsappOptIn?.checked ? '1' : '0',
         challenge: bookingChallenge?.value.trim() || ''
       };
       const post = async (route, data) => {
@@ -1031,6 +1038,11 @@ if (bookingModal) {
               if (sendRequest) sendRequest.hidden = true;
               const copyBtn = bookingModal.querySelector('#booking-copy-request');
               if (copyBtn) copyBtn.hidden = true;
+              bookingForm.reset();
+              clearBookingSelections();
+              bookingForm.dataset.checkoutBusy = 'false';
+              if (confirmLabel) confirmLabel.disabled = false;
+              status.textContent = '';
               setBookingStep(3);
             } catch (error) {
               status.textContent = `${error.message} Do not pay again if your payment was successful; contact the Academy with your Razorpay payment reference.`;
@@ -1081,6 +1093,7 @@ if (bookingModal) {
     if (sendRequest) sendRequest.hidden = true;
     const copyBtn = bookingModal.querySelector('#booking-copy-request');
     if (copyBtn) copyBtn.hidden = true;
+    clearBookingSelections();
     setBookingStep(3);
   });
 
