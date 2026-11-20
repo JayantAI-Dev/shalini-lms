@@ -78,6 +78,7 @@ function sr_theme_enqueue(): void {
     if ((in_array(sr_theme_slug(), ['home','services'], true) || (sr_theme_slug() === 'enroll' && sr_theme_is_coaching_offer())) && function_exists('sr_lms_payment_ready')) {
         $config['consultationCheckout'] = [
             'enabled' => sr_lms_payment_ready() && function_exists('sr_lms_google_calendar_ready') && sr_lms_google_calendar_ready() && function_exists('sr_lms_zoom_ready') && sr_lms_zoom_ready(),
+            'paymentEnabled' => sr_lms_payment_ready(),
             'api' => rest_url('sr-lms/v1/consultations/'),
             'key' => sr_lms_payment_credentials((string) (sr_lms_payment_settings()['mode'] ?? 'test'))['key'] ?? '',
             'test' => (sr_lms_payment_settings()['mode'] ?? 'test') === 'test',

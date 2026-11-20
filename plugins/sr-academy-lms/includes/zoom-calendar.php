@@ -452,7 +452,6 @@ function sr_lms_consultation_order(WP_REST_Request $request) {
     $offer = sanitize_key((string) $request->get_param('offer'));
     $package_offers = ['comm-core','comm-presence','comm-commanding','style-signature','style-exclusive','style-vip'];
     $is_package = in_array($offer, $package_offers, true);
-    if ($is_package && (sr_lms_payment_settings()['mode'] ?? 'test') !== 'test') return new WP_Error('test_mode_required', 'Package checkout is currently available in test mode only.', ['status'=>503]);
     if (!$is_package && (!sr_lms_google_calendar_ready() || !sr_lms_zoom_ready())) return new WP_Error('booking_unavailable', 'Online booking is not fully configured yet.', ['status'=>503]);
     $ip = sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? 'unknown');
     $rate_key = 'sr_lms_consult_order_rate_' . hash('sha256', $ip);

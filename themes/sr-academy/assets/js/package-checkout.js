@@ -2,6 +2,8 @@
   const form = document.querySelector('[data-package-checkout]');
   const config = window.SR_THEME?.consultationCheckout;
   if (!form || !config) return;
+  const paymentEnabled = Boolean(config.paymentEnabled ?? config.enabled);
+  const testMode = Boolean(config.test);
   const status = form.querySelector('[data-booking-status]');
   const slots = form.querySelector('[data-slot-options]');
   const dateInput = form.elements.date;
@@ -92,8 +94,15 @@
     if (packageGroup) packageGroup.hidden = mode !== 'package';
     scheduleGroups.forEach((group) => { group.hidden = mode !== 'discovery'; });
     dateInput.required = mode === 'discovery';
-    if (bookingNote) bookingNote.textContent = mode === 'package' ? 'Razorpay test mode · no live charge' : 'Secure reservation · Free 24h reschedule';
-    if (submitButton) submitButton.textContent = mode === 'package' ? 'Continue to test payment' : 'CONFIRM FREE DISCOVERY';
+    if (bookingNote) bookingNote.textContent = mode === 'package'
+      ? (!paymentEnabled ? 'Secure checkout is currently unavailable. Please contact the Academy.' : (testMode ? 'Razorpay test mode · no live charge' : 'Secure Razorpay checkout'))
+      : 'Secure reservation · Free 24h reschedule';
+    if (submitButton) {
+      submitButton.textContent = mode === 'package'
+        ? (!paymentEnabled ? 'Checkout unavailable' : (testMode ? 'Continue to test payment' : 'Continue to payment'))
+        : 'CONFIRM FREE DISCOVERY';
+      submitButton.disabled = mode === 'package' && !paymentEnabled;
+    }
     say('');
     if (mode === 'discovery') {
       if (!dateInput.value) dateButtons[0]?.click();
@@ -193,16 +202,17 @@
       }
       return;
     }
-    if (!config.enabled || !config.test) { say('Test checkout is unavailable. Please contact the Academy.'); return; }
+    if (!paymentEnabled) { say('Secure checkout is currently unavailable. Please contact the Academy.'); return; }
     if (!selectedPlan) { say('Choose a package before continuing.'); return; }
-    const submit = submitButton; submit.disabled = true; say('Preparing secure test checkout…');
+    const submit = submitButton; submit.disabled = true; say(testMode ? 'Preparing secure test checkout…' : 'Preparing secure checkout…');
     try {
       const details = Object.fromEntries(new FormData(form));
       const order = await api('order', {offer:selectedPlan, duration:0, name:details.name, email:details.email, phone:details.phone, whatsapp_opt_in:details.whatsapp_opt_in || '0'});
-      if (!order.test || !window.Razorpay) throw new Error('Razorpay test checkout did not initialize. No payment was made.');
+      if (Boolean(order.test) !== testMode) throw new Error('Checkout mode changed. Reload this page and start again; no payment was made.');
+      if (!window.Razorpay) throw new Error('Razorpay checkout did not initialize. No payment was made.');
       const checkout = new Razorpay({key:order.key, order_id:order.order_id, amount:order.amount, currency:order.currency, name:order.name, description:order.description, prefill:{name:details.name,email:details.email,contact:details.phone}, theme:{color:'#194c3b'}, handler:async (payment) => {
         try {
-          say('Verifying your test payment…');
+          say(testMode ? 'Verifying your test payment…' : 'Verifying your payment…');
           const confirmed = await api('verify', payment);
           if (!confirmed.confirmed) throw new Error('Payment is not confirmed yet. Please contact the Academy before retrying.');
           submit.disabled = false;
@@ -220,7 +230,7 @@
           clearFormAfterConfirmation();
         } catch (error) { say(error.message); submit.disabled = false; }
       }, modal:{ondismiss:() => { say('Checkout closed. No purchase was confirmed.'); submit.disabled = false; }} });
-      checkout.on('payment.failed', () => { say('Test payment failed. No purchase was confirmed.'); submit.disabled = false; }); checkout.open();
+      checkout.on('payment.failed', () => { say(testMode ? 'Test payment failed. No purchase was confirmed.' : 'Payment failed. No purchase was confirmed.'); submit.disabled = false; }); checkout.open();
     } catch (error) { say(error.message); submit.disabled = false; }
   });
 })();

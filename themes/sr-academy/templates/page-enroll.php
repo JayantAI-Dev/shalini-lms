@@ -321,7 +321,14 @@ if (!sr_theme_is_coaching_offer()) { ?><div class="lms-shell"><main id="main-con
       </div>
     </section>
 
-    <?php $is_style_package = ($_GET['offer'] ?? '') === 'style-package'; ?>
+    <?php
+      $is_style_package = ($_GET['offer'] ?? '') === 'style-package';
+      $package_checkout_settings = function_exists('sr_lms_payment_settings') ? sr_lms_payment_settings() : [];
+      $package_checkout_test = ($package_checkout_settings['mode'] ?? 'test') === 'test';
+      $package_checkout_ready = function_exists('sr_lms_payment_ready') && sr_lms_payment_ready();
+      $package_checkout_note = !$package_checkout_ready ? 'Secure checkout is currently unavailable. Please contact the Academy.' : ($package_checkout_test ? 'Razorpay test mode · no live charge' : 'Secure Razorpay checkout');
+      $package_checkout_button = !$package_checkout_ready ? 'Checkout unavailable' : ($package_checkout_test ? 'Continue to test payment' : 'Continue to payment');
+    ?>
     <section class="package-booking-section" id="package-booking" aria-labelledby="package-booking-title">
       <header class="package-booking-heading"><p class="package-page-kicker">YOUR NEXT STEP</p><h2 id="package-booking-title">Choose Your Package or Book a Call</h2><div class="package-booking-tabs" role="tablist" aria-label="Booking type"><button type="button" role="tab" aria-selected="true" class="is-selected" data-booking-mode="package">1:1 PACKAGE · <span data-booking-price>FROM <?php echo $is_style_package ? '₹70,000' : '₹49,999'; ?></span></button><button type="button" role="tab" aria-selected="false" data-booking-mode="discovery">15-MIN DISCOVERY (FREE)</button></div></header>
       <form class="package-booking-form" data-package-checkout novalidate>
@@ -344,7 +351,7 @@ if (!sr_theme_is_coaching_offer()) { ?><div class="lms-shell"><main id="main-con
         <fieldset class="package-booking-choice-group" data-booking-schedule hidden><legend>Select Preferred Date:</legend><div class="package-booking-options package-booking-dates" data-date-options></div><input class="package-booking-date-input" id="package-booking-date" name="date" type="date" required tabindex="-1" aria-hidden="true"></fieldset>
         <fieldset class="package-booking-choice-group" data-booking-schedule hidden><legend>Available Time Slot:</legend><div class="package-booking-options" data-slot-options><p>Select a date to load live availability.</p></div></fieldset>
         <?php if (function_exists('sr_lms_whatsapp_opt_in')) echo sr_lms_whatsapp_opt_in(); ?>
-        <div class="package-booking-submit-row"><p data-booking-note>Razorpay test mode · no live charge</p><button class="package-booking-submit" type="submit">Continue to test payment</button></div>
+        <div class="package-booking-submit-row"><p data-booking-note><?php echo esc_html($package_checkout_note); ?></p><button class="package-booking-submit" type="submit" <?php disabled(!$package_checkout_ready); ?>><?php echo esc_html($package_checkout_button); ?></button></div>
         <p class="package-booking-status" data-booking-status role="status" aria-live="polite"></p>
       </form>
       <div class="package-confirmation-overlay" data-package-confirmation hidden>
