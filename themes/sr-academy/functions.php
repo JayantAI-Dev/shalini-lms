@@ -2,6 +2,23 @@
 /** WordPress integration for the original SR Academy design. */
 defined('ABSPATH') || exit;
 
+/** Keep the enrollment checkout out of full-page caches so its mode and nonce stay current. */
+function sr_theme_is_dynamic_checkout_request(): bool {
+    $request_path = wp_parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+    return untrailingslashit((string) $request_path) === '/enroll';
+}
+
+if (sr_theme_is_dynamic_checkout_request() && !defined('DONOTCACHEPAGE')) {
+    define('DONOTCACHEPAGE', true);
+}
+
+add_action('template_redirect', function (): void {
+    if (!sr_theme_is_dynamic_checkout_request()) { return; }
+    nocache_headers();
+    header('Cache-Control: private, no-store, no-cache, must-revalidate, max-age=0');
+    header('Vary: Cookie');
+}, 0);
+
 function sr_theme_pages(): array {
     return ['index.html'=>'home','about.html'=>'about','services.html'=>'services','contact.html'=>'contact','lms.html'=>'courses','lms-course.html'=>'course','lms-auth.html'=>'student-portal','lms-learn.html'=>'learn','package-enroll.html'=>'enroll','dashboard.html'=>'dashboard'];
 }
