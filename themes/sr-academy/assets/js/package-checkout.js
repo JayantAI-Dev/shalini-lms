@@ -3,7 +3,10 @@
   const config = window.SR_THEME?.consultationCheckout;
   if (!form || !config) return;
   const paymentEnabled = Boolean(config.paymentEnabled ?? config.enabled);
-  const testMode = Boolean(config.test);
+  // The server is the source of truth for checkout mode. Be strict here so
+  // missing or malformed client config can never accidentally label live
+  // checkout as test mode (or the reverse).
+  const testMode = config.test === true;
   const status = form.querySelector('[data-booking-status]');
   const slots = form.querySelector('[data-slot-options]');
   const dateInput = form.elements.date;
@@ -99,7 +102,7 @@
       : 'Secure reservation · Free 24h reschedule';
     if (submitButton) {
       submitButton.textContent = mode === 'package'
-        ? (!paymentEnabled ? 'Checkout unavailable' : (testMode ? 'Continue to test payment' : 'Continue to payment'))
+        ? (!paymentEnabled ? 'Checkout unavailable' : 'Continue to secure payment')
         : 'CONFIRM FREE DISCOVERY';
       submitButton.disabled = mode === 'package' && !paymentEnabled;
     }
