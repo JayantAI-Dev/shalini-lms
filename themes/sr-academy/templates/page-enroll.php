@@ -328,6 +328,9 @@ if (!sr_theme_is_coaching_offer()) { ?><div class="lms-shell"><main id="main-con
       $package_checkout_ready = function_exists('sr_lms_payment_ready') && sr_lms_payment_ready();
       $package_checkout_note = !$package_checkout_ready ? 'Secure checkout is currently unavailable. Please contact the Academy.' : ($package_checkout_test ? 'Razorpay test mode · no live charge' : 'Secure Razorpay checkout');
       $package_checkout_button = !$package_checkout_ready ? 'Checkout unavailable' : ($package_checkout_test ? 'Continue to test payment' : 'Continue to payment');
+      if ($package_checkout_ready && !$package_checkout_test && function_exists('sr_lms_live_payment_check_active') && sr_lms_live_payment_check_active()) {
+        $package_checkout_note = 'Secure Razorpay checkout · ₹1 live payment check';
+      }
     ?>
     <section class="package-booking-section" id="package-booking" aria-labelledby="package-booking-title">
       <header class="package-booking-heading"><p class="package-page-kicker">YOUR NEXT STEP</p><h2 id="package-booking-title">Choose Your Package or Book a Call</h2><div class="package-booking-tabs" role="tablist" aria-label="Booking type"><button type="button" role="tab" aria-selected="true" class="is-selected" data-booking-mode="package">1:1 PACKAGE · <span data-booking-price>FROM <?php echo $is_style_package ? '₹70,000' : '₹49,999'; ?></span></button><button type="button" role="tab" aria-selected="false" data-booking-mode="discovery">15-MIN DISCOVERY (FREE)</button></div></header>

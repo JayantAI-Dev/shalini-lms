@@ -35,6 +35,7 @@ function showCourseConfirmation(box,verified,customer,order){
 (() => {
  'use strict';
  document.querySelectorAll('.sr-lms-purchase').forEach(box => {
+  const liveCheck=window.SR_THEME?.livePaymentCheck===true;
   const button=box.querySelector('button[type="submit"]'),status=box.querySelector('[role="status"]');
   const fields=Object.fromEntries(['name','email','phone'].map(name=>[name,box.querySelector(`[name="${name}"]`)]));
   const request=async(route,data)=>{
@@ -48,7 +49,8 @@ function showCourseConfirmation(box,verified,customer,order){
    if(customer.name.length>100||customer.email.length>100||phoneDigits.length<7||phoneDigits.length>15){status.textContent='Check your name, email address, and phone number.';return;}
    button.disabled=true;let paymentReceived=false;status.textContent='Creating secure checkout…';
    try{
-    const order=await request('order',{offer:box.dataset.offer,...customer,whatsapp_opt_in:box.elements.whatsapp_opt_in?.checked?'1':'0'});
+    const order=await request('order',{offer:box.dataset.offer,...customer,...(liveCheck?{live_check:true}:{}),whatsapp_opt_in:box.elements.whatsapp_opt_in?.checked?'1':'0'});
+    if(liveCheck&&(order.amount!==100||order.currency!=='INR'||order.test!==false))throw new Error('The ₹1 live checkout is unavailable. Reopen your private link and try again.');
     if(!window.Razorpay)throw new Error('Checkout could not load. Please reload and try again.');
     const checkout=new window.Razorpay({...order,prefill:order.prefill,theme:{color:'#194c3b'},handler:async payment=>{
      paymentReceived=true;status.textContent='Verifying payment…';

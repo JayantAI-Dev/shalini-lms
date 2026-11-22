@@ -617,7 +617,10 @@ if (bookingModal) {
 
   const getPrice = () => {
     const offering = getOffering();
-    if (offering.type === 'call') return offering.prices[selectedDuration] ?? offering.prices['60'];
+    if (offering.type === 'call') {
+      if (window.SR_THEME?.livePaymentCheck === true) return 1;
+      return offering.prices[selectedDuration] ?? offering.prices['60'];
+    }
     return offering.price;
   };
 
@@ -991,7 +994,8 @@ if (bookingModal) {
         email: bookingEmail?.value.trim() || '',
         phone: bookingPhone?.value.trim() || '',
         whatsapp_opt_in: whatsappOptIn?.checked ? '1' : '0',
-        challenge: bookingChallenge?.value.trim() || ''
+        challenge: bookingChallenge?.value.trim() || '',
+        ...(window.SR_THEME?.livePaymentCheck === true ? {live_check: true} : {})
       };
       const post = async (route, data) => {
         const response = await fetch(config.api + route, {
@@ -1010,6 +1014,9 @@ if (bookingModal) {
         return result;
       };
       post('order', bookingPayload).then((order) => {
+        if (bookingPayload.live_check && (order.amount !== 100 || order.currency !== 'INR' || order.test !== false)) {
+          throw new Error('The ₹1 live checkout is unavailable. Reopen your private link and try again.');
+        }
         status.textContent = order.test ? 'Test checkout · no live charge will be made.' : 'Complete your payment in Razorpay to confirm this booking.';
         let paymentReceived = false;
         const checkout = new window.Razorpay({

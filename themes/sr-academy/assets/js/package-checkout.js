@@ -7,11 +7,19 @@
   // missing or malformed client config can never accidentally label live
   // checkout as test mode (or the reverse).
   const testMode = config.test === true;
+  const liveCheck = window.SR_THEME.livePaymentCheck === true;
   const status = form.querySelector('[data-booking-status]');
   const slots = form.querySelector('[data-slot-options]');
   const dateInput = form.elements.date;
   const dates = form.querySelector('[data-date-options]');
   const packageOptions = Array.from(form.querySelectorAll('[data-plan]'));
+  if (liveCheck) {
+    packageOptions.forEach((button) => {
+      button.dataset.price = '1';
+      const label = button.querySelector('strong');
+      if (label) label.textContent = '₹1';
+    });
+  }
   const bookingSection = form.closest('.package-booking-section');
   const packagePriceLabel = bookingSection?.querySelector('[data-booking-price]');
   const startingPrice = Math.min(...packageOptions.map((button) => Number(button.dataset.price)).filter((price) => Number.isFinite(price) && price > 0));
@@ -98,7 +106,7 @@
     scheduleGroups.forEach((group) => { group.hidden = mode !== 'discovery'; });
     dateInput.required = mode === 'discovery';
     if (bookingNote) bookingNote.textContent = mode === 'package'
-      ? (!paymentEnabled ? 'Secure checkout is currently unavailable. Please contact the Academy.' : (testMode ? 'Razorpay test mode · no live charge' : 'Secure Razorpay checkout'))
+      ? (!paymentEnabled ? 'Secure checkout is currently unavailable. Please contact the Academy.' : (testMode ? 'Razorpay test mode · no live charge' : (liveCheck ? 'Secure Razorpay checkout · ₹1 live payment check' : 'Secure Razorpay checkout')))
       : 'Secure reservation · Free 24h reschedule';
     if (submitButton) {
       submitButton.textContent = mode === 'package'
@@ -210,7 +218,8 @@
     const submit = submitButton; submit.disabled = true; say(testMode ? 'Preparing secure test checkout…' : 'Preparing secure checkout…');
     try {
       const details = Object.fromEntries(new FormData(form));
-      const order = await api('order', {offer:selectedPlan, duration:0, name:details.name, email:details.email, phone:details.phone, whatsapp_opt_in:details.whatsapp_opt_in || '0'});
+      const order = await api('order', {offer:selectedPlan, duration:0, name:details.name, email:details.email, phone:details.phone, ...(liveCheck ? {live_check:true} : {}), whatsapp_opt_in:details.whatsapp_opt_in || '0'});
+      if (liveCheck && (order.amount !== 100 || order.currency !== 'INR' || order.test !== false)) throw new Error('The ₹1 live checkout is unavailable. Reopen your private link and try again.');
       if (Boolean(order.test) !== testMode) throw new Error('Checkout mode changed. Reload this page and start again; no payment was made.');
       if (!window.Razorpay) throw new Error('Razorpay checkout did not initialize. No payment was made.');
       const checkout = new Razorpay({key:order.key, order_id:order.order_id, amount:order.amount, currency:order.currency, name:order.name, description:order.description, prefill:{name:details.name,email:details.email,contact:details.phone}, theme:{color:'#194c3b'}, handler:async (payment) => {

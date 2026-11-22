@@ -490,6 +490,8 @@ function sr_lms_consultation_order(WP_REST_Request $request) {
         }
     }
     $mode = (string) (sr_lms_payment_settings()['mode'] ?? 'test');
+    $amount = sr_lms_checkout_amount($amount, $mode, $request->get_param('live_check') === true);
+    if (is_wp_error($amount)) return $amount;
     $gateway = sr_lms_payment_api($mode, 'orders', [
         'amount'=>$amount, 'currency'=>'INR', 'receipt'=>($is_package ? 'package-' : 'consult-') . wp_generate_password(12, false, false),
         'notes'=>['service'=>$offer, 'session_minutes'=>$is_package ? '0' : (string)$duration],

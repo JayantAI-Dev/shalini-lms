@@ -35,6 +35,58 @@ function sr_lms_payment_install(): void {
  update_option('sr_lms_payment_schema','3',false);
 }
 function sr_lms_payment_settings(): array {return (array)get_option('sr_lms_payment_settings',[]);}
+
+/** Temporary private pricing for the production payment check. */
+const SR_LMS_LIVE_CHECK_EXPIRES = 1795544940; // 24 November 2026, 23:59 IST.
+
+function sr_lms_live_check_token_valid($token): bool {
+    return time() < SR_LMS_LIVE_CHECK_EXPIRES
+        && is_string($token)
+        && preg_match('/^[a-f0-9]{64}$/D', $token) === 1
+        && hash_equals('629e5e2ec09355263e20303444749b0e6a6e44d09634e0538fad0a562508f313', hash('sha256', $token));
+}
+
+function sr_lms_live_payment_check_active(): bool {
+    return sr_lms_live_check_token_valid($_COOKIE['sr_live_payment_check'] ?? null);
+}
+
+if ((isset($_GET['sr_live_payment_check']) || sr_lms_live_payment_check_active()) && !defined('DONOTCACHEPAGE')) {
+    define('DONOTCACHEPAGE', true);
+}
+
+add_action('template_redirect', static function (): void {
+    $token = $_GET['sr_live_payment_check'] ?? null;
+    if ($token === null && !sr_lms_live_payment_check_active()) return;
+
+    nocache_headers();
+    header('Cache-Control: private, no-store, max-age=0');
+    header('Referrer-Policy: no-referrer');
+    if ($token === null) return;
+
+    if (!sr_lms_live_check_token_valid($token) || !is_ssl()) {
+        wp_die('This private checkout link is invalid or has expired.', 'Checkout link unavailable', ['response' => 403]);
+    }
+
+    setcookie('sr_live_payment_check', $token, [
+        'expires' => SR_LMS_LIVE_CHECK_EXPIRES,
+        'path' => '/',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    wp_safe_redirect(home_url('/'));
+    exit;
+}, 0);
+
+function sr_lms_checkout_amount(int $amount, string $mode, bool $live_check): int|WP_Error {
+    $active = sr_lms_live_payment_check_active();
+    if (!$live_check && !$active) return $amount;
+    if (!$active || $mode !== 'live') {
+        return new WP_Error('live_check_unavailable', 'The ₹1 checkout session is unavailable. Reopen your private link and try again.', ['status' => 409]);
+    }
+    return $amount >= 100 ? 100 : $amount;
+}
+
 /** Test purchases may unlock access only for existing, verified accounts explicitly allowlisted by an administrator. */
 function sr_lms_payment_test_access_enabled(int $user_id): bool {
  $settings=sr_lms_payment_settings();if(($settings['mode']??'test')!=='test')return false;$user=get_userdata($user_id);if(!$user||!function_exists('sr_lms_email_is_verified')||!sr_lms_email_is_verified($user_id))return false;
@@ -77,6 +129,8 @@ function sr_lms_payment_order($r) {
  elseif($account)$user_id=(int)$account->ID;
  if($mode!=='test'&&$user_id){$already=true;foreach($o['courses'] as $course)if(!sr_lms_has_access($user_id,$course))$already=false;if($already)return new WP_Error('enrolled','You already have access to this course. Sign in to continue learning.',['status'=>409]);}
  $amount=(int)round((float)$o['price']*100);if($amount<100||$amount>1000000000)return new WP_Error('price','This price cannot be purchased online.',['status'=>400]);
+ $amount=sr_lms_checkout_amount($amount,$mode,($r['live_check']??null)===true);
+ if(is_wp_error($amount))return $amount;
  $now=current_time('mysql',true);
  if(!$wpdb->insert(sr_lms_table('payments'),['user_id'=>$user_id,'offer'=>$offer,'mode'=>$mode,'amount'=>$amount,'targets'=>wp_json_encode($o['courses']),'created_at'=>$now,'updated_at'=>$now]))return new WP_Error('storage','Could not save order.');$id=(int)$wpdb->insert_id;
  $g=sr_lms_payment_api($mode,'orders',['amount'=>$amount,'currency'=>'INR','receipt'=>'sr-lms-'.$id,'notes'=>['local_order'=>(string)$id,'customer_name'=>$customer_name,'customer_email'=>$customer_email,'customer_phone'=>$customer_phone,'whatsapp_opt_in'=>($r['whatsapp_opt_in']??null)==='1'?'1':'0']],'POST');
@@ -199,8 +253,9 @@ function sr_lms_render_purchase(string $offer): bool {
  if(!sr_lms_payment_ready()||!in_array($offer,(array)(sr_lms_payment_settings()['offers']??[]),true)){if(sr_lms_manual_requests_enabled())return false;echo '<p>Online checkout is currently unavailable. Please contact the academy for enrollment.</p>';return true;}
  $targets=sr_lms_offers()[$offer]['courses'];$mode=sr_lms_payment_settings()['mode']??'test';$enrolled=is_user_logged_in();foreach($targets as $course)if(!sr_lms_has_access(get_current_user_id(),$course))$enrolled=false;if($enrolled&&$mode!=='test'){echo '<p>You already have access to this course.</p><a class="lms-primary" href="'.esc_url(sr_lms_page_url('dashboard')).'">Open dashboard</a>';return true;}
  wp_enqueue_script('sr-lms-razorpay','https://checkout.razorpay.com/v1/checkout.js',[],null,true);
- wp_enqueue_script('sr-lms-payments',plugins_url('assets/payments.js',dirname(__DIR__).'/sr-academy-lms.php'),['sr-lms-razorpay'],SR_LMS_VERSION,true);
+ $payments_version = (string) filemtime(SR_LMS_DIR . 'assets/payments.js');
+ wp_enqueue_script('sr-lms-payments',plugins_url('assets/payments.js',dirname(__DIR__).'/sr-academy-lms.php'),['sr-lms-razorpay'],$payments_version,true);
  $current=is_user_logged_in()?get_userdata(get_current_user_id()):false;$full_name=$current?(string)$current->display_name:'';$email=$current?(string)$current->user_email:'';$phone=$current?(string)get_user_meta((int)$current->ID,'sr_lms_phone',true):'';
- echo '<form class="sr-lms-purchase" data-dashboard="'.esc_url(sr_lms_page_url('dashboard')).'" data-offer="'.esc_attr($offer).'" data-api="'.esc_url(rest_url('sr-lms/v1/payments/')).'" data-nonce="'.esc_attr(wp_create_nonce('wp_rest')).'" novalidate><div class="sr-lms-customer-fields"><label>Full name<input name="name" type="text" autocomplete="name" maxlength="100" value="'.esc_attr($full_name).'" required></label><label>Email address<input name="email" type="email" autocomplete="email" maxlength="100" value="'.esc_attr($email).'" required></label><label>WhatsApp / phone<input name="phone" type="tel" autocomplete="tel" minlength="7" maxlength="25" value="'.esc_attr($phone).'" required></label></div>'.sr_lms_whatsapp_opt_in().'<p class="sr-lms-password-note">New to the Academy? After payment, we’ll sign you in for 15 minutes and email your sign-in email plus a secure password setup link. If you already have a student account, sign in before checkout.</p><button type="submit" class="lms-primary">'.($mode==='test'?'Continue to Razorpay test payment':'Continue to Razorpay').'</button><p class="sr-lms-payment-note">'.($mode==='test'?'Razorpay test mode · no live charge or course access':'Secure Razorpay checkout').'</p><p role="status" aria-live="polite"></p></form>';if(sr_lms_manual_requests_enabled()){echo '<p>Prefer to request access from the academy?</p><form method="post" action="'.esc_url(admin_url('admin-post.php')).'"><input type="hidden" name="action" value="sr_lms_enroll"><input type="hidden" name="offer" value="'.esc_attr($offer).'">';wp_nonce_field('sr_lms_enroll');echo '<button class="lms-primary" type="submit">Request manual enrollment</button></form>';}return true;
+ echo '<form class="sr-lms-purchase" data-dashboard="'.esc_url(sr_lms_page_url('dashboard')).'" data-offer="'.esc_attr($offer).'" data-api="'.esc_url(rest_url('sr-lms/v1/payments/')).'" data-nonce="'.esc_attr(wp_create_nonce('wp_rest')).'" novalidate><div class="sr-lms-customer-fields"><label>Full name<input name="name" type="text" autocomplete="name" maxlength="100" value="'.esc_attr($full_name).'" required></label><label>Email address<input name="email" type="email" autocomplete="email" maxlength="100" value="'.esc_attr($email).'" required></label><label>WhatsApp / phone<input name="phone" type="tel" autocomplete="tel" minlength="7" maxlength="25" value="'.esc_attr($phone).'" required></label></div>'.sr_lms_whatsapp_opt_in().'<p class="sr-lms-password-note">New to the Academy? After payment, we’ll sign you in for 15 minutes and email your sign-in email plus a secure password setup link. If you already have a student account, sign in before checkout.</p><button type="submit" class="lms-primary">'.($mode==='test'?'Continue to Razorpay test payment':'Continue to Razorpay').'</button><p class="sr-lms-payment-note">'.($mode==='test'?'Razorpay test mode · no live charge or course access':(sr_lms_live_payment_check_active()?'Secure Razorpay checkout · ₹1 live payment check':'Secure Razorpay checkout')).'</p><p role="status" aria-live="polite"></p></form>';if(sr_lms_manual_requests_enabled()){echo '<p>Prefer to request access from the academy?</p><form method="post" action="'.esc_url(admin_url('admin-post.php')).'"><input type="hidden" name="action" value="sr_lms_enroll"><input type="hidden" name="offer" value="'.esc_attr($offer).'">';wp_nonce_field('sr_lms_enroll');echo '<button class="lms-primary" type="submit">Request manual enrollment</button></form>';}return true;
 }
 
