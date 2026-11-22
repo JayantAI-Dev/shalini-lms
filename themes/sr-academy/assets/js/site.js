@@ -496,6 +496,7 @@ if (bookingModal) {
   const bookingDate = bookingModal.querySelector('#booking-date');
   const bookingTime = bookingModal.querySelector('#booking-time');
   const bookingTotal = bookingModal.querySelector('#booking-total');
+  const bookingTotalLabel = bookingTotal?.previousElementSibling;
   const bookingContinue = bookingModal.querySelector('#booking-continue');
   const bookingBack = bookingModal.querySelector('#booking-back');
   const bookingForm = bookingModal.querySelector('.booking-step-two form');
@@ -615,11 +616,13 @@ if (bookingModal) {
 
   const getOffering = () => offerings[offeringSelect?.value] || offerings['comm-call'];
 
+  const livePaymentCheck = window.SR_THEME?.livePaymentCheck === true;
+  const callPrice = (offering, duration) => livePaymentCheck ? 1 : offering.prices[duration];
+
   const getPrice = () => {
     const offering = getOffering();
     if (offering.type === 'call') {
-      if (window.SR_THEME?.livePaymentCheck === true) return 1;
-      return offering.prices[selectedDuration] ?? offering.prices['60'];
+      return callPrice(offering, offering.prices[selectedDuration] === undefined ? '60' : selectedDuration);
     }
     return offering.price;
   };
@@ -797,7 +800,7 @@ if (bookingModal) {
         button.classList.toggle('active', active);
         button.setAttribute('aria-pressed', String(active));
         const priceLabel = button.querySelector('.booking-duration-top span:last-child');
-        if (available && priceLabel) priceLabel.textContent = formatMoney(offering.prices[duration]);
+        if (available && priceLabel) priceLabel.textContent = formatMoney(callPrice(offering, duration));
         const detailLabel = button.querySelector('small');
         if (available && detailLabel && offering.durationLabels?.[duration]) detailLabel.textContent = offering.durationLabels[duration];
       });
@@ -815,6 +818,9 @@ if (bookingModal) {
     }
 
     if (bookingTotal) bookingTotal.textContent = formatMoney(price);
+    if (livePaymentCheck && bookingTotalLabel) {
+      bookingTotalLabel.textContent = offering.type === 'call' ? 'Live payment check' : 'Total Investment';
+    }
 
     const durationText = offering.type === 'call'
       ? `${selectedDuration}min`
@@ -995,7 +1001,7 @@ if (bookingModal) {
         phone: bookingPhone?.value.trim() || '',
         whatsapp_opt_in: whatsappOptIn?.checked ? '1' : '0',
         challenge: bookingChallenge?.value.trim() || '',
-        ...(window.SR_THEME?.livePaymentCheck === true ? {live_check: true} : {})
+        ...(livePaymentCheck ? {live_check: true} : {})
       };
       const post = async (route, data) => {
         const response = await fetch(config.api + route, {

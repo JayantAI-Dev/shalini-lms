@@ -74,7 +74,7 @@ add_action('template_redirect', static function (): void {
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
-    wp_safe_redirect(home_url('/'));
+    wp_safe_redirect(home_url('/services/'));
     exit;
 }, 0);
 
