@@ -60,7 +60,8 @@ add_action('template_redirect', static function (): void {
 
     nocache_headers();
     header('Cache-Control: private, no-store, max-age=0');
-    header('Referrer-Policy: no-referrer');
+    // Keep the activation token out of referrers while allowing Razorpay to see the checkout origin.
+    header('Referrer-Policy: ' . ($token === null ? 'strict-origin-when-cross-origin' : 'no-referrer'));
     if ($token === null) return;
 
     if (!sr_lms_live_check_token_valid($token) || !is_ssl()) {
