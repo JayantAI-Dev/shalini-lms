@@ -23,6 +23,29 @@
     return new Response(json, {status:response.status, statusText:response.statusText, headers});
   };
 })();
+
+// India is the checkout default. Customers can replace +91 with their own country code.
+document.querySelectorAll(
+  '#booking-modal [name="booking_phone"], [data-package-checkout] [name="phone"], .sr-lms-purchase [name="phone"]'
+).forEach((phone) => {
+  if (!phone.value.trim()) {
+    phone.defaultValue = '+91 ';
+    phone.value = phone.defaultValue;
+  }
+
+  const validate = () => {
+    const value = phone.value.trim();
+    const digits = value.replace(/\D/g, '');
+    const indianLength = value.startsWith('+91') ? digits.length === 12 : true;
+    const valid = /^\+?[0-9\s().-]+$/.test(value) && digits.length >= 7 && digits.length <= 15 && indianLength;
+    phone.setCustomValidity(!value || valid ? '' : 'Enter a complete phone number, including the country code for international numbers.');
+  };
+  phone.addEventListener('input', validate);
+  phone.addEventListener('change', validate);
+  phone.form?.addEventListener('reset', () => queueMicrotask(validate));
+  validate();
+});
+
 // Arrow labels use a vector icon to stay sharp and vertically centered in all browsers.
 function setCtaArrowLabel(target, label) {
   if (!target) return;

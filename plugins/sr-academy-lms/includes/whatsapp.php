@@ -29,23 +29,44 @@ function sr_lms_whatsapp_opt_in(): string {
     return '<label><input type="checkbox" name="whatsapp_opt_in" value="1"> Send confirmation for this booking or purchase to my WhatsApp number via WATI.</label>';
 }
 
+function sr_lms_whatsapp_number(string $phone): string {
+    $phone = trim($phone);
+    if (!preg_match('/^\+?[0-9\s().-]+$/D', $phone)) return '';
+    $digits = preg_replace('/\D/', '', $phone);
+    if (str_starts_with($digits, '00') && !str_starts_with($phone, '+')) {
+        $digits = substr($digits, 2);
+    } elseif (!str_starts_with($phone, '+') && preg_match('/^0?[1-9][0-9]{9}$/D', $digits)) {
+        $digits = '91' . substr($digits, -10);
+    }
+    if (str_starts_with($digits, '91') && strlen($digits) !== 12) return '';
+    return preg_match('/^[1-9][0-9]{7,14}$/D', $digits) ? $digits : '';
+}
+
+function sr_lms_whatsapp_live_enabled(): bool {
+    return defined('SR_LMS_WATI_LIVE') ? SR_LMS_WATI_LIVE === true : !empty(sr_lms_whatsapp_settings()['live']);
+}
+
 function sr_lms_queue_whatsapp(string $reference, string $mode, string $phone, string $template, array $fields): void {
     if (!sr_lms_whatsapp_ready()) return;
-    $digits = preg_replace('/\D/', '', $phone);
-    if (!str_starts_with(trim($phone), '+') && strlen($digits) === 10) $digits = '91' . $digits;
-    if (!preg_match('/^[1-9][0-9]{7,14}$/D', $digits)) return;
+    $key = 'sr_lms_wa_' . hash('sha256', $reference);
+    $digits = sr_lms_whatsapp_number($phone);
+    if ($digits === '') {
+        error_log('[SR Academy] WATI skipped ' . $key . ' invalid_number');
+        return;
+    }
     // Restrict test traffic by default, including when production sending is enabled.
     $settings = sr_lms_whatsapp_settings();
-    $live_enabled = defined('SR_LMS_WATI_LIVE') ? SR_LMS_WATI_LIVE === true : !empty($settings['live']);
     $test_number = defined('SR_LMS_WATI_TEST_NUMBER') ? SR_LMS_WATI_TEST_NUMBER : ($settings['test_number'] ?? '');
     // Staging course and consultation checkouts send sandbox confirmations to opted-in form numbers.
     $public_staging_checkout = $mode === 'test'
         && in_array($template, [SR_LMS_WATI_CALL_TEMPLATE, 'sr_course_confirmation'], true)
         && wp_parse_url(home_url(), PHP_URL_HOST) === 'darkorange-pheasant-779963.hostingersite.com';
-    if (!$public_staging_checkout && ($mode === 'test' || !$live_enabled) && $digits !== $test_number) return;
+    if (!$public_staging_checkout && ($mode === 'test' || !sr_lms_whatsapp_live_enabled()) && $digits !== sr_lms_whatsapp_number((string) $test_number)) {
+        error_log('[SR Academy] WATI skipped ' . $key . ' restricted_to_test_number');
+        return;
+    }
 
     global $wpdb;
-    $key = 'sr_lms_wa_' . hash('sha256', $reference);
     $notice = ['target'=>$digits, 'template'=>$template, 'fields'=>$fields];
     // Atomically claim this order across checkout callbacks and webhook reconciliation.
     $created = $wpdb->query($wpdb->prepare(
@@ -60,6 +81,23 @@ function sr_lms_queue_whatsapp(string $reference, string $mode, string $phone, s
         delete_option($key);
         error_log('[SR Academy] Could not queue WhatsApp confirmation ' . $key);
     }
+}
+
+function sr_lms_wati_submission_result(int $status, mixed $result, string $key, string $target): string {
+    if ($status === 401 || $status === 403) return 'authorization_rejected';
+    if ($status === 429) return 'rate_or_usage_limited';
+    if ($status === 0 || $status >= 500) return 'outcome_unknown';
+    if ($status >= 400 || ($result['success'] ?? null) === false) return 'request_rejected';
+    if (($result['success'] ?? null) !== true) return 'outcome_unknown';
+
+    foreach ((array) ($result['recipients'] ?? []) as $recipient) {
+        if (!is_array($recipient)) continue;
+        $id = $recipient['local_message_id'] ?? '';
+        $number = (string) ($recipient['phone_number'] ?? $recipient['target'] ?? '');
+        if ($id !== $key && ($id !== '' || $number !== $target)) continue;
+        return empty($recipient['errors']) ? 'accepted' : 'recipient_rejected';
+    }
+    return 'recipient_unconfirmed';
 }
 
 function sr_lms_send_whatsapp(string $key): void {
@@ -91,8 +129,10 @@ function sr_lms_send_whatsapp(string $key): void {
             'recipients'=>[['target'=>$notice['target'], 'local_message_id'=>$key, 'custom_params'=>$params]],
         ]),
     ]);
-    $status = is_wp_error($response) ? 0 : wp_remote_retrieve_response_code($response);
-    error_log('[SR Academy] WATI submission ' . $key . ' HTTP ' . (int) $status);
+    $status = is_wp_error($response) ? 0 : (int) wp_remote_retrieve_response_code($response);
+    $result = $status ? json_decode(wp_remote_retrieve_body($response), true) : null;
+    $outcome = sr_lms_wati_submission_result($status, $result, $key, $notice['target']);
+    error_log('[SR Academy] WATI submission ' . $key . ' HTTP ' . $status . ' ' . $outcome);
 }
 add_action('sr_lms_send_whatsapp', 'sr_lms_send_whatsapp');
 
@@ -106,6 +146,7 @@ function sr_lms_whatsapp_admin(): void {
     ?>
     <div class="wrap">
         <h1>WhatsApp confirmations</h1>
+        <p>Live sending: <strong><?php echo sr_lms_whatsapp_live_enabled() ? 'Enabled' : 'Restricted to the test number'; ?></strong></p>
         <?php if (isset($_GET['updated'])): ?>
             <div class="notice notice-success"><p>WhatsApp settings saved.</p></div>
         <?php endif; ?>
@@ -117,7 +158,7 @@ function sr_lms_whatsapp_admin(): void {
             </label></p>
             <p><label>WATI API key
                 <input class="regular-text" type="password" name="token" autocomplete="new-password">
-            </label> <?php echo empty($settings['token']) ? 'Enter the template-write key.' : 'A key is stored. Leave blank to keep it.'; ?></p>
+            </label> <?php echo empty($settings['token']) ? 'Enter a key authorized for WATI V3 template sends.' : 'A key is stored. Leave blank to keep it.'; ?></p>
             <p><label>Test WhatsApp number
                 <input type="tel" name="test_number" autocomplete="off" value="<?php echo esc_attr($settings['test_number'] ?? ''); ?>">
             </label> Include the country code.</p>
@@ -135,8 +176,9 @@ add_action('admin_post_sr_lms_save_whatsapp', static function (): void {
     if (!current_user_can('manage_options')) wp_die('Access denied.', '', ['response'=>403]);
     check_admin_referer('sr_lms_save_whatsapp');
     $host = trim((string) wp_unslash($_POST['host'] ?? ''));
-    $number = preg_replace('/\D/', '', (string) wp_unslash($_POST['test_number'] ?? ''));
-    if (!sr_lms_whatsapp_valid_host($host) || ($number !== '' && !preg_match('/^[1-9][0-9]{7,14}$/D', $number))) {
+    $raw_number = trim((string) wp_unslash($_POST['test_number'] ?? ''));
+    $number = sr_lms_whatsapp_number($raw_number);
+    if (!sr_lms_whatsapp_valid_host($host) || ($raw_number !== '' && $number === '')) {
         wp_die('Enter an HTTPS WATI API host and a valid international test number.', '', ['response'=>400]);
     }
     $token = trim((string) wp_unslash($_POST['token'] ?? ''));

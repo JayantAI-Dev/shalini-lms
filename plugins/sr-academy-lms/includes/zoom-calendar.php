@@ -413,7 +413,8 @@ function sr_lms_consultation_discovery(WP_REST_Request $request) {
     $phone = sanitize_text_field((string)$request->get_param('phone'));
     $date = sanitize_text_field((string)$request->get_param('date'));
     $time = sanitize_text_field((string)$request->get_param('time'));
-    if (!$name || !is_email($email) || !$phone) return new WP_Error('discovery_details', 'Enter your name, email, and phone number.', ['status'=>400]);
+    if (!$name || !is_email($email) || !preg_match('/^[0-9]{7,15}$/D', preg_replace('/\D/', '', $phone))) return new WP_Error('discovery_details', 'Enter your name, email, and a complete phone number.', ['status'=>400]);
+    if ($request->get_param('whatsapp_opt_in') === '1' && sr_lms_whatsapp_number($phone) === '') return new WP_Error('whatsapp_number', 'Enter a complete WhatsApp number with its country code.', ['status'=>400]);
 
     $slot = sr_lms_booking_slot_from_request(['booking_date'=>$date,'booking_time'=>$time,'booking_duration'=>15], true);
     if (is_wp_error($slot)) return new WP_Error($slot->get_error_code(), $slot->get_error_message(), ['status'=>400]);
@@ -478,7 +479,8 @@ function sr_lms_consultation_order(WP_REST_Request $request) {
         'color-call'=>'Personalised Colour Analysis Consultation',
         'occasion-call'=>'Personalised Occasion Styling',
     ];
-    if (!$amount || !$name || !is_email($email) || !$phone || !isset($service_names[$offer])) return new WP_Error('booking_details', 'Please complete all required booking details.', ['status'=>400]);
+    if (!$amount || !$name || !is_email($email) || !preg_match('/^[0-9]{7,15}$/D', preg_replace('/\D/', '', $phone)) || !isset($service_names[$offer])) return new WP_Error('booking_details', 'Please complete all required booking details, including a complete phone number.', ['status'=>400]);
+    if ($request->get_param('whatsapp_opt_in') === '1' && sr_lms_whatsapp_number($phone) === '') return new WP_Error('whatsapp_number', 'Enter a complete WhatsApp number with its country code.', ['status'=>400]);
     if (!$is_package) {
         $slot = sr_lms_booking_slot_from_request(['booking_date'=>$date,'booking_time'=>$time,'booking_duration'=>$duration]);
         if (is_wp_error($slot)) return new WP_Error($slot->get_error_code(), $slot->get_error_message(), ['status'=>400]);
