@@ -5,6 +5,14 @@ if (!defined('ABSPATH')) exit;
 const SR_LMS_GOOGLE_CALENDAR_OPTION = 'sr_lms_google_calendar';
 const SR_LMS_GOOGLE_CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.freebusy https://www.googleapis.com/auth/calendar.events';
 const SR_LMS_ZOOM_OPTION = 'sr_lms_zoom_meetings';
+const SR_LMS_PACKAGE_SERVICES = [
+    'comm-core'=>'Core Communication Package',
+    'comm-presence'=>'Powerful Presence Package',
+    'comm-commanding'=>'Commanding Presence Package',
+    'style-signature'=>'Signature Experience Package',
+    'style-exclusive'=>'Exclusive Transformation Package',
+    'style-vip'=>'VIP Makeover Experience Package',
+];
 
 function sr_lms_consultation_install(): void {
     if (version_compare((string) get_option('sr_lms_consultation_schema', '0'), '3', '>=')) return;
@@ -451,8 +459,7 @@ function sr_lms_consultation_discovery(WP_REST_Request $request) {
 function sr_lms_consultation_order(WP_REST_Request $request) {
     if (!sr_lms_payment_ready()) return new WP_Error('checkout_unavailable', 'Secure checkout is not available right now.', ['status'=>503]);
     $offer = sanitize_key((string) $request->get_param('offer'));
-    $package_offers = ['comm-core','comm-presence','comm-commanding','style-signature','style-exclusive','style-vip'];
-    $is_package = in_array($offer, $package_offers, true);
+    $is_package = isset(SR_LMS_PACKAGE_SERVICES[$offer]);
     if (!$is_package && (!sr_lms_google_calendar_ready() || !sr_lms_zoom_ready())) return new WP_Error('booking_unavailable', 'Online booking is not fully configured yet.', ['status'=>503]);
     $ip = sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? 'unknown');
     $rate_key = 'sr_lms_consult_order_rate_' . hash('sha256', $ip);
@@ -467,14 +474,8 @@ function sr_lms_consultation_order(WP_REST_Request $request) {
     $challenge = sanitize_textarea_field((string) $request->get_param('challenge'));
     $date = $is_package ? '' : sanitize_text_field((string) $request->get_param('date'));
     $time = $is_package ? '' : sanitize_text_field((string) $request->get_param('time'));
-    $service_names = [
+    $service_names = SR_LMS_PACKAGE_SERVICES + [
         'comm-call'=>'1:1 Communication & Confidence',
-        'comm-core'=>'Core Communication Package',
-        'comm-presence'=>'Powerful Presence Package',
-        'comm-commanding'=>'Commanding Presence Package',
-        'style-signature'=>'Signature Experience Package',
-        'style-exclusive'=>'Exclusive Transformation Package',
-        'style-vip'=>'VIP Makeover Experience Package',
         'style-call'=>'1:1 Image Styling & Confidence',
         'color-call'=>'Personalised Colour Analysis Consultation',
         'occasion-call'=>'Personalised Occasion Styling',
@@ -600,7 +601,7 @@ function sr_lms_create_consultation_meeting(array $booking) {
     }
 }
 
-function sr_lms_send_package_confirmation(array $purchase): array {
+function sr_lms_send_package_confirmation(array $purchase, bool $customer_only = false): array {
     $user = (object)['display_name'=>(string)$purchase['name']];
     $context = [
         'name'=>(string)$purchase['name'],
@@ -621,6 +622,7 @@ function sr_lms_send_package_confirmation(array $purchase): array {
             ? wp_mail($purchase['email'], $mail['subject'], $mail['message'], $mail['headers'])
             : wp_mail($purchase['email'], $fallback_subject, $fallback_html, $fallback_headers))
         : false);
+    if ($customer_only) return ['email_sent'=>(bool)$sent_user];
 
     $config = sr_lms_zoom_config();
     $admin_email = sanitize_email($config['admin_email'] ?? '');
@@ -639,6 +641,59 @@ function sr_lms_send_package_confirmation(array $purchase): array {
 
     if (!$sent_user || !$sent_admin) error_log('[SR Academy] Package purchase email delivery failed for order ' . sanitize_text_field($purchase['order_id']));
     return ['package'=>true, 'email_sent'=>(bool)$sent_user, 'team_notified'=>(bool)$sent_admin];
+}
+
+function sr_lms_retry_package_customer_email(string $payment_id) {
+    if (!preg_match('/^pay_[A-Za-z0-9]+$/D', $payment_id)) return new WP_Error('payment_reference', 'Enter a valid Razorpay payment ID.');
+    global $wpdb;
+    $stored = $wpdb->get_row($wpdb->prepare(
+        'SELECT * FROM ' . sr_lms_table('consultation_bookings') . ' WHERE gateway_payment=%s AND status=%s',
+        $payment_id, 'confirmed'
+    ), ARRAY_A);
+    $service = SR_LMS_PACKAGE_SERVICES[$stored['offer'] ?? ''] ?? null;
+    if (!$service || ($stored['mode'] ?? '') !== 'live' || !is_email($stored['customer_email'] ?? '')) {
+        return new WP_Error('package_booking', 'No confirmed live package purchase with a valid customer email was found for this payment ID.');
+    }
+
+    $order_id = $stored['gateway_order'];
+    $key = 'sr_lms_consultation_' . $order_id;
+    $booking = get_transient($key);
+    if (!empty($booking['email_sent'])) return 'The package customer email is already recorded as sent.';
+
+    $payment = sr_lms_payment_api('live', 'payments/' . $payment_id);
+    if (is_wp_error($payment)) return $payment;
+    if (($payment['status'] ?? '') !== 'captured' || ($payment['order_id'] ?? '') !== $order_id
+        || (int) ($payment['amount'] ?? 0) !== (int) $stored['amount']
+        || ($payment['currency'] ?? '') !== $stored['currency'] || !empty($payment['amount_refunded'])) {
+        return new WP_Error('payment_mismatch', 'Razorpay did not confirm an active captured payment for this package.');
+    }
+
+    $marker = 'sr_lms_package_email_retry_' . hash('sha256', $order_id);
+    $claim = $wpdb->query($wpdb->prepare(
+        "INSERT IGNORE INTO {$wpdb->options} (option_name,option_value,autoload) VALUES (%s,'sending','no')",
+        $marker
+    ));
+    if ($claim === false) return new WP_Error('email_retry_storage', 'The email retry could not be recorded. Please try again.');
+    if ($claim !== 1) {
+        return get_option($marker) === 'sent'
+            ? 'The package customer email is already recorded as sent.'
+            : new WP_Error('email_retry_pending', 'A previous retry is still in progress or its result is unknown.');
+    }
+    wp_cache_delete('notoptions', 'options');
+    $sent = sr_lms_send_package_confirmation([
+        'order_id'=>$order_id, 'payment_id'=>$payment_id, 'service'=>$service, 'amount'=>(int) $stored['amount'],
+        'name'=>$stored['customer_name'], 'email'=>$stored['customer_email'], 'phone'=>$stored['customer_phone'],
+    ], true);
+    if (empty($sent['email_sent'])) {
+        delete_option($marker);
+        return new WP_Error('email_failed', 'The mailer rejected the package customer email. Check the latest WP Mail SMTP debug event.');
+    }
+    update_option($marker, 'sent', false);
+    if (is_array($booking)) {
+        $booking['email_sent'] = true;
+        set_transient($key, $booking, DAY_IN_SECONDS);
+    }
+    return 'The package confirmation was sent to the customer email on the order.';
 }
 
 function sr_lms_consultation_verify(WP_REST_Request $request) {
