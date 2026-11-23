@@ -4,6 +4,28 @@ if (!function_exists('sr_lms_email_render')) { throw new RuntimeException('Email
 $GLOBALS['sr_email_test_count']=0;
 function sr_email_assert($ok,$message){$GLOBALS['sr_email_test_count']++;if(!$ok)throw new RuntimeException($message);}
 $user=(object)['ID'=>1,'display_name'=>'<script>alert(1)</script>','user_email'=>'fixture@example.test'];
+$use_defaults=static fn()=>['templates'=>[]];
+add_filter('pre_option_sr_lms_email_settings',$use_defaults);
+try {
+    foreach (array_keys(sr_lms_email_defaults()['templates']) as $type) {
+        $rendered=sr_lms_email_render($type,$user)['message'];
+        sr_email_assert(!str_contains($rendered,'\n'),$type.' has no literal newline markers');
+        if (in_array($type,['package_purchase_admin','discovery_booking_admin','consultation_booking_admin'],true)) {
+            sr_email_assert((bool)preg_match('~<br\s*/?>\s*Phone / WhatsApp:~',$rendered),$type.' puts the phone on its own line');
+        }
+    }
+} finally {
+    remove_filter('pre_option_sr_lms_email_settings',$use_defaults);
+}
+$legacy=static fn()=>['templates'=>['discovery_booking_admin'=>['body'=>'Customer: {name}\r\nAppointment: {appointment}\nMeeting ID: {meeting_id}']]];
+add_filter('pre_option_sr_lms_email_settings',$legacy);
+try {
+    $rendered=sr_lms_email_render('discovery_booking_admin',$user,['appointment'=>'Friday at 11:15','meeting_id'=>'12345'])['message'];
+    sr_email_assert(!str_contains($rendered,'\n')&&!str_contains($rendered,'\r'),'Saved template newlines are normalized');
+    sr_email_assert((bool)preg_match('~<br\s*/?>\s*Appointment: Friday at 11:15<br\s*/?>\s*Meeting ID: 12345~',$rendered),'Saved template formatting and values are preserved');
+} finally {
+    remove_filter('pre_option_sr_lms_email_settings',$legacy);
+}
 $mail=sr_lms_email_render('welcome',$user,['password'=>'SECRET','cta_url'=>'javascript:alert(1)']);
 sr_email_assert(!str_contains($mail['message'],'<script>'),'User data must be escaped');
 sr_email_assert(!str_contains($mail['message'],'SECRET'),'Never render password');

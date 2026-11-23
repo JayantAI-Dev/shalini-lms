@@ -13,15 +13,26 @@ function sr_lms_email_defaults(): array {
         'course_access'=>['Your course is ready: {offer_title}','Your course purchase is confirmed','Hello {name}, payment for {offer_title} is confirmed. Use the secure link below to set your password. Your student sign-in email is shown below.','Set your password'],
         'course_test_purchase'=>['Test enrollment confirmation: {offer_title}','Test enrollment confirmed','Hello {name}, this is a test confirmation for {offer_title}. The transaction was processed in Razorpay test mode; no live payment was charged. {test_access_message} {test_credentials_message}','Open Student Portal'],
         'package_purchase'=>['Package purchase confirmed: {offer_title}','Thank you for your purchase','Hello {name}, your payment for {offer_title} is confirmed. Our team will contact you within 48 hours to arrange your package.','Contact the Academy'],
-        'package_purchase_admin'=>['New package purchase: {offer_title}','A package purchase is confirmed','Customer: {name} ({customer_email})\nPhone / WhatsApp: {customer_phone}\nPackage: {offer_title}\nPlease contact the customer within 48 hours.','View booking details'],
+        'package_purchase_admin'=>['New package purchase: {offer_title}','A package purchase is confirmed',"Customer: {name} ({customer_email})\nPhone / WhatsApp: {customer_phone}\nPackage: {offer_title}\nPlease contact the customer within 48 hours.",'View booking details'],
         'discovery_booking'=>['Your free discovery call is confirmed','Your free call is booked','Hello {name}, your complimentary 15-minute discovery call is confirmed for {appointment}. A Google Calendar invitation has been sent to you and the Academy team. Use the button below to join your Zoom call. Meeting ID: {meeting_id}.','Join your Zoom call'],
-        'discovery_booking_admin'=>['New free discovery call: {name}','A free discovery call is booked','Customer: {name} ({customer_email})\nPhone / WhatsApp: {customer_phone}\nAppointment: {appointment}\nMeeting ID: {meeting_id}\nA Google Calendar invitation was sent to the customer and Academy team.','Join the Zoom call'],
+        'discovery_booking_admin'=>['New free discovery call: {name}','A free discovery call is booked',"Customer: {name} ({customer_email})\nPhone / WhatsApp: {customer_phone}\nAppointment: {appointment}\nMeeting ID: {meeting_id}\nA Google Calendar invitation was sent to the customer and Academy team.",'Join the Zoom call'],
         'consultation_booking'=>['Your consultation is confirmed: {offer_title}','Your consultation is confirmed','Hello {name}, your payment is confirmed and your consultation is booked for {appointment}. A Google Calendar invitation has been sent to you and the Academy team. Use the button below to join your Zoom call. Meeting ID: {meeting_id}.','Join your Zoom call'],
-        'consultation_booking_admin'=>['New paid consultation: {offer_title}','A paid consultation is booked','Customer: {name} ({customer_email})\nPhone / WhatsApp: {customer_phone}\nService: {offer_title}\nAppointment: {appointment}\nMeeting ID: {meeting_id}\nA Google Calendar invitation was sent to the customer and Academy team.','Join the Zoom call'],
+        'consultation_booking_admin'=>['New paid consultation: {offer_title}','A paid consultation is booked',"Customer: {name} ({customer_email})\nPhone / WhatsApp: {customer_phone}\nService: {offer_title}\nAppointment: {appointment}\nMeeting ID: {meeting_id}\nA Google Calendar invitation was sent to the customer and Academy team.",'Join the Zoom call'],
     ] as $type=>$values)$templates[$type]=array_combine(['subject','heading','body','cta'],$values)+['enabled'=>true];
     return ['brand'=>'Shalini Rathod Academy','sender_name'=>'Shalini Rathod Academy','sender_email'=>sanitize_email(get_option('admin_email')),'reply_to'=>sanitize_email(get_option('admin_email')),'support_url'=>home_url('/contact/'),'logo_url'=>'','color'=>'#125c45','templates'=>$templates];
 }
-function sr_lms_email_settings(): array { $saved=get_option('sr_lms_email_settings',[]);return array_replace_recursive(sr_lms_email_defaults(),is_array($saved)?$saved:[]); }
+function sr_lms_email_settings(): array {
+    $saved = get_option('sr_lms_email_settings', []);
+    $settings = array_replace_recursive(sr_lms_email_defaults(), is_array($saved) ? $saved : []);
+    // Older templates may have saved the literal newline sequences from the original defaults.
+    foreach ($settings['templates'] as &$template) {
+        if (isset($template['body']) && is_string($template['body'])) {
+            $template['body'] = str_replace(['\r\n', '\n', '\r', "\r\n", "\r"], "\n", $template['body']);
+        }
+    }
+    unset($template);
+    return $settings;
+}
 function sr_lms_email_sanitize_settings(array $input): array {
     $old=sr_lms_email_settings();$out=$old;
     foreach(['brand','sender_name','sender_email','reply_to','support_url','logo_url','color'] as $key){
