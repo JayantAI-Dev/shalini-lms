@@ -13252,3 +13252,12 @@ body.services-filter-packages .packages-section{margin-top:22px;padding-top:24px
 .sr-student-dropdown{top:calc(100% + 9px);right:50%;min-width:188px;width:max-content;max-width:calc(100vw - 24px);padding:5px;transform:translate(50%,4px)}
 .sr-student-menu:hover .sr-student-dropdown,.sr-student-menu:focus-within .sr-student-dropdown{transform:translate(50%,0)}
 .sr-student-dropdown a{min-height:36px;padding:8px 11px}
+
+/* Nested lesson videos for the Power Dressing course. */
+.fresh-learn .learn-lesson-group{margin:0 0 5px}
+.fresh-learn .learn-lesson-videos{display:grid;gap:3px;margin:0 0 8px 44px;padding-left:10px;border-left:1px solid #dfe9d8}
+.fresh-learn .learn-video-version{width:100%;border:0;border-radius:6px;background:transparent;color:#718071;text-align:left;font:600 11px/1.4 var(--academy-font-family,"Bricolage Grotesque"),system-ui,sans-serif;padding:6px 8px;cursor:pointer}
+.fresh-learn .learn-video-version:hover:enabled,.fresh-learn .learn-video-version[aria-current="true"]{background:#f0f5e9;color:#28533b}
+.fresh-learn .learn-video-version:disabled{opacity:.55;cursor:not-allowed}
+.fresh-learn .learn-video-caption{margin:9px 0 0;color:#718071;font-size:12px;font-weight:650}
+.fresh-learn .learn-video-caption[hidden]{display:none}
