@@ -9,7 +9,7 @@
   video.controls = false;
   const videoStage = $('video-stage');
   (videoStage || video).addEventListener('contextmenu', event => event.preventDefault());
-  const lessons = (course.modules || []).flatMap((module, week) => module.lessons.map(lesson => ({...lesson, week, weekTitle: module.title})));
+  const lessons = (course.modules || []).flatMap((module, week) => module.lessons.map((lesson, moduleLessonIndex) => ({...lesson, week, moduleLessonIndex, weekTitle: module.title})));
   if (!lessons.length) return;
   let progress = state.progress || {}, completion = state.completion;
   const practiceQueued = new Set();
@@ -133,7 +133,7 @@
     $('previous-day').closest('.learn-next-link').hidden = false;
     $('week-tag').hidden = false; $('open-worksheet').hidden = false;
     document.querySelectorAll('.learn-extra-btn').forEach(button => button.setAttribute('aria-current', 'false'));
-    setText('day-number', `LESSON ${day} / ${lessons.length}`);setText('week-tag', `MODULE ${lesson.week + 1}`);
+    setText('day-number', `LESSON ${String(lesson.moduleLessonIndex + 1).padStart(2, '0')} / ${course.modules[lesson.week].lessons.length}`);setText('week-tag', `MODULE ${lesson.week + 1}`);
     setText('challenge-day', day);setText('lesson-title', lesson.title.replace(/^Day\s*\d+\s*[·:–-]\s*/i, ''));
     setText('lesson-summary', lesson.summary || 'Your next practice lesson.');setText('lesson-practice', lesson.practice || 'Watch this lesson, then apply what you have learned.');
     setText('worksheet-link-label', lesson.pdfUrl ? `View lesson ${day} worksheet` : 'Worksheet unavailable');
