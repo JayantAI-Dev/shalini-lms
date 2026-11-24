@@ -17,6 +17,7 @@
   let pending = [], saveTimer = null, saving = false, saveAgain = false, restorePosition = 0;
   const params = new URLSearchParams(location.search);
   const node = (tag, className, text) => { const element = document.createElement(tag); if (className) element.className = className; if (text != null) element.textContent = text; return element; };
+  const lessonVideos = lesson => Array.isArray(lesson.videos) && lesson.videos.length ? lesson.videos : (lesson.videoUrl ? [{title: 'Video 1', url: lesson.videoUrl, available: Boolean(lesson.videoAvailable)}] : []);
   const time = value => {value = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0; return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;};
   const setText = (id, value) => { if ($(id)) $(id).textContent = value; };
   const status = (message, ready = false) => {setText('completion-note', message); $('completion-note')?.classList.toggle('is-ready', ready);};
@@ -46,7 +47,8 @@
       button.classList.toggle('is-completed', done); button.classList.toggle('is-missing-video', !lesson.videoAvailable);
       button.setAttribute('aria-current', mode === 'lesson' && current === index ? 'step' : 'false');
       button.querySelector('.learn-day-bullet').textContent = done ? '✓' : String(index + 1).padStart(2, '0');
-      button.querySelector('.learn-day-lock').textContent = lesson.videoAvailable ? '' : 'No video';
+      const choices = lessonVideos(lesson), available = choices.filter(item => item.available && item.url).length;
+      button.querySelector('.learn-day-lock').textContent = slug === 'power-dressing' && choices.length ? `${available}/${choices.length} videos` : lesson.videoAvailable ? '' : 'No video';
     });
     const percent = completion?.percent || 0, count = completion?.completed || 0, total = completion?.total || lessons.length;
     setText('overall-count', `${count} of ${total} complete`); setText('roadmap-done', `${count} / ${total}`);
@@ -124,9 +126,12 @@
     if (url) {video.src = url; video.playbackRate = 1; video.load();}
     updatePlayback();syncPlayback();
   }
-  function select(index) {
+  function select(index, requestedVideo = null) {
     if (index < 0 || index >= lessons.length) return;
     save(); current = index;const lesson = lessons[index], day = String(index + 1).padStart(2, '0');
+    const choices = lessonVideos(lesson), availableIndex = choices.findIndex(item => item.available && item.url);
+    const videoIndex = requestedVideo === null ? (availableIndex >= 0 ? availableIndex : 0) : requestedVideo;
+    const activeVideo = choices[videoIndex];
     document.querySelector('.learn')?.classList.remove('is-extra-video');
     $('lesson-practice').closest('.learn-practice').hidden = false;
     $('complete-and-next').closest('.learn-complete').hidden = false;
@@ -146,14 +151,17 @@
     $('previous-day').disabled = index === 0;if ($('skip-video-next')) $('skip-video-next').hidden = index === lessons.length - 1;
     setText('next-hint', index === lessons.length - 1 ? 'Final lesson' : `Up next: lesson ${index + 2}`);
     const skipLabel = $('skip-video-next')?.querySelector('span'); if (skipLabel) skipLabel.textContent = 'Next lesson (keep this one incomplete)';
-    openVideo(lesson.videoAvailable ? lesson.videoUrl : '', 'lesson', progress[lesson.id]?.position || 0);
+    document.querySelectorAll('.learn-video-version').forEach(button => button.setAttribute('aria-current', 'false'));
+    document.querySelectorAll(`.learn-video-version[data-lesson-index="${index}"]`).forEach(button => {if (Number(button.dataset.videoIndex) === videoIndex) button.setAttribute('aria-current', 'true');});
+    const caption = $('lesson-video-caption'); if (caption) {caption.textContent = activeVideo ? `Now playing · ${activeVideo.title}` : '';caption.hidden = !activeVideo;}
+    openVideo(activeVideo?.available && activeVideo.url ? activeVideo.url : (!choices.length && lesson.videoAvailable ? lesson.videoUrl : ''), 'lesson', progress[lesson.id]?.position || 0);
     updateCompletion();updateOutline();
     const url = new URL(location.href);url.searchParams.set('course', slug);url.searchParams.set('lesson', String(index + 1));history.replaceState(null, '', url);
   }
   function extra(resource, button) {
     save();document.querySelector('.learn')?.classList.add('is-extra-video');
     document.querySelectorAll('.learn-extra-btn').forEach(item => item.setAttribute('aria-current', String(item === button)));
-    setText('day-number', 'COURSE RESOURCE');setText('lesson-title', resource.title);setText('lesson-summary', resource.note || 'Additional course recording');
+    setText('day-number', 'COURSE RESOURCE');setText('lesson-title', resource.title);setText('lesson-summary', resource.note || 'Additional course recording');$('lesson-video-caption').hidden = true;
     $('week-tag').hidden = true;$('lesson-practice').closest('.learn-practice').hidden = true;$('complete-and-next').closest('.learn-complete').hidden = true;
     $('open-worksheet').hidden = true;$('watch-example').hidden = true;if ($('skip-video-next')) $('skip-video-next').hidden = false;
     openVideo(resource.url, 'extra');updateCompletion();updateOutline();
@@ -172,7 +180,21 @@
       if (lesson.week !== week) return;
       const button = node('button', 'learn-day-btn');button.type = 'button';button.dataset.day = String(index);
       button.append(node('span', 'learn-day-bullet', String(index + 1).padStart(2, '0')), node('span', 'learn-day-title', lesson.title.replace(/^Day\s*\d+\s*[·:–-]\s*/i, '')), node('span', 'learn-day-lock'));
-      button.addEventListener('click', () => select(index));group.append(button);
+      button.addEventListener('click', () => select(index));
+      const lessonGroup = node('div', 'learn-lesson-group'); lessonGroup.append(button);
+      if (slug === 'power-dressing') {
+        const choices = lessonVideos(lesson);
+        if (choices.length) {
+          const versions = node('div', 'learn-lesson-videos');
+          choices.forEach((choice, videoIndex) => {
+            const label = `${choice.title}${choice.available && choice.url ? '' : ' · not uploaded'}`;
+            const option = node('button', 'learn-video-version', label); option.type = 'button'; option.dataset.lessonIndex = String(index); option.dataset.videoIndex = String(videoIndex);
+            option.disabled = !choice.available || !choice.url; option.addEventListener('click', () => select(index, videoIndex)); versions.append(option);
+          });
+          lessonGroup.append(versions);
+        }
+      }
+      group.append(lessonGroup);
     });outline.append(group);
   });
   if (closing) resourceButton(closing, 'AFTER YOUR LESSONS');
