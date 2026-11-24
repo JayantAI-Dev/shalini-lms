@@ -13263,3 +13263,7 @@ body.services-filter-packages .packages-section{margin-top:22px;padding-top:24px
 .fresh-learn .learn-video-version:disabled{opacity:.55;cursor:not-allowed}
 .fresh-learn .learn-video-caption{margin:9px 0 0;color:#718071;font-size:12px;font-weight:650}
 .fresh-learn .learn-video-caption[hidden]{display:none}
+
+
+/* Make the video seek thumb subtler while keeping it easy to grab. */
+.fresh-learn .learn-playback-progress span:after{right:-4px;top:-2px;width:8px;height:8px;box-shadow:0 0 0 1.5px #f8faf5}
