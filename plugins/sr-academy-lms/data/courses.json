@@ -492,12 +492,58 @@
         ]
       },
       {
-        "title": "Module 4",
+        "title": "Module 4 · The Art of Accessories",
         "lessons": [
           {
-            "id": "module-4-pending",
-            "title": "Module 4 · Content pending upload",
-            "summary": "Lessons will be added in the order shown in the Module 4 Drive folder."
+            "id": "module-4-lesson-1",
+            "title": "Lesson 1 · Content pending",
+            "summary": "Two videos will be added after review.",
+            "practice": "",
+            "source": "Power Dressing · Module 4",
+            "videos": [
+              {
+                "title": "Lesson 1 · Recording A",
+                "url": ""
+              },
+              {
+                "title": "Lesson 1 · Recording B",
+                "url": ""
+              }
+            ]
+          },
+          {
+            "id": "module-4-lesson-2",
+            "title": "Lesson 2 · Content pending",
+            "summary": "Two videos will be added after review.",
+            "practice": "",
+            "source": "Power Dressing · Module 4",
+            "videos": [
+              {
+                "title": "Lesson 2 · Recording A",
+                "url": ""
+              },
+              {
+                "title": "Lesson 2 · Recording B",
+                "url": ""
+              }
+            ]
+          },
+          {
+            "id": "module-4-lesson-3",
+            "title": "Lesson 3 · Content pending",
+            "summary": "Two videos will be added after review.",
+            "practice": "",
+            "source": "Power Dressing · Module 4",
+            "videos": [
+              {
+                "title": "Lesson 3 · Recording A",
+                "url": ""
+              },
+              {
+                "title": "Lesson 3 · Recording B",
+                "url": ""
+              }
+            ]
           }
         ]
       },
