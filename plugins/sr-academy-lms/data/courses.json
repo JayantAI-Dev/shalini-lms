@@ -834,7 +834,8 @@
           }
         ]
       }
-    ]
+    ],
+    "availability": "unavailable"
   },
   "power-bundle": {
     "title": "Confidence & Style Power Bundle",
