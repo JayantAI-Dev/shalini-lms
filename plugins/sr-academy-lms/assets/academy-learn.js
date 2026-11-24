@@ -169,7 +169,7 @@
   }
   const outline = $('outline-list');outline.replaceChildren();
   const intro = (course.resources || []).find(item => item.type === 'video' && /introduction/i.test(item.title));
-  const closing = (course.resources || []).find(item => item.type === 'video' && /closing|end/i.test(item.title));
+  const closing = (course.resources || []).find(item => item.type === 'video' && /closing|end|course\s*outro/i.test(item.title));
   function resourceOption(resource) {
     const button = node('button', 'learn-extra-btn', resource.title);
     button.type = 'button';button.addEventListener('click', () => extra(resource, button));return button;
@@ -219,7 +219,7 @@
     }
     outline.append(group);
   });
-  if (closing) resourceButton(closing, 'AFTER YOUR LESSONS');
+  if (closing) resourceButton(closing, 'COURSE OUTRO');
   const resources = (course.resources || []).filter(item => item.type !== 'video');
   if (resources.length) {const group = node('div', 'learn-week-block');group.append(node('div', 'learn-week-name', 'STUDY RESOURCES'));for (const item of resources) {const link = node('a', 'sr-lms-resource-link', item.title + (item.available ? '' : ' · unavailable'));if (item.url) {link.href = item.url;link.addEventListener('click', event => {event.preventDefault();setText('worksheet-title', item.title);setText('worksheet-tag', 'STUDY RESOURCE');$('worksheet-frame').src = item.url;$('open-worksheet-tab').href = item.url;$('worksheet-error').hidden = true;$('worksheet-dialog').showModal();});} else link.setAttribute('aria-disabled', 'true');group.append(link);}outline.append(group);}
   const seekBar = $('watch-meter');
