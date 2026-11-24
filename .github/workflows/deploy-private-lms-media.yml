@@ -1,4 +1,4 @@
-name: Deploy private LMS videos
+name: Deploy Power Dressing Module 1 videos
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Secure and deploy private course videos
+    name: Deploy Power Dressing Module 1 Lesson 2 videos
     runs-on: ubuntu-latest
     steps:
       - name: Check out deployment repository
@@ -41,33 +41,6 @@ jobs:
           state-name: .ftp-deploy-public-lms-media-guard-state.json
           dangerous-clean-slate: false
 
-      - name: Download and verify Speakathon videos
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p assets/lms/videos
-          curl --fail --silent --show-error --location \
-            https://api.github.com/repos/jayantc1011/sr/releases/tags/lms-media-2026-10-14 \
-            --output /tmp/speakathon-release.json
-          release_tag="$(jq -r '.tag_name' /tmp/speakathon-release.json)"
-          echo "Release metadata received for $release_tag"
-          jq -r '.assets[] | select(.name | endswith(".mp4")) | [.name, (.size|tostring), (.id|tostring), .digest] | @tsv' \
-            /tmp/speakathon-release.json > /tmp/speakathon-videos.tsv
-          video_count="$(wc -l < /tmp/speakathon-videos.tsv | tr -d ' ')"
-          echo "Found $video_count MP4 assets"
-          test "$video_count" -ge 21 || { echo "Expected at least 21 daily lesson videos"; exit 1; }
-          while IFS="$(printf '\t')" read -r name expected_size asset_id digest; do
-            echo "Downloading $name ($expected_size bytes)"
-            curl --fail --show-error --location --retry 3 --retry-delay 2 --continue-at - \
-              -H "Accept: application/octet-stream" \
-              "https://api.github.com/repos/jayantc1011/sr/releases/assets/$asset_id" \
-              --output "assets/lms/videos/$name"
-            actual_size="$(wc -c < "assets/lms/videos/$name" | tr -d ' ')"
-            test "$actual_size" = "$expected_size" || { echo "Size mismatch for $name"; exit 1; }
-            expected_sha="${digest#sha256:}"
-            echo "$expected_sha  assets/lms/videos/$name" | sha256sum --check || { echo "Checksum mismatch for $name"; exit 1; }
-          done < /tmp/speakathon-videos.tsv
-
       - name: Download and verify Power Dressing Module 1 Lesson 2 cuts
         shell: bash
         run: |
@@ -85,13 +58,13 @@ jobs:
             curl --fail --show-error --location --retry 3 --retry-delay 2 --continue-at - \
               -H "Accept: application/octet-stream" \
               "https://api.github.com/repos/JayantAI-Dev/shalini-lms/releases/assets/$asset_id" \
-              --output "assets/lms/videos/$name"
-            actual_size="$(wc -c < "assets/lms/videos/$name" | tr -d ' ')"
+              --output "assets/lms/videos/power-dressing/$name"
+            actual_size="$(wc -c < "assets/lms/videos/power-dressing/$name" | tr -d ' ')"
             test "$actual_size" = "$expected_size" || { echo "Size mismatch for $name"; exit 1; }
             expected_sha="${digest#sha256:}"
-            echo "$expected_sha  assets/lms/videos/$name" | sha256sum --check || { echo "Checksum mismatch for $name"; exit 1; }
+            echo "$expected_sha  assets/lms/videos/power-dressing/$name" | sha256sum --check || { echo "Checksum mismatch for $name"; exit 1; }
           done < /tmp/power-dressing-videos.tsv
-          du -sh assets/lms/videos
+          du -sh assets/lms/videos/power-dressing
 
       - name: Deploy videos to the protected WordPress media folder
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
@@ -101,7 +74,7 @@ jobs:
           password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
           protocol: ftps
           port: ${{ vars.HOSTINGER_FTP_PORT || 21 }}
-          local-dir: assets/lms/videos/
+          local-dir: assets/lms/videos/power-dressing/
           server-dir: wp-content/sr-academy-private-media/assets/lms/videos/
-          state-name: .ftp-deploy-private-lms-media-state.json
+          state-name: .ftp-deploy-power-dressing-media-state.json
           dangerous-clean-slate: false
