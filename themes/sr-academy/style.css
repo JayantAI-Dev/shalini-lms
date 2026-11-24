@@ -12264,10 +12264,10 @@ html[data-package-offer="comm-package"] .package-investment-price .package-price
 .fresh-learn .learn-video-bar .learn-playback-progress {
   flex:1 1 0;
   width:auto;
-  height:4px;
+  height:18px;
   min-width:20px;
-  border-radius:8px;
-  background:rgba(255,255,255,.4);
+  border-radius:10px;
+  background:linear-gradient(transparent 7px,#e4e9dd 7px 11px,transparent 11px);
 }
 .fresh-learn .learn-video-bar .learn-playback-progress>span {
   background:#bdf35b;
