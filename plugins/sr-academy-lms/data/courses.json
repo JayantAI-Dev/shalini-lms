@@ -407,12 +407,87 @@
         ]
       },
       {
-        "title": "Module 3",
+        "title": "Module 3 · Dressing for Your Unique Shape",
         "lessons": [
           {
-            "id": "module-3-pending",
-            "title": "Module 3 · Content pending upload",
-            "summary": "Lessons will be added in the order shown in the Module 3 Drive folder."
+            "id": "module-3-lesson-1",
+            "title": "Lesson 1 · Content pending",
+            "summary": "2 videos will be added after review.",
+            "practice": "",
+            "source": "Power Dressing · Module 3",
+            "videos": [
+              {
+                "title": "Lesson 1 · Recording A",
+                "url": ""
+              },
+              {
+                "title": "Lesson 1 · Recording B",
+                "url": ""
+              }
+            ]
+          },
+          {
+            "id": "module-3-lesson-2",
+            "title": "Lesson 2 · Content pending",
+            "summary": "3 videos will be added after review.",
+            "practice": "",
+            "source": "Power Dressing · Module 3",
+            "videos": [
+              {
+                "title": "Lesson 2 · Recording A",
+                "url": ""
+              },
+              {
+                "title": "Lesson 2 · Recording B",
+                "url": ""
+              },
+              {
+                "title": "Lesson 2 · Recording C",
+                "url": ""
+              }
+            ]
+          },
+          {
+            "id": "module-3-lesson-3",
+            "title": "Lesson 3 · Content pending",
+            "summary": "3 videos will be added after review.",
+            "practice": "",
+            "source": "Power Dressing · Module 3",
+            "videos": [
+              {
+                "title": "Lesson 3 · Recording A",
+                "url": ""
+              },
+              {
+                "title": "Lesson 3 · Recording B",
+                "url": ""
+              },
+              {
+                "title": "Lesson 3 · Recording C",
+                "url": ""
+              }
+            ]
+          },
+          {
+            "id": "module-3-lesson-4",
+            "title": "Lesson 4 · Content pending",
+            "summary": "3 videos will be added after review.",
+            "practice": "",
+            "source": "Power Dressing · Module 3",
+            "videos": [
+              {
+                "title": "Lesson 4 · Recording A",
+                "url": ""
+              },
+              {
+                "title": "Lesson 4 · Recording B",
+                "url": ""
+              },
+              {
+                "title": "Lesson 4 · Recording C",
+                "url": ""
+              }
+            ]
           }
         ]
       },
