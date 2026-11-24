@@ -361,7 +361,7 @@
             "source": "Power Dressing · Module 2",
             "videos": [
               {
-                "title": "Lesson 1 · Part 1",
+                "title": "Lesson 1: The Language of Color",
                 "url": "assets/lms/videos/module-02-lesson-01-v1.mp4"
               },
               {
@@ -566,8 +566,18 @@
             "summary": "Explore why you shop, what triggers impulse buys, and how your personal style should guide each purchase.",
             "practice": "Complete a shopping identity audit: note your shopping triggers, common wardrobe regrets, and what you want shopping to feel like.",
             "source": "Power Dressing · Module 5",
-            "videos": [],
-            "duration": 0
+            "videos": [
+              {
+                "title": "Shopping Identity and Mindset · Part 1",
+                "url": "assets/lms/videos/module-05-lesson-01-v1.mp4"
+              },
+              {
+                "title": "Shopping Identity and Mindset · Part 2",
+                "url": "assets/lms/videos/module-05-lesson-01-v2.mp4"
+              }
+            ],
+            "duration": 0,
+            "videoUrl": "assets/lms/videos/module-05-lesson-01-v1.mp4"
           },
           {
             "id": "module-5-lesson-2",
