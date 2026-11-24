@@ -37,7 +37,7 @@
         <h1 id="lesson-title">Get comfortable speaking on camera</h1>
         <p id="lesson-summary" class="learn-summary">Build confidence through short daily practice.</p>
         <div class="learn-practice">
-          <h2><span class="learn-practice-icon" aria-hidden="true">✦</span> Day <span id="challenge-day">01</span> · Today's challenge</h2>
+          <h2><span class="learn-practice-icon" aria-hidden="true">✦</span> <span id="challenge-heading-label">Day 01 · Today's challenge</span></h2>
           <p id="lesson-practice"></p>
         </div>
         <button id="open-worksheet" class="learn-pdf-link" type="button">
