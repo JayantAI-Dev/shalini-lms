@@ -301,8 +301,10 @@
           {
             "id": "module-1-lesson-2",
             "title": "Lesson 2",
-            "summary": "Source: Module 1 · M1: LESSON 2. Three video cuts are available; recording awaits private media deployment and cut review.",
-            "source": "Google Drive · Image Makeover Final Course / Module 1 / M1: LESSON 2"
+            "summary": "Build your personal style one lesson at a time.",
+            "source": "Google Drive · Image Makeover Final Course / Module 1 / M1: LESSON 2",
+            "practice": "Watch this lesson, then try one idea with your own wardrobe.",
+            "videoUrl": "assets/lms/videos/module-01-lesson-02-v3.mp4"
           },
           {
             "id": "module-1-lesson-3",
