@@ -180,8 +180,10 @@
   }
   let introButton = null;
   const extraVideos = (course.resources || []).filter(item => item.type === 'video' && item !== intro && item !== closing);
+  const module5Example = extraVideos.find(item => /Module\\s*5.*Practical Example/i.test(item.title));
   (course.modules || []).forEach((module, week) => {
     const group = node('div', 'learn-week-block');group.append(node('div', 'learn-week-name', module.title));
+    if (week === 4 && intro) {introButton = resourceOption(intro);group.append(introButton);}
     lessons.forEach((lesson, index) => {
       if (lesson.week !== week) return;
       const button = node('button', 'learn-day-btn');button.type = 'button';button.dataset.day = String(index);
@@ -202,9 +204,9 @@
         }
       }
       group.append(lessonGroup);
+      if (week === 4 && lesson.moduleLessonIndex === 0 && module5Example) group.append(resourceOption(module5Example));
     });
-    const moduleExtras = extraVideos.filter(item => new RegExp('\\bModule\\s+' + (week + 1) + '\\b', 'i').test(item.title));
-    if (week === 4 && intro) moduleExtras.unshift(intro);
+    const moduleExtras = extraVideos.filter(item => item !== module5Example && new RegExp('\\bModule\\s+' + (week + 1) + '\\b', 'i').test(item.title));
     if (moduleExtras.length) {
       const extraGroup = node('div', 'learn-week-block learn-extra-block');
       extraGroup.append(node('div', 'learn-week-name', 'MODULE ' + (week + 1) + ' RESOURCES'));
