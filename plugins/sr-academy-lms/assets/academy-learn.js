@@ -185,6 +185,7 @@
   const module7Intro = extraVideos.find(item => /Module\\s*7.*Introduction/i.test(item.title)) || (course.resources || []).find(item => item.type === 'video' && /Module\\s*7.*Introduction/i.test(item.title));
   (course.modules || []).forEach((module, week) => {
     const group = node('div', 'learn-week-block');group.append(node('div', 'learn-week-name', module.title));
+    if (week === 0 && slug === 'speakathon' && intro) {introButton = resourceOption(intro);group.append(introButton);}
     if (week === 4 && intro) {introButton = resourceOption(intro);group.append(introButton);}
     if (week === 5 && module6Intro) group.append(resourceOption(module6Intro));
     if (week === 6 && module7Intro) group.append(resourceOption(module7Intro));
