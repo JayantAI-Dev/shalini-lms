@@ -284,44 +284,91 @@
       "Self-paced"
     ],
     "includes": [
-      "4.9-Star Learner Rating",
-      "7 Curated Modules",
-      "25 Expert-Led Lessons",
-      "Bite-Sized 4–5 Minute Videos",
-      "Exclusive Study Resources",
+      "7 modules organized from the course Drive folders",
+      "Lesson videos and study resources added as each module is reviewed",
       "Complimentary 1:1 Styling Session"
     ],
     "modules": [
       {
-        "title": "Power Dressing / Styling · 7 modules",
+        "title": "Module 1",
         "lessons": [
           {
-            "id": "color-palettes",
-            "title": "Flattering color palettes · Lesson awaiting upload"
+            "id": "module-1-lesson-1",
+            "title": "Lesson 1",
+            "summary": "Source: Module 1 · M1: LESSON 1. Two video cuts are available; recording awaits private media deployment and cut review.",
+            "source": "Google Drive · Image Makeover Final Course / Module 1 / M1: LESSON 1"
           },
           {
-            "id": "body-proportion",
-            "title": "Body proportion and balance · Lesson awaiting upload"
+            "id": "module-1-lesson-2",
+            "title": "Lesson 2",
+            "summary": "Source: Module 1 · M1: LESSON 2. Three video cuts are available; recording awaits private media deployment and cut review.",
+            "source": "Google Drive · Image Makeover Final Course / Module 1 / M1: LESSON 2"
           },
           {
-            "id": "cut-and-fit",
-            "title": "Cut, fit and flattering silhouettes · Lesson awaiting upload"
-          },
+            "id": "module-1-lesson-3",
+            "title": "Lesson 3",
+            "summary": "Source: Module 1 · M1: LESSON 3. Two video cuts are available; recording awaits private media deployment and cut review.",
+            "source": "Google Drive · Image Makeover Final Course / Module 1 / M1: LESSON 3"
+          }
+        ]
+      },
+      {
+        "title": "Module 2",
+        "lessons": [
           {
-            "id": "capsule-wardrobe",
-            "title": "Build a 30-piece capsule wardrobe · Lesson awaiting upload"
-          },
+            "id": "module-2-pending",
+            "title": "Module 2 · Content pending upload",
+            "summary": "Lessons will be added in the order shown in the Module 2 Drive folder."
+          }
+        ]
+      },
+      {
+        "title": "Module 3",
+        "lessons": [
           {
-            "id": "fabric-guide",
-            "title": "Fabric and garment choices · Lesson awaiting upload"
-          },
+            "id": "module-3-pending",
+            "title": "Module 3 · Content pending upload",
+            "summary": "Lessons will be added in the order shown in the Module 3 Drive folder."
+          }
+        ]
+      },
+      {
+        "title": "Module 4",
+        "lessons": [
           {
-            "id": "smart-shopping",
-            "title": "Smart shopping for a versatile wardrobe · Lesson awaiting upload"
-          },
+            "id": "module-4-pending",
+            "title": "Module 4 · Content pending upload",
+            "summary": "Lessons will be added in the order shown in the Module 4 Drive folder."
+          }
+        ]
+      },
+      {
+        "title": "Module 5",
+        "lessons": [
           {
-            "id": "accessories-finishing",
-            "title": "Accessories and finishing touches · Lesson awaiting upload"
+            "id": "module-5-pending",
+            "title": "Module 5 · Content pending upload",
+            "summary": "Lessons will be added in the order shown in the Module 5 Drive folder."
+          }
+        ]
+      },
+      {
+        "title": "Module 6",
+        "lessons": [
+          {
+            "id": "module-6-pending",
+            "title": "Module 6 · Content pending upload",
+            "summary": "Lessons will be added in the order shown in the Module 6 Drive folder."
+          }
+        ]
+      },
+      {
+        "title": "Module 7",
+        "lessons": [
+          {
+            "id": "module-7-pending",
+            "title": "Module 7 · Content pending upload",
+            "summary": "Lessons will be added in the order shown in the Module 7 Drive folder."
           }
         ]
       }
