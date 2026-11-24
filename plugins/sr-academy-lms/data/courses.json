@@ -689,22 +689,18 @@
         "lessons": [
           {
             "id": "module-7-pending",
-            "title": "Lesson 1 · Decode Dress Codes & Read the Occasion",
-            "summary": "Identify dress codes and use event details, mood, and desired impression to plan an appropriate outfit.",
-            "practice": "Review the matching workbook worksheet and complete its reflection activity.",
+            "title": "Lesson 1 · The Full-Expression Blueprint",
+            "summary": "Use the Fit–Fabric–Form Rule to bring an outfit together: choose the right fit, fabric, and form for the occasion and your personal style.",
+            "practice": "Plan one outfit using the Fit–Fabric–Form Rule.",
             "source": "Power Dressing · Module 7 · Workbook worksheets 1–2",
             "duration": 0,
             "videos": [
               {
-                "title": "Decode Dress Codes & Read the Occasion · Part 1",
-                "url": "assets/lms/videos/module-07-lesson-01-v1.mp4"
-              },
-              {
-                "title": "Decode Dress Codes & Read the Occasion · Part 2",
+                "title": "The Fit–Fabric–Form Rule",
                 "url": "assets/lms/videos/module-07-lesson-01-v2.mp4"
               }
             ],
-            "videoUrl": "assets/lms/videos/module-07-lesson-01-v1.mp4"
+            "videoUrl": "assets/lms/videos/module-07-lesson-01-v2.mp4"
           },
           {
             "id": "module-7-lesson-2",
@@ -715,11 +711,11 @@
             "duration": 0,
             "videos": [
               {
-                "title": "Signature Outfits for Key Life Moments · Part 1",
+                "title": "Outfit Formulas for Interviews and Dates",
                 "url": "assets/lms/videos/module-07-lesson-02-v1.mp4"
               },
               {
-                "title": "Signature Outfits for Key Life Moments · Part 2",
+                "title": "Signature Looks for Presentations and Events",
                 "url": "assets/lms/videos/module-07-lesson-02-v2.mp4"
               }
             ],
@@ -727,18 +723,18 @@
           },
           {
             "id": "module-7-lesson-3",
-            "title": "Lesson 3 · Body Language & Presence",
+            "title": "Lesson 3 · Beyond Clothing: Body Language & Presence",
             "summary": "Notice how clothing affects how you feel and practice confident posture, pace, and gestures.",
             "practice": "Review the matching workbook worksheet and complete its reflection activity.",
             "source": "Power Dressing · Module 7 · Workbook worksheet 4",
             "duration": 0,
             "videos": [
               {
-                "title": "Body Language & Presence · Part 1",
+                "title": "Confident Posture and Presence",
                 "url": "assets/lms/videos/module-07-lesson-03-v1.mp4"
               },
               {
-                "title": "Body Language & Presence · Part 2",
+                "title": "Gestures That Communicate Confidence",
                 "url": "assets/lms/videos/module-07-lesson-03-v2.mp4"
               }
             ],
@@ -746,22 +742,22 @@
           },
           {
             "id": "module-7-lesson-4",
-            "title": "Lesson 4 · Capsule Wardrobe & Confidence Integration",
-            "summary": "Build a practical capsule, assess outfit confidence, and capture the style shifts you want to carry forward.",
-            "practice": "Review the matching workbook worksheet and complete its reflection activity.",
+            "title": "Lesson 4 · Creating a Versatile Capsule Wardrobe",
+            "summary": "Build a practical capsule wardrobe, integrate your personal style, and create versatile outfits for everyday life and special occasions.",
+            "practice": "Choose a small set of wardrobe pieces and create several outfits from them.",
             "source": "Power Dressing · Module 7 · Workbook worksheets 5–7 and final reflection",
             "duration": 0,
             "videos": [
               {
-                "title": "Capsule Wardrobe & Confidence Integration · Part 1",
+                "title": "Building Your Capsule Wardrobe",
                 "url": "assets/lms/videos/module-07-lesson-04-v1.mp4"
               },
               {
-                "title": "Capsule Wardrobe & Confidence Integration · Part 2",
+                "title": "Mixing and Matching for More Outfits",
                 "url": "assets/lms/videos/module-07-lesson-04-v2.mp4"
               },
               {
-                "title": "Capsule Wardrobe & Confidence Integration · Part 3",
+                "title": "Final Style Integration and Confidence",
                 "url": "assets/lms/videos/module-07-lesson-04-v3.mp4"
               }
             ],
