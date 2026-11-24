@@ -13240,3 +13240,9 @@ body.services-filter-packages .packages-section{margin-top:22px;padding-top:24px
 .sr-dashboard-page .sr-dashboard-empty,.sr-dashboard-page .sr-dashboard-requests{border-color:#d9e5d4;border-radius:16px;box-shadow:0 8px 24px #20452e08}
 @media(max-width:767px){.sr-dashboard-page .sr-dashboard-heading h1{font-size:clamp(32px,8vw,42px)}.sr-dashboard-page .sr-dashboard-panel{padding:22px 18px}.sr-student-dropdown{right:-8px}}
 @media(prefers-reduced-motion:reduce){.sr-student-dropdown,.sr-dashboard-page .sr-dashboard-course{transition:none}}
+
+/* Keep the signed-in menu snug and centered directly under its trigger. */
+.sr-student-menu::after{height:0}
+.sr-student-dropdown{top:100%;right:50%;padding:4px;transform:translate(50%,4px)}
+.sr-student-menu:hover .sr-student-dropdown,.sr-student-menu:focus-within .sr-student-dropdown{transform:translate(50%,0)}
+.sr-student-dropdown a{min-height:36px;padding:8px 11px}
