@@ -153,7 +153,7 @@
     const skipLabel = $('skip-video-next')?.querySelector('span'); if (skipLabel) skipLabel.textContent = 'Next lesson (keep this one incomplete)';
     document.querySelectorAll('.learn-video-version').forEach(button => button.setAttribute('aria-current', 'false'));
     document.querySelectorAll(`.learn-video-version[data-lesson-index="${index}"]`).forEach(button => {if (Number(button.dataset.videoIndex) === videoIndex) button.setAttribute('aria-current', 'true');});
-    const caption = $('lesson-video-caption'); if (caption) {caption.textContent = activeVideo ? `Now playing · ${activeVideo.title}` : '';caption.hidden = !activeVideo;}
+    const caption = $('lesson-video-caption'); if (caption) {const isPlayingVideo = Boolean(activeVideo?.available && activeVideo.url);caption.textContent = isPlayingVideo ? `Now playing · ${activeVideo.title}` : '';caption.hidden = !isPlayingVideo;}
     openVideo(activeVideo?.available && activeVideo.url ? activeVideo.url : (!choices.length && lesson.videoAvailable ? lesson.videoUrl : ''), 'lesson', progress[lesson.id]?.position || 0);
     updateCompletion();updateOutline();
     const url = new URL(location.href);url.searchParams.set('course', slug);url.searchParams.set('lesson', String(index + 1));history.replaceState(null, '', url);
