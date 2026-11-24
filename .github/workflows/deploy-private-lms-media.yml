@@ -66,6 +66,43 @@ jobs:
           done < /tmp/power-dressing-videos.tsv
           du -sh assets/lms/videos/power-dressing
 
+
+      - name: Download and verify Power Dressing Modules 6 and 7 videos from Drive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/lms/videos
+          cat > /tmp/power-dressing-modules-6-7.tsv <<'EOF'
+          1hV2W6uPhw1JW3ZhdGke_gPD-rXviJUYi module-06-intro.mp4 236413939
+          1Bsh4HSuPvhzv-zcnirLdUjhRdkfaYmTI module-06-lesson-01-v1.mp4 583348427
+          1DvQAnGe6se6qNj9DWPk1PICVSlLL_ww3 module-06-lesson-01-v2.mp4 404358076
+          13owrTckSB6tO7wWIDQR927C0RrGOi2Mi module-06-lesson-02-v1.mp4 392391824
+          1kdO3RuiZo3ZhEUUT7UReb0h5J8DXRJ2_ module-06-lesson-02-v2.mp4 283604240
+          1-ShqihY3tAZmqm_JS6jU_r9771_FIwc_ module-06-lesson-03-v1.mp4 361263313
+          1Ll5XPSc_x3oo-B0Y6sCV1o_qTKSqjwND module-06-lesson-04-v1.mp4 456806317
+          1qWoCouFPObvFQdMBuRCr94HQBtpga2vv module-06-mini-practice.mp4 286421138
+          1kBMCacZ8oIwqjuGZB7LOsrIRM3XjE_FI module-07-lesson-01-v1.mp4 394608064
+          1FmaDN8zKx2M7O8meCYwp20tF232axu6u module-07-lesson-01-v2.mp4 302240877
+          1AWZApz9kMKZpkZ3Rb4RRXb4g44hU52DW module-07-lesson-02-v1.mp4 362434516
+          1wEC-MWGlsHDYBnnxR1Oq_9C1DyTmcnH4 module-07-lesson-02-v2.mp4 366325858
+          1W3zyhjENufCothz2n_R4H7VdbhP_EJ3I module-07-lesson-03-v1.mp4 347163465
+          196nw7DBMLCLkRwGs3ANJvwmzF8Ai7EwZ module-07-lesson-03-v2.mp4 298324993
+          1HdB4XIuTie1UpB2rY3Q_MyuPEy9ecLO6 module-07-lesson-04-v1.mp4 432129923
+          19n4x7FYRcgqvZyQKNlEE9vtsFxFLe8jr module-07-lesson-04-v2.mp4 328052768
+          1MO5wVtv4GFnM6fUYPT15DUMH8c7yHr5Z module-07-lesson-04-v3.mp4 134941658
+          11y7jVVA35ewQpc_ZnLBGyx9PF_q3wQ6b module-07-outro.mp4 193196500
+          EOF
+          while read -r file_id name expected_size; do
+            echo "Downloading $name ($expected_size bytes) from Drive"
+            url="https://drive.usercontent.google.com/download?id=${file_id}&export=download&confirm=t"
+            curl --fail --silent --show-error --location --retry 3 --retry-delay 2 --continue-at - \\
+              "${url}" --output "assets/lms/videos/${name}"
+            actual_size="$(wc -c < "assets/lms/videos/${name}" | tr -d ' ')"
+            test "${actual_size}" = "${expected_size}" || { echo "Download verification failed for ${name}: got ${actual_size} bytes"; exit 1; }
+          done < /tmp/power-dressing-modules-6-7.tsv
+          sha256sum assets/lms/videos/module-06-*.mp4 assets/lms/videos/module-07-*.mp4
+          du -sh assets/lms/videos
+
       - name: Deploy videos to the protected WordPress media folder
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
@@ -77,4 +114,17 @@ jobs:
           local-dir: assets/lms/videos/power-dressing/
           server-dir: wp-content/sr-academy-private-media/assets/lms/videos/
           state-name: .ftp-deploy-power-dressing-media-state.json
+          dangerous-clean-slate: false
+
+      - name: Deploy Modules 6 and 7 videos to the protected WordPress media folder
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          protocol: ftps
+          port: ${{ vars.HOSTINGER_FTP_PORT || 21 }}
+          local-dir: assets/lms/videos/
+          server-dir: wp-content/sr-academy-private-media/assets/lms/videos/
+          state-name: .ftp-deploy-power-dressing-modules-6-7-media-state.json
           dangerous-clean-slate: false
