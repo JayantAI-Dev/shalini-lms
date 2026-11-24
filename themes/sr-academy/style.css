@@ -13246,3 +13246,9 @@ body.services-filter-packages .packages-section{margin-top:22px;padding-top:24px
 .sr-student-dropdown{top:100%;right:50%;padding:4px;transform:translate(50%,4px)}
 .sr-student-menu:hover .sr-student-dropdown,.sr-student-menu:focus-within .sr-student-dropdown{transform:translate(50%,0)}
 .sr-student-dropdown a{min-height:36px;padding:8px 11px}
+
+/* Add breathing room and keep the dropdown visually centered under Student Portal. */
+.sr-student-menu::after{height:12px}
+.sr-student-dropdown{top:calc(100% + 9px);right:50%;min-width:188px;width:max-content;max-width:calc(100vw - 24px);padding:5px;transform:translate(50%,4px)}
+.sr-student-menu:hover .sr-student-dropdown,.sr-student-menu:focus-within .sr-student-dropdown{transform:translate(50%,0)}
+.sr-student-dropdown a{min-height:36px;padding:8px 11px}
