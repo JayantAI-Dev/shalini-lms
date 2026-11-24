@@ -414,17 +414,17 @@
         "lessons": [
           {
             "id": "module-3-lesson-1",
-            "title": "Lesson 1 · Content pending",
-            "summary": "2 videos will be added after review.",
+            "title": "Lesson 1 · Understanding Your Body Shape",
+            "summary": "Understanding Your Body Shape",
             "practice": "",
             "source": "Power Dressing · Module 3",
             "videos": [
               {
-                "title": "Lesson 1 · Part 1",
+                "title": "Understanding your Body structure",
                 "url": "assets/lms/videos/module-03-lesson-01-v1.mp4"
               },
               {
-                "title": "Lesson 1 · Part 2",
+                "title": "The 5 Common Body shape",
                 "url": "assets/lms/videos/module-03-lesson-01-v2.mp4"
               }
             ],
