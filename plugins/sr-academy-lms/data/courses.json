@@ -599,22 +599,152 @@
         ]
       },
       {
-        "title": "Module 6",
+        "title": "Module 6 · The Occasion-Elegance",
         "lessons": [
           {
             "id": "module-6-pending",
-            "title": "Module 6 · Content pending upload",
-            "summary": "Lessons will be added in the order shown in the Module 6 Drive folder."
+            "title": "Lesson 1 · Shopping Identity & Occasion-Based Dressing",
+            "summary": "Reflect on your current style and use the occasion planner to choose outfits that fit the setting and the way you want to feel.",
+            "practice": "Review the matching workbook worksheet and complete its reflection activity.",
+            "source": "Power Dressing · Module 6 · Workbook worksheets 1–2",
+            "duration": 0,
+            "videos": [
+              {
+                "title": "Shopping Identity & Occasion-Based Dressing · Part 1",
+                "url": ""
+              },
+              {
+                "title": "Shopping Identity & Occasion-Based Dressing · Part 2",
+                "url": ""
+              }
+            ]
+          },
+          {
+            "id": "module-6-lesson-2",
+            "title": "Lesson 2 · Ethnic Color, Fabric & Craft Choices",
+            "summary": "Map color families to event energy and identify fabrics and crafts that suit your preferences.",
+            "practice": "Review the matching workbook worksheet and complete its reflection activity.",
+            "source": "Power Dressing · Module 6 · Workbook worksheets 3 and 5",
+            "duration": 0,
+            "videos": [
+              {
+                "title": "Ethnic Color, Fabric & Craft Choices · Part 1",
+                "url": ""
+              },
+              {
+                "title": "Ethnic Color, Fabric & Craft Choices · Part 2",
+                "url": ""
+              }
+            ]
+          },
+          {
+            "id": "module-6-lesson-3",
+            "title": "Lesson 3 · Accessories & Mix-and-Match Styling",
+            "summary": "Plan accessories for different occasions and build multiple looks from pieces you already own.",
+            "practice": "Review the matching workbook worksheet and complete its reflection activity.",
+            "source": "Power Dressing · Module 6 · Workbook worksheets 6–7",
+            "duration": 0,
+            "videos": [
+              {
+                "title": "Accessories & Mix-and-Match Styling · Part 1",
+                "url": ""
+              }
+            ]
+          },
+          {
+            "id": "module-6-lesson-4",
+            "title": "Lesson 4 · Outfit Confidence & Reflection",
+            "summary": "Style one outfit for different settings, record your confidence, and reflect on what you want to improve.",
+            "practice": "Review the matching workbook worksheet and complete its reflection activity.",
+            "source": "Power Dressing · Module 6 · Workbook worksheet 4 and final reflection",
+            "duration": 0,
+            "videos": [
+              {
+                "title": "Outfit Confidence & Reflection · Part 1",
+                "url": ""
+              }
+            ]
           }
         ]
       },
       {
-        "title": "Module 7",
+        "title": "Module 7 · Confident Dressing for Every Occasion and Beyond",
         "lessons": [
           {
             "id": "module-7-pending",
-            "title": "Module 7 · Content pending upload",
-            "summary": "Lessons will be added in the order shown in the Module 7 Drive folder."
+            "title": "Lesson 1 · Decode Dress Codes & Read the Occasion",
+            "summary": "Identify dress codes and use event details, mood, and desired impression to plan an appropriate outfit.",
+            "practice": "Review the matching workbook worksheet and complete its reflection activity.",
+            "source": "Power Dressing · Module 7 · Workbook worksheets 1–2",
+            "duration": 0,
+            "videos": [
+              {
+                "title": "Decode Dress Codes & Read the Occasion · Part 1",
+                "url": ""
+              },
+              {
+                "title": "Decode Dress Codes & Read the Occasion · Part 2",
+                "url": ""
+              }
+            ]
+          },
+          {
+            "id": "module-7-lesson-2",
+            "title": "Lesson 2 · Signature Outfits for Key Life Moments",
+            "summary": "Create outfit formulas for interviews, dates, presentations, networking, and celebrations.",
+            "practice": "Review the matching workbook worksheet and complete its reflection activity.",
+            "source": "Power Dressing · Module 7 · Workbook worksheet 3",
+            "duration": 0,
+            "videos": [
+              {
+                "title": "Signature Outfits for Key Life Moments · Part 1",
+                "url": ""
+              },
+              {
+                "title": "Signature Outfits for Key Life Moments · Part 2",
+                "url": ""
+              }
+            ]
+          },
+          {
+            "id": "module-7-lesson-3",
+            "title": "Lesson 3 · Body Language & Presence",
+            "summary": "Notice how clothing affects how you feel and practice confident posture, pace, and gestures.",
+            "practice": "Review the matching workbook worksheet and complete its reflection activity.",
+            "source": "Power Dressing · Module 7 · Workbook worksheet 4",
+            "duration": 0,
+            "videos": [
+              {
+                "title": "Body Language & Presence · Part 1",
+                "url": ""
+              },
+              {
+                "title": "Body Language & Presence · Part 2",
+                "url": ""
+              }
+            ]
+          },
+          {
+            "id": "module-7-lesson-4",
+            "title": "Lesson 4 · Capsule Wardrobe & Confidence Integration",
+            "summary": "Build a practical capsule, assess outfit confidence, and capture the style shifts you want to carry forward.",
+            "practice": "Review the matching workbook worksheet and complete its reflection activity.",
+            "source": "Power Dressing · Module 7 · Workbook worksheets 5–7 and final reflection",
+            "duration": 0,
+            "videos": [
+              {
+                "title": "Capsule Wardrobe & Confidence Integration · Part 1",
+                "url": ""
+              },
+              {
+                "title": "Capsule Wardrobe & Confidence Integration · Part 2",
+                "url": ""
+              },
+              {
+                "title": "Capsule Wardrobe & Confidence Integration · Part 3",
+                "url": ""
+              }
+            ]
           }
         ]
       }
