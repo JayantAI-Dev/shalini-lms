@@ -454,21 +454,21 @@
           },
           {
             "id": "module-3-lesson-3",
-            "title": "Lesson 3 · Content pending",
-            "summary": "3 videos will be added after review.",
+            "title": "Lesson 3 · Honoring Your Face Shape",
+            "summary": "Honoring Your Face Shape",
             "practice": "",
             "source": "Power Dressing · Module 3",
             "videos": [
               {
-                "title": "Lesson 3 · Part 1",
+                "title": "Face shape and Styling",
                 "url": "assets/lms/videos/module-03-lesson-03-v1.mp4"
               },
               {
-                "title": "Lesson 3 · Part 2",
+                "title": "Styling Guide: Necklines",
                 "url": "assets/lms/videos/module-03-lesson-03-v2.mp4"
               },
               {
-                "title": "Lesson 3 · Part 3",
+                "title": "The Golden Rule of Contrast",
                 "url": "assets/lms/videos/module-03-lesson-03-v3.mp4"
               }
             ],
