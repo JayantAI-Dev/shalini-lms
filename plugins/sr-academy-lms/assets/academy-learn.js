@@ -7,6 +7,8 @@
   const video = $('lesson-media');
   if (!video || !$('outline-list')) return;
   video.controls = false;
+  const videoStage = $('video-stage');
+  (videoStage || video).addEventListener('contextmenu', event => event.preventDefault());
   const lessons = (course.modules || []).flatMap((module, week) => module.lessons.map(lesson => ({...lesson, week, weekTitle: module.title})));
   if (!lessons.length) return;
   let progress = state.progress || {}, completion = state.completion;
@@ -181,7 +183,7 @@
   video.addEventListener('loadedmetadata', () => {if (restorePosition > 0 && restorePosition < video.duration - 1) video.currentTime = restorePosition;restorePosition = 0;updatePlayback();});
   video.addEventListener('error', () => {if (!video.getAttribute('src')) return;missing = true;video.hidden = true;$('video-missing').hidden = false;status('This recording is unavailable. Contact the academy if you expect access.');updateCompletion();syncPlayback();});
   $('volume-toggle').addEventListener('click', () => {video.muted = !video.muted;$('volume-toggle').setAttribute('aria-label', video.muted ? 'Unmute video' : 'Mute video');});
-  $('full-screen').addEventListener('click', async () => {try {if (document.fullscreenElement) await document.exitFullscreen();else if ($('video-stage').requestFullscreen) await $('video-stage').requestFullscreen();else video.webkitEnterFullscreen?.();} catch (_) {status('Full screen is unavailable in this browser.');}});
+  $('full-screen').addEventListener('click', async () => {try {if (document.fullscreenElement) await document.exitFullscreen();else if (videoStage?.requestFullscreen) await videoStage.requestFullscreen();else video.webkitEnterFullscreen?.();} catch (_) {status('Full screen is unavailable in this browser.');}});
   practiceInput.addEventListener('change', () => {if (practiceInput.checked) save(true);else practiceInput.checked = Boolean(progress[lessons[current].id]?.practice);});
   $('complete-and-next').addEventListener('click', async () => {const index = current;if (await save()) {if (progress[lessons[index].id]?.complete && index < lessons.length - 1) select(index + 1);else updateCompletion();}});
   $('previous-day').addEventListener('click', () => select(current - 1));$('skip-video-next')?.addEventListener('click', () => select(mode === 'extra' ? 0 : current + 1));

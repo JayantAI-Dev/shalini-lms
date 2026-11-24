@@ -8,6 +8,8 @@ const source = fs.readFileSync(path.resolve(__dirname, '../assets/academy-learn.
 async function test() {
   const dom = new JSDOM(html, {url: 'http://lms.local/learn/?course=speakathon&lesson=1', runScripts: 'outside-only'});
   const {window} = dom;
+  let playCalls = 0;
+  window.HTMLMediaElement.prototype.play = async () => { playCalls++; };
   window.HTMLMediaElement.prototype.pause = () => {};
   window.HTMLMediaElement.prototype.load = () => {};
   window.setInterval = () => 1;
@@ -21,11 +23,18 @@ async function test() {
   assert.equal(window.document.getElementById('lesson-title').textContent, 'Fixture lesson');
   assert.equal(window.document.getElementById('lesson-practice').textContent, lesson.practice);
   assert.equal(window.document.getElementById('lesson-media').src, lesson.videoUrl);
-  assert.equal(window.document.getElementById('lesson-media').controls, true, 'native video controls provide keyboard and pointer seeking');
+  const video = window.document.getElementById('lesson-media');
+  const contextMenu = () => new window.MouseEvent('contextmenu', {bubbles: true, cancelable: true});
+  assert.equal(video.dispatchEvent(contextMenu()), false, 'right-click is blocked on the video');
+  assert.equal(window.document.getElementById('large-play').dispatchEvent(contextMenu()), false, 'right-click is blocked on the video overlay');
+  assert.equal(window.document.getElementById('outline-list').dispatchEvent(contextMenu()), true, 'right-click works outside the player');
+  window.document.getElementById('toggle-play').click();
+  video.dispatchEvent(new window.KeyboardEvent('keydown', {code: 'Space', cancelable: true}));
+  assert.equal(playCalls, 2, 'playback works with the custom button and keyboard');
   assert.equal(window.document.querySelectorAll('.learn-day-btn').length, 1);
   assert.equal(window.document.querySelector('.sr-lms-certificate').hidden, true, 'ineligible certificate stays hidden');
   assert.equal(window.document.getElementById('sr-lms-practice').disabled, false);
   dom.window.close();
-  console.log('PASS: 8 classroom DOM assertions');
+  console.log('PASS: classroom player DOM checks');
 }
 test().catch(error => {console.error(error);process.exitCode = 1;});

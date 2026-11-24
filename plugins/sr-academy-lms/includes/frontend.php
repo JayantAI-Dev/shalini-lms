@@ -83,7 +83,8 @@ function sr_lms_enqueue(): void {
     wp_enqueue_style('sr-lms',SR_LMS_URL.'assets/lms.css',[],SR_LMS_VERSION);
     if(!is_page('learn'))return;
     $course=sr_lms_id(sr_lms_input('course')?:'speakathon');$state=sr_lms_student_state(get_current_user_id(),$course);if(!$state)return;
-    wp_enqueue_script('sr-lms-player',SR_LMS_URL.'assets/academy-learn.js',[],SR_LMS_VERSION,true);
+    $player_version = (string) filemtime(SR_LMS_DIR . 'assets/academy-learn.js');
+    wp_enqueue_script('sr-lms-player',SR_LMS_URL.'assets/academy-learn.js',[],$player_version,true);
     wp_add_inline_script('sr-lms-player','window.SR_LMS='.wp_json_encode(['restUrl'=>rest_url('sr-lms/v1/'),'nonce'=>wp_create_nonce('wp_rest'),'state'=>$state,'dashboardUrl'=>sr_lms_page_url('dashboard')],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT).';','before');
 }
 function sr_lms_notice(): void {
