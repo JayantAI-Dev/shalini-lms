@@ -391,17 +391,17 @@
           },
           {
             "id": "module-2-lesson-3",
-            "title": "Lesson 3 · Content pending",
-            "summary": "Two videos will be added after review.",
+            "title": "Lesson 3 · Mastering Color Combinations",
+            "summary": "Mastering Color Combinations",
             "practice": "",
             "source": "Power Dressing · Module 2",
             "videos": [
               {
-                "title": "Lesson 3 · Part 1",
+                "title": "Why color Combination matter",
                 "url": "assets/lms/videos/module-02-lesson-03-v1.mp4"
               },
               {
-                "title": "Lesson 3 · Part 2",
+                "title": "3 more Color Technique",
                 "url": "assets/lms/videos/module-02-lesson-03-v2.mp4"
               }
             ],
