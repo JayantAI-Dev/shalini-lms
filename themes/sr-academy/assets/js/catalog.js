@@ -103,7 +103,8 @@
     $('#lms-detail-title').textContent=course.title;
     $('#lms-breadcrumb-name').textContent=slug==='speakathon'?'Communication Course':course.title;
     $('#lms-detail-summary').textContent=course.description;
-    $('#lms-detail-price').textContent=formatMoney(course.price);
+    const privateCheckout = Boolean(document.querySelector('.sr-lms-purchase[data-live-check="1"]'));
+    $('#lms-detail-price').textContent=formatMoney(privateCheckout ? 1 : course.price);
     const total=flatten(course).length;
     $('#lms-detail-count').textContent=(slug==='speakathon'?'21 guided challenges':total+' course topics');
     const detailRating=$('#lms-detail-rating');
@@ -126,7 +127,7 @@
     image.alt=course.title+' course preview image';
     $('#lms-enroll-cta').href=updateUrl('lms-auth.html',slug);
     $('#lms-syllabus-player')?.setAttribute('href',updateUrl('lms-learn.html',slug));
-    const enrollmentUrl=window.SR_THEME.url('package-enroll.html?course='+encodeURIComponent(slug));
+    const enrollmentUrl=window.SR_THEME.url('package-enroll.html?course='+encodeURIComponent(slug)+(privateCheckout?'&checkout_check=1':''));
     $('#lms-enroll-cta').href=enrollmentUrl;
     $('#lms-enroll-cta').textContent='Enroll in course';
     $('#lms-certificate-cta')?.setAttribute('href',enrollmentUrl);

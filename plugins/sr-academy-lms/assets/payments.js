@@ -35,7 +35,7 @@ function showCourseConfirmation(box,verified,customer,order){
 (() => {
  'use strict';
  document.querySelectorAll('.sr-lms-purchase').forEach(box => {
-  const liveCheck=window.SR_THEME?.livePaymentCheck===true;
+  const liveCheck=box.dataset.liveCheck==='1'||new URLSearchParams(window.location.search).get('checkout_check')==='1';
   const button=box.querySelector('button[type="submit"]'),status=box.querySelector('[role="status"]');
   const fields=Object.fromEntries(['name','email','phone'].map(name=>[name,box.querySelector(`[name="${name}"]`)]));
   const request=async(route,data)=>{

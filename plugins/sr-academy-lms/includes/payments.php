@@ -58,19 +58,26 @@ function sr_lms_live_check_signature(int $expires): string {
     return hash_hmac('sha256', 'sr-lms-live-check:' . $expires, wp_salt('auth'));
 }
 
-if ((isset($_GET['sr_live_payment_check']) || isset($_COOKIE['sr_live_payment_check'])) && !defined('DONOTCACHEPAGE')) {
+if ((isset($_GET['sr_live_payment_check']) || isset($_GET['checkout_check']) || isset($_COOKIE['sr_live_payment_check'])) && !defined('DONOTCACHEPAGE')) {
     define('DONOTCACHEPAGE', true);
 }
 
 add_action('template_redirect', static function (): void {
     $token = $_GET['sr_live_payment_check'] ?? null;
-    if ($token === null && !sr_lms_live_payment_check_active()) return;
+    $requires_private_session = ($_GET['checkout_check'] ?? null) === '1';
+    $session_active = sr_lms_live_payment_check_active();
+    if ($token === null && !$requires_private_session && !$session_active) return;
 
     nocache_headers();
     header('Cache-Control: private, no-store, max-age=0');
     // Keep the activation token out of referrers while allowing Razorpay to see the checkout origin.
     header('Referrer-Policy: ' . ($token === null ? 'strict-origin-when-cross-origin' : 'no-referrer'));
-    if ($token === null) return;
+    if ($token === null) {
+        if ($requires_private_session && !$session_active) {
+            wp_die('Your ₹1 checkout session is missing or has expired. Reopen the original private link in this window before starting checkout.', '₹1 checkout session unavailable', ['response' => 409]);
+        }
+        return;
+    }
 
     if (!sr_lms_live_check_token_valid($token) || !is_ssl()) {
         wp_die('This private checkout link is invalid or has expired.', 'Checkout link unavailable', ['response' => 403]);
@@ -85,7 +92,7 @@ add_action('template_redirect', static function (): void {
         'samesite' => 'Lax',
     ]);
     $destination = ($_GET['course'] ?? null) === 'speakathon'
-        ? add_query_arg('course', 'speakathon', home_url('/course/'))
+        ? add_query_arg(['course' => 'speakathon', 'checkout_check' => '1'], home_url('/course/'))
         : home_url('/services/');
     wp_safe_redirect($destination);
     exit;
@@ -269,7 +276,8 @@ function sr_lms_render_purchase(string $offer): bool {
  wp_enqueue_script('sr-lms-razorpay','https://checkout.razorpay.com/v1/checkout.js',[],null,true);
  $payments_version = (string) filemtime(SR_LMS_DIR . 'assets/payments.js');
  wp_enqueue_script('sr-lms-payments',plugins_url('assets/payments.js',dirname(__DIR__).'/sr-academy-lms.php'),['sr-lms-razorpay'],$payments_version,true);
+ $live_check = $mode === 'live' && sr_lms_live_payment_check_active();
  $current=is_user_logged_in()?get_userdata(get_current_user_id()):false;$full_name=$current?(string)$current->display_name:'';$email=$current?(string)$current->user_email:'';$phone=$current?(string)get_user_meta((int)$current->ID,'sr_lms_phone',true):'';
- echo '<form class="sr-lms-purchase" data-dashboard="'.esc_url(sr_lms_page_url('dashboard')).'" data-offer="'.esc_attr($offer).'" data-api="'.esc_url(rest_url('sr-lms/v1/payments/')).'" data-nonce="'.esc_attr(wp_create_nonce('wp_rest')).'" novalidate><div class="sr-lms-customer-fields"><label>Full name<input name="name" type="text" autocomplete="name" maxlength="100" value="'.esc_attr($full_name).'" required></label><label>Email address<input name="email" type="email" autocomplete="email" maxlength="100" value="'.esc_attr($email).'" required></label><label>WhatsApp / phone<input name="phone" type="tel" autocomplete="tel" minlength="7" maxlength="25" value="'.esc_attr($phone).'" required></label></div>'.sr_lms_whatsapp_opt_in().'<p class="sr-lms-password-note">New to the Academy? After payment, we’ll sign you in for 15 minutes and email your sign-in email plus a secure password setup link. If you already have a student account, sign in before checkout.</p><button type="submit" class="lms-primary">'.($mode==='test'?'Continue to Razorpay test payment':'Continue to Razorpay').'</button><p class="sr-lms-payment-note">'.($mode==='test'?'Razorpay test mode · no live charge or course access':(sr_lms_live_payment_check_active()?'Secure Razorpay checkout · ₹1 live payment check':'Secure Razorpay checkout')).'</p><p role="status" aria-live="polite"></p></form>';if(sr_lms_manual_requests_enabled()){echo '<p>Prefer to request access from the academy?</p><form method="post" action="'.esc_url(admin_url('admin-post.php')).'"><input type="hidden" name="action" value="sr_lms_enroll"><input type="hidden" name="offer" value="'.esc_attr($offer).'">';wp_nonce_field('sr_lms_enroll');echo '<button class="lms-primary" type="submit">Request manual enrollment</button></form>';}return true;
+ echo '<form class="sr-lms-purchase"' . ($live_check ? ' data-live-check="1"' : '') . ' data-dashboard="'.esc_url(sr_lms_page_url('dashboard')).'" data-offer="'.esc_attr($offer).'" data-api="'.esc_url(rest_url('sr-lms/v1/payments/')).'" data-nonce="'.esc_attr(wp_create_nonce('wp_rest')).'" novalidate><div class="sr-lms-customer-fields"><label>Full name<input name="name" type="text" autocomplete="name" maxlength="100" value="'.esc_attr($full_name).'" required></label><label>Email address<input name="email" type="email" autocomplete="email" maxlength="100" value="'.esc_attr($email).'" required></label><label>WhatsApp / phone<input name="phone" type="tel" autocomplete="tel" minlength="7" maxlength="25" value="'.esc_attr($phone).'" required></label></div>'.sr_lms_whatsapp_opt_in().'<p class="sr-lms-password-note">New to the Academy? After payment, we’ll sign you in for 15 minutes and email your sign-in email plus a secure password setup link. If you already have a student account, sign in before checkout.</p><button type="submit" class="lms-primary">'.($mode==='test'?'Continue to Razorpay test payment':($live_check?'Pay ₹1 with Razorpay':'Continue to Razorpay')).'</button><p class="sr-lms-payment-note">'.($mode==='test'?'Razorpay test mode · no live charge or course access':($live_check ?'Secure Razorpay checkout · ₹1 live payment check':'Secure Razorpay checkout')).'</p><p role="status" aria-live="polite"></p></form>';if(sr_lms_manual_requests_enabled()){echo '<p>Prefer to request access from the academy?</p><form method="post" action="'.esc_url(admin_url('admin-post.php')).'"><input type="hidden" name="action" value="sr_lms_enroll"><input type="hidden" name="offer" value="'.esc_attr($offer).'">';wp_nonce_field('sr_lms_enroll');echo '<button class="lms-primary" type="submit">Request manual enrollment</button></form>';}return true;
 }
 
