@@ -182,7 +182,7 @@
   const extraVideos = (course.resources || []).filter(item => item.type === 'video' && item !== intro && item !== closing);
   const module5Example = extraVideos.find(item => /Module\s*5.*Practical Example/i.test(item.title));
   const module6Intro = extraVideos.find(item => /Module\s*6.*Introduction/i.test(item.title));
-  const module7Intro = extraVideos.find(item => /Module\s*7.*Introduction/i.test(item.title));
+  const module7Intro = extraVideos.find(item => /Module\\s*7.*Introduction/i.test(item.title)) || (course.resources || []).find(item => item.type === 'video' && /Module\\s*7.*Introduction/i.test(item.title));
   (course.modules || []).forEach((module, week) => {
     const group = node('div', 'learn-week-block');group.append(node('div', 'learn-week-name', module.title));
     if (week === 4 && intro) {introButton = resourceOption(intro);group.append(introButton);}
