@@ -80,7 +80,7 @@ jobs:
           video_count="$(wc -l < /tmp/power-dressing-videos.tsv | tr -d ' ')"
           echo "Found $video_count Power Dressing Module 1 Lesson 2 cuts"
           test "$video_count" = 3 || { echo "Expected the three Lesson 2 video cuts"; exit 1; }
-          while IFS="$(printf '\\t')" read -r name expected_size asset_id digest; do
+          while IFS="$(printf '\t')" read -r name expected_size asset_id digest; do
             echo "Downloading $name ($expected_size bytes)"
             curl --fail --show-error --location --retry 3 --retry-delay 2 --continue-at - \
               -H "Accept: application/octet-stream" \
