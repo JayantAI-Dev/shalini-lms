@@ -13205,3 +13205,36 @@ body.services-filter-packages .packages-section{margin-top:22px;padding-top:24px
     gap: 12px;
   }
 }
+
+/* Signed-in Student Portal menu and academy-style dashboard refinements. */
+.sr-student-menu{position:relative;display:inline-flex;align-items:center}
+.sr-student-menu::after{content:"";position:absolute;top:100%;left:-12px;right:-12px;height:12px}
+.sr-student-dropdown{position:absolute;z-index:120;top:calc(100% + 8px);right:0;display:grid;min-width:205px;padding:7px;border:1px solid #d9e5d3;border-radius:13px;background:#fff;box-shadow:0 16px 38px #183a2824;opacity:0;visibility:hidden;transform:translateY(5px);transition:opacity .16s ease,transform .16s ease,visibility .16s ease}
+.sr-student-menu:hover .sr-student-dropdown,.sr-student-menu:focus-within .sr-student-dropdown{opacity:1;visibility:visible;transform:translateY(0)}
+.sr-student-dropdown a{display:flex;align-items:center;min-height:42px;padding:10px 12px;border-radius:8px;color:#254b36;font-size:13px;font-weight:650;text-decoration:none;transition:background .15s ease,color .15s ease}
+.sr-student-dropdown a:hover,.sr-student-dropdown a:focus-visible{background:#edf4e8;color:#17452f;outline:none}
+.sr-dashboard-page .lms-auth-wrap{background:radial-gradient(ellipse at 50% 0%,#e5f0e1 0,rgba(241,247,238,.92) 42%,#f8faf6 100%)}
+.sr-dashboard-page .sr-dashboard-container{max-width:1180px}
+.sr-dashboard-page .sr-dashboard-heading{padding-bottom:30px;border-bottom-color:#d7e4d3}
+.sr-dashboard-page .sr-dashboard-heading h1{color:#183e2c;font-size:clamp(36px,4.4vw,54px);letter-spacing:-.055em}
+.sr-dashboard-page .sr-dashboard-heading>div:first-child>p{max-width:560px;color:#66776b;font-size:15px}
+.sr-dashboard-page .sr-dashboard-actions>a:not(.lms-text-button){display:inline-flex;align-items:center;min-height:42px;padding:0 15px;border:1px solid #1a513a;border-radius:9px;background:#1a513a;color:#fff;box-shadow:0 4px 12px #1a513a1c}
+.sr-dashboard-page .sr-dashboard-actions>a:not(.lms-text-button):hover{background:#123f2d;transform:translateY(-1px)}
+.sr-dashboard-page .sr-dashboard-actions .lms-text-button{color:#526a5b;text-decoration:underline;text-underline-offset:3px}
+.sr-dashboard-page .sr-dashboard-tabs{margin-top:28px;margin-bottom:28px;padding:6px;border-color:#d9e5d4;border-radius:14px;background:#eaf1e6}
+.sr-dashboard-page .sr-dashboard-tabs a[aria-current=page]{color:#fff;background:#194f3a;box-shadow:0 5px 14px #194f3a26}
+.sr-dashboard-page .sr-dashboard-tabs a:hover:not([aria-current=page]){background:#dce9d7;color:#174b35}
+.sr-dashboard-page .sr-dashboard-panel{padding:clamp(24px,3vw,36px);border-color:#dce6d8;border-radius:20px;box-shadow:0 15px 38px #25432e0d}
+.sr-dashboard-page .sr-dashboard-section-heading h2{color:#183e2c;font-size:30px}
+.sr-dashboard-page .sr-dashboard-panel>h2{color:#183e2c}
+.sr-dashboard-page .sr-dashboard-course{padding:24px;border-color:#dce7d8;border-radius:17px;box-shadow:0 10px 25px #20452e0c;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.sr-dashboard-page .sr-dashboard-course:hover{transform:translateY(-3px);border-color:#c6d9c1;box-shadow:0 16px 32px #20452e16}
+.sr-dashboard-page .sr-dashboard-course h3{color:#183e2c;font-size:21px}
+.sr-dashboard-page .sr-dashboard-course>p{color:#627267;font-size:13px;line-height:1.65}
+.sr-dashboard-page .sr-dashboard-course .lms-primary{min-height:47px;border-radius:9px;background:#194f3a;color:#fff;box-shadow:0 4px 10px #194f3a1a}
+.sr-dashboard-page .sr-dashboard-course .lms-primary:hover{background:#123f2d}
+.sr-dashboard-page .sr-dashboard-stats>div{border-color:#d9e5d4;border-radius:15px;background:#fff;box-shadow:0 8px 22px #20452e08}
+.sr-dashboard-page .sr-dashboard-stats strong{color:#194f3a}
+.sr-dashboard-page .sr-dashboard-empty,.sr-dashboard-page .sr-dashboard-requests{border-color:#d9e5d4;border-radius:16px;box-shadow:0 8px 24px #20452e08}
+@media(max-width:767px){.sr-dashboard-page .sr-dashboard-heading h1{font-size:clamp(32px,8vw,42px)}.sr-dashboard-page .sr-dashboard-panel{padding:22px 18px}.sr-student-dropdown{right:-8px}}
+@media(prefers-reduced-motion:reduce){.sr-student-dropdown,.sr-dashboard-page .sr-dashboard-course{transition:none}}
