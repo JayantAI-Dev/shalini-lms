@@ -1,4 +1,4 @@
-name: Deploy Power Dressing Module 1 videos
+name: Deploy Power Dressing Module 1 lesson videos
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy Power Dressing Module 1 Lesson 2 videos
+    name: Deploy Power Dressing Module 1 lesson videos
     runs-on: ubuntu-latest
     steps:
       - name: Check out deployment repository
@@ -41,7 +41,7 @@ jobs:
           state-name: .ftp-deploy-public-lms-media-guard-state.json
           dangerous-clean-slate: false
 
-      - name: Download and verify Power Dressing Module 1 Lesson 2 cuts
+      - name: Download and verify Power Dressing Module 1 lesson cuts
         shell: bash
         run: |
           set -euo pipefail
@@ -49,11 +49,11 @@ jobs:
           curl --fail --silent --show-error --location \
             https://api.github.com/repos/JayantAI-Dev/shalini-lms/releases/tags/power-dressing-module-1-lesson-2-media \
             --output /tmp/power-dressing-release.json
-          jq -r '.assets[] | select(.name | test("^module-01-lesson-02-v[123]\\.mp4$")) | [.name, (.size|tostring), (.id|tostring), .digest] | @tsv' \
+          jq -r '.assets[] | select(.name | test("^module-01-lesson-0[12]-v[123]\\.mp4$")) | [.name, (.size|tostring), (.id|tostring), .digest] | @tsv' \
             /tmp/power-dressing-release.json > /tmp/power-dressing-videos.tsv
           video_count="$(wc -l < /tmp/power-dressing-videos.tsv | tr -d ' ')"
-          echo "Found $video_count Power Dressing Module 1 Lesson 2 cuts"
-          test "$video_count" = 3 || { echo "Expected the three Lesson 2 video cuts"; exit 1; }
+          echo "Found $video_count Power Dressing Module 1 lesson cuts"
+          test "$video_count" = 5 || { echo "Expected two Lesson 1 cuts and three Lesson 2 cuts"; exit 1; }
           while IFS="$(printf '\t')" read -r name expected_size asset_id digest; do
             echo "Downloading $name ($expected_size bytes)"
             curl --fail --show-error --location --retry 3 --retry-delay 2 --continue-at - \
