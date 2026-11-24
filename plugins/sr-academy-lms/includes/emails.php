@@ -116,7 +116,7 @@ function sr_lms_send_email_to(string $type,string $email,string $name,array $con
 add_action('sr_lms_enrollment_granted',static function($user_id,$offer,$origin){if(str_starts_with((string)$origin,'pay:'))return;$offers=sr_lms_offers();sr_lms_send_email('enrollment',(int)$user_id,['offer_title'=>$offers[$offer]['title']??$offer]);},10,3);
 add_filter('retrieve_password_notification_email',static function($email,$key,$login,$user){
     $settings=sr_lms_email_settings();if(empty($settings['templates']['password_reset']['enabled']))return $email;
-    $url=network_site_url('wp-login.php?action=rp&key='.rawurlencode($key).'&login='.rawurlencode($login),'login');$mail=sr_lms_email_render('password_reset',$user,['reset_url'=>$url]);return array_merge($email,$mail);
+    $url=sr_lms_password_reset_url($login,$key,$user);$mail=sr_lms_email_render('password_reset',$user,['reset_url'=>$url]);return array_merge($email,$mail);
 },10,4);
 add_action('after_password_reset',static function($user){if($user instanceof WP_User&&get_user_meta((int)$user->ID,'sr_lms_course_password_setup_pending',true)){update_user_meta((int)$user->ID,'sr_lms_email_verified','1');delete_user_meta((int)$user->ID,'sr_lms_course_password_setup_pending');delete_user_meta((int)$user->ID,'sr_lms_email_verify_hash');delete_user_meta((int)$user->ID,'sr_lms_email_verify_expires');delete_user_meta((int)$user->ID,'sr_lms_payment_access_until');}});
 add_action('wp_mail_failed',static function($error){update_option('sr_lms_email_last_error',['time'=>gmdate('c'),'code'=>sanitize_key($error->get_error_code())],false);});

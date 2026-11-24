@@ -41,6 +41,87 @@ function sr_lms_verify_email_handler(): void {
     $return=isset($_GET['return_to'])&&is_string($_GET['return_to'])?sr_lms_return_url(wp_unslash($_GET['return_to'])):sr_lms_page_url('dashboard');wp_safe_redirect(add_query_arg('notice','email-verified',$return));exit;
 }
 function sr_lms_auth_redirect(string $code,string $return='',string $mode='login'): void {wp_safe_redirect(sr_lms_page_url('student-portal',['notice'=>$code,'mode'=>$mode,'redirect_to'=>sr_lms_return_url($return)]));exit;}
+
+function sr_lms_student_password_account($user): bool {
+    return $user instanceof WP_User && in_array('subscriber', $user->roles, true) && !user_can($user, 'edit_posts');
+}
+
+function sr_lms_password_reset_url(string $login, string $key, $user): string {
+    if (sr_lms_student_password_account($user)) {
+        return sr_lms_page_url('student-portal', ['mode'=>'reset-password', 'key'=>$key, 'login'=>$login]);
+    }
+    return network_site_url('wp-login.php?action=rp&key='.rawurlencode($key).'&login='.rawurlencode($login), 'login');
+}
+
+function sr_lms_password_reset_cookie_name(): string {
+    return 'sr-lms-reset-' . COOKIEHASH;
+}
+
+function sr_lms_password_reset_cookie(string $name): array {
+    $value = $_COOKIE[$name] ?? '';
+    return is_string($value) ? array_pad(explode(':', wp_unslash($value), 2), 2, '') : ['', ''];
+}
+
+function sr_lms_set_password_reset_cookie(string $value): bool {
+    $path = wp_parse_url(sr_lms_page_url('student-portal'), PHP_URL_PATH) ?: '/';
+    return setcookie(sr_lms_password_reset_cookie_name(), $value, [
+        'expires'=>$value === '' ? time() - HOUR_IN_SECONDS : 0,
+        'path'=>$path, 'secure'=>is_ssl(), 'httponly'=>true, 'samesite'=>'Lax',
+    ]);
+}
+
+function sr_lms_start_student_password_reset(string $login, string $key): void {
+    sr_lms_private_headers();
+    header('Referrer-Policy: no-referrer');
+    $account = check_password_reset_key($key, $login);
+    if (!sr_lms_student_password_account($account)) sr_lms_auth_redirect('password-link-invalid', '', 'recover');
+    if (!sr_lms_set_password_reset_cookie($login . ':' . $key)) wp_die('Could not start password setup. Reopen the link in your email.', 'Password setup', ['response'=>500]);
+    wp_safe_redirect(sr_lms_page_url('student-portal', ['mode'=>'reset-password']));
+    exit;
+}
+
+function sr_lms_redirect_legacy_student_reset(): void {
+    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') return;
+    if (isset($_GET['login'], $_GET['key'])) {
+        [$login, $key] = [sr_lms_input('login'), sr_lms_input('key')];
+    } else {
+        [$login, $key] = sr_lms_password_reset_cookie('wp-resetpass-' . COOKIEHASH);
+    }
+    if ($login !== '' && sr_lms_student_password_account(get_user_by('login', $login))) {
+        sr_lms_start_student_password_reset($login, $key);
+    }
+}
+add_action('login_form_rp', 'sr_lms_redirect_legacy_student_reset');
+add_action('login_form_resetpass', 'sr_lms_redirect_legacy_student_reset');
+
+function sr_lms_handle_student_password_reset(): void {
+    header('Referrer-Policy: no-referrer');
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET' && (isset($_GET['key']) || isset($_GET['login']))) {
+        sr_lms_start_student_password_reset(sr_lms_input('login'), sr_lms_input('key'));
+    }
+    [$login, $key] = sr_lms_password_reset_cookie(sr_lms_password_reset_cookie_name());
+    $account = check_password_reset_key($key, $login);
+    if (!sr_lms_student_password_account($account)) {
+        sr_lms_set_password_reset_cookie('');
+        sr_lms_auth_redirect('password-link-invalid', '', 'recover');
+    }
+    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') return;
+
+    $action = 'sr_lms_reset_password_' . hash('sha256', $key);
+    if (!wp_verify_nonce(sr_lms_input('_wpnonce', 'POST'), $action)) sr_lms_auth_redirect('password-form-expired', '', 'reset-password');
+    $password = trim(sr_lms_input('pass1', 'POST'));
+    $errors = new WP_Error();
+    if (strlen($password) < 10 || strlen($password) > 4096 || $password !== trim(sr_lms_input('pass2', 'POST'))) {
+        $errors->add('password_invalid', 'Enter the same password in both fields. Use 10 to 4096 characters.');
+    }
+    do_action('validate_password_reset', $errors, $account);
+    if ($errors->has_errors()) sr_lms_auth_redirect('password-invalid', '', 'reset-password');
+    reset_password($account, $password);
+    sr_lms_set_password_reset_cookie('');
+    if (get_current_user_id() === $account->ID) wp_clear_auth_cookie();
+    sr_lms_auth_redirect('password-saved');
+}
+
 function sr_lms_auth_handler(): void {
     if(($_SERVER['REQUEST_METHOD']??'')!=='POST')wp_die('Use the account form.','Invalid request',['response'=>405]);
     check_admin_referer('sr_lms_auth');$mode=sr_lms_input('mode','POST');$return=sr_lms_return_url(sr_lms_input('redirect_to','POST'));
@@ -71,6 +152,7 @@ function sr_lms_auth_handler(): void {
 }
 function sr_lms_guard_pages(): void {
     if(is_page(['learn','dashboard','student-portal','enroll']))sr_lms_private_headers();
+    if(is_page('student-portal')&&sr_lms_input('mode')==='reset-password'){sr_lms_handle_student_password_reset();return;}
     if(is_user_logged_in()&&!sr_lms_email_is_verified(get_current_user_id())&&is_page(['dashboard','enroll','learn'])){wp_logout();wp_safe_redirect(sr_lms_page_url('student-portal',['notice'=>'verification-required','mode'=>'resend']));exit;}
     if(is_page('dashboard')&&!is_user_logged_in()){wp_safe_redirect(sr_lms_page_url('student-portal',['redirect_to'=>sr_lms_page_url('dashboard')]));exit;}
     if(!is_page('learn'))return;
@@ -88,6 +170,17 @@ function sr_lms_enqueue(): void {
     wp_add_inline_script('sr-lms-player','window.SR_LMS='.wp_json_encode(['restUrl'=>rest_url('sr-lms/v1/'),'nonce'=>wp_create_nonce('wp_rest'),'state'=>$state,'dashboardUrl'=>sr_lms_page_url('dashboard')],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT).';','before');
 }
 function sr_lms_notice(): void {
+    $password_notices = [
+        'password-link-invalid'=>'This password link is invalid or has expired. Request a new link below.',
+        'password-form-expired'=>'The password form expired. Enter your password again.',
+        'password-invalid'=>'Use a password of at least 10 characters and enter the same password in both fields.',
+        'password-saved'=>'Your password is ready. Sign in with your email address to open your courses.',
+    ];
+    $password_notice = $password_notices[sr_lms_input('notice')] ?? '';
+    if ($password_notice !== '') {
+        echo '<p class="sr-lms-notice" role="status">' . esc_html($password_notice) . '</p>';
+        return;
+    }
     $notices=['login-error'=>'The email or password was not accepted. Please try again.','registration-disabled'=>'Student registration is currently closed. Please contact the academy.','registration-invalid'=>'Enter your name, a valid email and a password of at least 10 characters.','registration-error'=>'We could not create this account. Try signing in or recovering your password.','recovery-sent'=>'If an account matches that address, WordPress will send a password reset link.','logged-out'=>'You have signed out.','requested'=>'Your enrollment request is pending administrator review. No payment has been taken.','enrollment-required'=>'Request enrollment to access this classroom.','invalid-offer'=>'Please choose a course or package.','verification-sent'=>'Your account was created. Check your inbox for a confirmation link before signing in.','verification-mail-error'=>'Your account was created, but the confirmation email could not be sent. Check your address and try resending, or contact the academy.','verification-required'=>'Please confirm your email address before accessing your student account.','verification-expired'=>'That confirmation link has expired. Request a fresh link below.','verification-invalid'=>'That confirmation link is invalid. Request a fresh link below.','already-verified'=>'Your email address is already confirmed. You can sign in.','email-verified'=>'Your email is confirmed. Your student account is ready.','resend-sent'=>'If that address needs confirmation, a fresh email will arrive shortly. Check your inbox and spam folder.' ];
     $notice=sr_lms_input('notice');if(isset($notices[$notice])){echo '<p class="sr-lms-notice" role="status">'.esc_html($notices[$notice]);if(in_array($notice,['verification-required','verification-expired','verification-invalid','verification-mail-error'],true))echo ' <a href="'.esc_url(sr_lms_page_url('student-portal',['mode'=>'resend','redirect_to'=>sr_lms_return_url(sr_lms_input('redirect_to'))])).'">Resend confirmation email</a>';echo '</p>';}
 }
@@ -104,7 +197,21 @@ function sr_lms_profile_handler(): void {
 function sr_lms_render_auth(): void {
     $return=sr_lms_return_url(sr_lms_input('redirect_to'));$mode=sr_lms_input('mode')?:'login';
     ?><section class="lms-auth-wrap lms-grid-bg"><div class="lms-container lms-auth-layout"><div class="lms-auth-intro"><span class="lms-eyebrow">CONFIDENCE ACADEMY</span><h1>Welcome to your Learning Space</h1><p>Find your courses, revisit lessons and access your practice resources from one place.</p><div class="lms-auth-benefits"><div>✓ Your learning progress saved across devices</div><div>✓ Private course videos and worksheets</div><div>✓ A completion certificate when every lesson is complete</div></div><?php if(function_exists('sr_theme_asset')): ?><div class="lms-auth-signature"><img src="<?php echo esc_url(sr_theme_asset('assets/hero-seated.webp')); ?>" alt="Shalini Rathod" width="1100" height="1531"><div><strong>Shalini Rathod</strong><small>Confidence &amp; Image Coach</small></div></div><?php endif; ?><div class="lms-auth-orbit" aria-hidden="true">✳</div></div><div class="lms-auth-card"><?php sr_lms_notice();
-    if(is_user_logged_in()){$current=wp_get_current_user();if(!sr_lms_email_is_verified((int)$current->ID)){echo '<h2>Confirm your email</h2><p>Check your inbox to verify your address before opening your student dashboard.</p><a class="lms-primary full" href="'.esc_url(sr_lms_page_url('student-portal',['mode'=>'resend'])).'">Resend confirmation email</a>';}else{echo '<h2>Welcome, '.esc_html($current->display_name).'.</h2><p>Your account is ready.</p><a class="lms-primary full" href="'.esc_url(sr_lms_page_url('dashboard')).'">Go to your dashboard →</a>';}sr_lms_logout_form();}
+    if($mode==='reset-password'){
+        [, $key] = sr_lms_password_reset_cookie(sr_lms_password_reset_cookie_name());
+        ?>
+        <h2>Set your password</h2>
+        <p>Choose a password for your Shalini Rathod Academy account.</p>
+        <form class="lms-auth-form" method="post" action="<?php echo esc_url(sr_lms_page_url('student-portal',['mode'=>'reset-password'])); ?>">
+            <?php wp_nonce_field('sr_lms_reset_password_' . hash('sha256', $key), '_wpnonce', false); ?>
+            <label>New password<input name="pass1" type="password" autocomplete="new-password" aria-describedby="student-password-hint" minlength="10" maxlength="4096" required></label>
+            <p id="student-password-hint" class="sr-lms-auth-note">Use at least 10 characters.</p>
+            <label>Confirm password<input name="pass2" type="password" autocomplete="new-password" minlength="10" maxlength="4096" required></label>
+            <button class="lms-primary full" type="submit">Save password</button>
+        </form>
+        <?php
+    }
+    elseif(is_user_logged_in()){$current=wp_get_current_user();if(!sr_lms_email_is_verified((int)$current->ID)){echo '<h2>Confirm your email</h2><p>Check your inbox to verify your address before opening your student dashboard.</p><a class="lms-primary full" href="'.esc_url(sr_lms_page_url('student-portal',['mode'=>'resend'])).'">Resend confirmation email</a>';}else{echo '<h2>Welcome, '.esc_html($current->display_name).'.</h2><p>Your account is ready.</p><a class="lms-primary full" href="'.esc_url(sr_lms_page_url('dashboard')).'">Go to your dashboard →</a>';}sr_lms_logout_form();}
     else { ?><nav class="lms-tabbar sr-lms-tabs" aria-label="Account views"><?php foreach(['login'=>'Login','signup'=>'Sign Up'] as $key=>$label)echo '<a '.($mode===$key?'aria-current="page"':'').' href="'.esc_url(sr_lms_page_url('student-portal',['mode'=>$key,'redirect_to'=>$return])).'">'.esc_html($label).'</a>'; ?></nav><?php
         if($mode==='resend'){?><h2>Resend confirmation</h2><p>Enter the email address you used to create your account. If it still needs confirmation, we’ll send a fresh link.</p><form class="lms-auth-form" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" method="post"><?php sr_lms_auth_fields('resend',$return); ?><label>Email address<input type="email" name="email" autocomplete="email" required></label><button class="lms-primary full" type="submit">Send confirmation email</button></form><?php }
         elseif($mode==='signup'&&!get_option('users_can_register')){echo '<h2>Student registration is closed</h2><p>Please contact the academy to create your account.</p>';}

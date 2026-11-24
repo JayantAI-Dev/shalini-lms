@@ -56,6 +56,13 @@ try {
     $fixture=wp_insert_user(['user_login'=>'sr-email-test-'.wp_generate_password(10,false),'user_email'=>'email-regression@example.test','user_pass'=>wp_generate_password(32),'display_name'=>'Email fixture']);
     sr_email_assert(!is_wp_error($fixture),'Fixture account created');
     try {
+        $student=get_userdata((int)$fixture);
+        $key=get_password_reset_key($student);
+        sr_email_assert(!is_wp_error($key),'Student reset key issued');
+        $student_reset=apply_filters('retrieve_password_notification_email',$native,$key,$student->user_login,$student);
+        $student_message=html_entity_decode($student_reset['message'],ENT_QUOTES|ENT_HTML5,'UTF-8');
+        sr_email_assert(str_contains($student_message,sr_lms_page_url('student-portal',['mode'=>'reset-password'])),'Student reset email opens the Student Portal');
+        sr_email_assert(!str_contains($student_message,'wp-login.php?action=rp'),'Student reset email avoids the native reset screen');
         foreach(['welcome','login','enrollment','purchase'] as $type)sr_email_assert(sr_lms_send_email($type,(int)$fixture,['offer_title'=>'<b>Course</b>','amount'=>'INR 499.00','payment_id'=>'pay_fixture','order_id'=>'order_fixture']),'Mail accepted by capture');
         sr_email_assert(count($captured)===4,'Exactly one message per send');
         sr_email_assert(str_contains($captured[2]['message'],'&lt;b&gt;Course&lt;/b&gt;'),'Offer placeholder escaped');

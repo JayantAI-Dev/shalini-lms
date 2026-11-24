@@ -220,7 +220,7 @@ function sr_lms_payment_reconcile(int $id,string $payment='') {
     if($test_access_user_id){$sent=sr_lms_send_email('enrollment',$test_access_user_id,['offer_title'=>$offer_title,'cta_url'=>sr_lms_page_url('dashboard')]);}
     else{$context['test_credentials_message']='Student portal credentials and course access are not issued for unapproved test accounts.';$sent=sr_lms_send_email_to('course_test_purchase',$email,$name,$context);}
    }
-   elseif(!empty($row['account_created'])||!empty($customer_account['needs_password_setup'])){$user=get_userdata($customer_user_id);$key=$user?get_password_reset_key($user):new WP_Error('account','Student account not found.');if(!is_wp_error($key)){$context['reset_url']=network_site_url('wp-login.php?action=rp&key='.rawurlencode($key).'&login='.rawurlencode($user->user_login),'login');$sent=sr_lms_send_email('course_access',$customer_user_id,$context);}else{$sent=false;}}
+   elseif(!empty($row['account_created'])||!empty($customer_account['needs_password_setup'])){$user=get_userdata($customer_user_id);$key=$user?get_password_reset_key($user):new WP_Error('account','Student account not found.');if(!is_wp_error($key)){$context['reset_url']=sr_lms_password_reset_url($user->user_login,$key,$user);$sent=sr_lms_send_email('course_access',$customer_user_id,$context);}else{$sent=false;}}
    else{$sent=sr_lms_send_email('enrollment',$customer_user_id,['offer_title'=>$offer_title,'cta_url'=>sr_lms_page_url('dashboard')]);}
    $wpdb->query($wpdb->prepare("UPDATE $t SET email_sent=%d WHERE id=%d AND email_sent=%d",($sent&&!is_wp_error($sent))?1:0,$id,-$lease));}
  }
