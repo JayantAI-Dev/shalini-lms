@@ -1,4 +1,4 @@
-name: Deploy private Speakathon videos
+name: Deploy private LMS videos
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Secure and deploy Speakathon videos
+    name: Secure and deploy private course videos
     runs-on: ubuntu-latest
     steps:
       - name: Check out deployment repository
@@ -67,6 +67,30 @@ jobs:
             expected_sha="${digest#sha256:}"
             echo "$expected_sha  assets/lms/videos/$name" | sha256sum --check || { echo "Checksum mismatch for $name"; exit 1; }
           done < /tmp/speakathon-videos.tsv
+
+      - name: Download and verify Power Dressing Module 1 Lesson 2 cuts
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            https://api.github.com/repos/JayantAI-Dev/shalini-lms/releases/tags/power-dressing-module-1-lesson-2-media \
+            --output /tmp/power-dressing-release.json
+          jq -r '.assets[] | select(.name | test("^module-01-lesson-02-v[123]\\.mp4$")) | [.name, (.size|tostring), (.id|tostring), .digest] | @tsv' \
+            /tmp/power-dressing-release.json > /tmp/power-dressing-videos.tsv
+          video_count="$(wc -l < /tmp/power-dressing-videos.tsv | tr -d ' ')"
+          echo "Found $video_count Power Dressing Module 1 Lesson 2 cuts"
+          test "$video_count" = 3 || { echo "Expected the three Lesson 2 video cuts"; exit 1; }
+          while IFS="$(printf '\\t')" read -r name expected_size asset_id digest; do
+            echo "Downloading $name ($expected_size bytes)"
+            curl --fail --show-error --location --retry 3 --retry-delay 2 --continue-at - \
+              -H "Accept: application/octet-stream" \
+              "https://api.github.com/repos/JayantAI-Dev/shalini-lms/releases/assets/$asset_id" \
+              --output "assets/lms/videos/$name"
+            actual_size="$(wc -c < "assets/lms/videos/$name" | tr -d ' ')"
+            test "$actual_size" = "$expected_size" || { echo "Size mismatch for $name"; exit 1; }
+            expected_sha="${digest#sha256:}"
+            echo "$expected_sha  assets/lms/videos/$name" | sha256sum --check || { echo "Checksum mismatch for $name"; exit 1; }
+          done < /tmp/power-dressing-videos.tsv
           du -sh assets/lms/videos
 
       - name: Deploy videos to the protected WordPress media folder
