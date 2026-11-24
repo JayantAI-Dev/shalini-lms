@@ -22,7 +22,7 @@
   const status = (message, ready = false) => {setText('completion-note', message); $('completion-note')?.classList.toggle('is-ready', ready);};
   const practice = node('label', 'sr-lms-practice-ack');
   const practiceInput = node('input'); practiceInput.type = 'checkbox'; practiceInput.id = 'sr-lms-practice';
-  practice.append(practiceInput, node('span', '', 'I have completed today’s practice challenge.'));
+  practice.append(practiceInput, node('span', '', slug === 'power-dressing' ? 'I have completed this lesson’s practice.' : 'I have completed today’s practice challenge.'));
   $('lesson-practice')?.parentElement.append(practice);
   const certificate = node('a', 'sr-lms-certificate', 'Print completion certificate ↗');
   certificate.hidden = true;certificate.href = state.certificateUrl; certificate.target = '_blank'; certificate.rel = 'noopener';
@@ -131,13 +131,19 @@
     $('lesson-practice').closest('.learn-practice').hidden = false;
     $('complete-and-next').closest('.learn-complete').hidden = false;
     $('previous-day').closest('.learn-next-link').hidden = false;
-    $('week-tag').hidden = false; $('open-worksheet').hidden = false;
+    $('week-tag').hidden = false;
     document.querySelectorAll('.learn-extra-btn').forEach(button => button.setAttribute('aria-current', 'false'));
     setText('day-number', `LESSON ${String(lesson.moduleLessonIndex + 1).padStart(2, '0')} / ${course.modules[lesson.week].lessons.length}`);setText('week-tag', `MODULE ${lesson.week + 1}`);
     setText('challenge-day', day);setText('lesson-title', lesson.title.replace(/^Day\s*\d+\s*[·:–-]\s*/i, ''));
-    setText('lesson-summary', lesson.summary || 'Your next practice lesson.');setText('lesson-practice', lesson.practice || 'Watch this lesson, then apply what you have learned.');
+    setText('lesson-summary', lesson.summary || (slug === 'power-dressing' ? 'Build your personal style one lesson at a time.' : 'Your next practice lesson.'));setText('lesson-practice', lesson.practice || (slug === 'power-dressing' ? 'Watch this lesson, then try one idea with your own wardrobe.' : 'Watch this lesson, then apply what you have learned.'));
     setText('worksheet-link-label', lesson.pdfUrl ? `View lesson ${day} worksheet` : 'Worksheet unavailable');
-    $('open-worksheet').disabled = !lesson.pdfUrl;$('watch-example').hidden = !lesson.solutionUrl;
+    $('open-worksheet').hidden = !lesson.pdfUrl;$('open-worksheet').disabled = !lesson.pdfUrl;$('watch-example').hidden = !lesson.solutionUrl;
+    if (slug === 'power-dressing') {
+      const heading = $('challenge-day').parentElement, icon = heading.querySelector('.learn-practice-icon');
+      heading.replaceChildren(icon, document.createTextNode(` Lesson ${String(lesson.moduleLessonIndex + 1).padStart(2, '0')} · Styling practice`));
+      const missingCopy = $('video-missing').querySelector('p'); if (missingCopy) missingCopy.textContent = 'This lesson’s recording is not available yet.';
+      $('previous-day').textContent = '← Previous lesson';
+    }
     if ($('watch-example').querySelector('span:nth-child(2)')) $('watch-example').querySelector('span:nth-child(2)').textContent = 'Watch example video';
     $('previous-day').disabled = index === 0;if ($('skip-video-next')) $('skip-video-next').hidden = index === lessons.length - 1;
     setText('next-hint', index === lessons.length - 1 ? 'Final lesson' : `Up next: lesson ${index + 2}`);
