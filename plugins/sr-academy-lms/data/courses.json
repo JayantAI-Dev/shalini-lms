@@ -361,14 +361,15 @@
             "source": "Power Dressing · Module 2",
             "videos": [
               {
-                "title": "Lesson 1 · Recording A",
-                "url": ""
+                "title": "Lesson 1 · Part 1",
+                "url": "assets/lms/videos/module-02-lesson-01-v1.mp4"
               },
               {
-                "title": "Lesson 1 · Recording B",
-                "url": ""
+                "title": "Lesson 1 · Part 2",
+                "url": "assets/lms/videos/module-02-lesson-01-v2.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-02-lesson-01-v1.mp4"
           },
           {
             "id": "module-2-lesson-2",
@@ -378,14 +379,15 @@
             "source": "Power Dressing · Module 2",
             "videos": [
               {
-                "title": "Lesson 2 · Recording A",
-                "url": ""
+                "title": "Lesson 2 · Part 1",
+                "url": "assets/lms/videos/module-02-lesson-02-v1.mp4"
               },
               {
-                "title": "Lesson 2 · Recording B",
-                "url": ""
+                "title": "Lesson 2 · Part 2",
+                "url": "assets/lms/videos/module-02-lesson-02-v2.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-02-lesson-02-v1.mp4"
           },
           {
             "id": "module-2-lesson-3",
@@ -395,14 +397,15 @@
             "source": "Power Dressing · Module 2",
             "videos": [
               {
-                "title": "Lesson 3 · Recording A",
-                "url": ""
+                "title": "Lesson 3 · Part 1",
+                "url": "assets/lms/videos/module-02-lesson-03-v1.mp4"
               },
               {
-                "title": "Lesson 3 · Recording B",
-                "url": ""
+                "title": "Lesson 3 · Part 2",
+                "url": "assets/lms/videos/module-02-lesson-03-v2.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-02-lesson-03-v1.mp4"
           }
         ]
       },
@@ -417,14 +420,15 @@
             "source": "Power Dressing · Module 3",
             "videos": [
               {
-                "title": "Lesson 1 · Recording A",
-                "url": ""
+                "title": "Lesson 1 · Part 1",
+                "url": "assets/lms/videos/module-03-lesson-01-v1.mp4"
               },
               {
-                "title": "Lesson 1 · Recording B",
-                "url": ""
+                "title": "Lesson 1 · Part 2",
+                "url": "assets/lms/videos/module-03-lesson-01-v2.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-03-lesson-01-v1.mp4"
           },
           {
             "id": "module-3-lesson-2",
@@ -434,18 +438,19 @@
             "source": "Power Dressing · Module 3",
             "videos": [
               {
-                "title": "Lesson 2 · Recording A",
-                "url": ""
+                "title": "Lesson 2 · Part 1",
+                "url": "assets/lms/videos/module-03-lesson-02-v1.mp4"
               },
               {
-                "title": "Lesson 2 · Recording B",
-                "url": ""
+                "title": "Lesson 2 · Part 2",
+                "url": "assets/lms/videos/module-03-lesson-02-v2.mp4"
               },
               {
-                "title": "Lesson 2 · Recording C",
-                "url": ""
+                "title": "Lesson 2 · Part 3",
+                "url": "assets/lms/videos/module-03-lesson-02-v3.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-03-lesson-02-v1.mp4"
           },
           {
             "id": "module-3-lesson-3",
@@ -455,18 +460,19 @@
             "source": "Power Dressing · Module 3",
             "videos": [
               {
-                "title": "Lesson 3 · Recording A",
-                "url": ""
+                "title": "Lesson 3 · Part 1",
+                "url": "assets/lms/videos/module-03-lesson-03-v1.mp4"
               },
               {
-                "title": "Lesson 3 · Recording B",
-                "url": ""
+                "title": "Lesson 3 · Part 2",
+                "url": "assets/lms/videos/module-03-lesson-03-v2.mp4"
               },
               {
-                "title": "Lesson 3 · Recording C",
-                "url": ""
+                "title": "Lesson 3 · Part 3",
+                "url": "assets/lms/videos/module-03-lesson-03-v3.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-03-lesson-03-v1.mp4"
           },
           {
             "id": "module-3-lesson-4",
@@ -476,18 +482,19 @@
             "source": "Power Dressing · Module 3",
             "videos": [
               {
-                "title": "Lesson 4 · Recording A",
-                "url": ""
+                "title": "Lesson 4 · Part 1",
+                "url": "assets/lms/videos/module-03-lesson-04-v1.mp4"
               },
               {
-                "title": "Lesson 4 · Recording B",
-                "url": ""
+                "title": "Lesson 4 · Part 2",
+                "url": "assets/lms/videos/module-03-lesson-04-v2.mp4"
               },
               {
-                "title": "Lesson 4 · Recording C",
-                "url": ""
+                "title": "Lesson 4 · Part 3",
+                "url": "assets/lms/videos/module-03-lesson-04-v3.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-03-lesson-04-v1.mp4"
           }
         ]
       },
@@ -502,14 +509,15 @@
             "source": "Power Dressing · Module 4",
             "videos": [
               {
-                "title": "Lesson 1 · Recording A",
-                "url": ""
+                "title": "Lesson 1 · Part 1",
+                "url": "assets/lms/videos/module-04-lesson-01-v1.mp4"
               },
               {
-                "title": "Lesson 1 · Recording B",
-                "url": ""
+                "title": "Lesson 1 · Part 2",
+                "url": "assets/lms/videos/module-04-lesson-01-v2.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-04-lesson-01-v1.mp4"
           },
           {
             "id": "module-4-lesson-2",
@@ -519,14 +527,15 @@
             "source": "Power Dressing · Module 4",
             "videos": [
               {
-                "title": "Lesson 2 · Recording A",
-                "url": ""
+                "title": "Lesson 2 · Part 1",
+                "url": "assets/lms/videos/module-04-lesson-02-v1.mp4"
               },
               {
-                "title": "Lesson 2 · Recording B",
-                "url": ""
+                "title": "Lesson 2 · Part 2",
+                "url": "assets/lms/videos/module-04-lesson-02-v2.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-04-lesson-02-v1.mp4"
           },
           {
             "id": "module-4-lesson-3",
@@ -536,14 +545,15 @@
             "source": "Power Dressing · Module 4",
             "videos": [
               {
-                "title": "Lesson 3 · Recording A",
-                "url": ""
+                "title": "Lesson 3 · Part 1",
+                "url": "assets/lms/videos/module-04-lesson-03-v1.mp4"
               },
               {
-                "title": "Lesson 3 · Recording B",
-                "url": ""
+                "title": "Lesson 3 · Part 2",
+                "url": "assets/lms/videos/module-04-lesson-03-v2.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-04-lesson-03-v1.mp4"
           }
         ]
       },
@@ -556,16 +566,7 @@
             "summary": "Explore why you shop, what triggers impulse buys, and how your personal style should guide each purchase.",
             "practice": "Complete a shopping identity audit: note your shopping triggers, common wardrobe regrets, and what you want shopping to feel like.",
             "source": "Power Dressing · Module 5",
-            "videos": [
-              {
-                "title": "Shopping Identity and Mindset · Part 1",
-                "url": ""
-              },
-              {
-                "title": "Shopping Identity and Mindset · Part 2",
-                "url": ""
-              }
-            ],
+            "videos": [],
             "duration": 0
           },
           {
@@ -576,11 +577,12 @@
             "source": "Power Dressing · Module 5",
             "videos": [
               {
-                "title": "Plan Before You Shop",
-                "url": ""
+                "title": "Lesson 2 · Part 1",
+                "url": "assets/lms/videos/module-05-lesson-02-v1.mp4"
               }
             ],
-            "duration": 0
+            "duration": 0,
+            "videoUrl": "assets/lms/videos/module-05-lesson-02-v1.mp4"
           },
           {
             "id": "module-5-lesson-3",
@@ -590,11 +592,12 @@
             "source": "Power Dressing · Module 5",
             "videos": [
               {
-                "title": "Shop with Intention",
-                "url": ""
+                "title": "Lesson 3 · Part 1",
+                "url": "assets/lms/videos/module-05-lesson-03-v1.mp4"
               }
             ],
-            "duration": 0
+            "duration": 0,
+            "videoUrl": "assets/lms/videos/module-05-lesson-03-v1.mp4"
           }
         ]
       },
@@ -758,6 +761,18 @@
       }
     ],
     "resources": [
+      {
+        "title": "Module 5 · Introduction",
+        "type": "video",
+        "url": "assets/lms/videos/module-05-intro.mp4",
+        "note": "Start Module 5 here"
+      },
+      {
+        "title": "Module 5 · Practical Example",
+        "type": "video",
+        "url": "assets/lms/videos/module-05-practical-example.mp4",
+        "note": "Additional Module 5 example"
+      },
       {
         "title": "Module 6 · Introduction",
         "type": "video",
