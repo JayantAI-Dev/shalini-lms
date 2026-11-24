@@ -162,7 +162,7 @@ function sr_lms_guard_pages(): void {
     if(!sr_lms_has_access(get_current_user_id(),$course)){wp_safe_redirect(sr_lms_page_url('enroll',['course'=>$course,'notice'=>'enrollment-required']));exit;}
 }
 function sr_lms_enqueue(): void {
-    wp_enqueue_style('sr-lms',SR_LMS_URL.'assets/lms.css',[],SR_LMS_VERSION);
+    wp_enqueue_style('sr-lms',SR_LMS_URL.'assets/lms.css',[],(string) filemtime(SR_LMS_DIR.'assets/lms.css'));
     if(is_page('student-portal')){
         wp_enqueue_script('sr-lms-auth',SR_LMS_URL.'assets/auth.js',[],SR_LMS_VERSION,true);
     }
