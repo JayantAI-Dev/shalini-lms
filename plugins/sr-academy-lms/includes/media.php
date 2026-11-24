@@ -26,8 +26,10 @@ function sr_lms_private_file(string $reference): ?string {
     if(!$path||!str_starts_with($path,$root.DIRECTORY_SEPARATOR)||!is_file($path)||!is_readable($path))return null;
     return $path;
 }
-function sr_lms_media_url(string $course,string $lesson,string $field='videoUrl'): string {
-    return add_query_arg(['action'=>'sr_lms_media','course'=>$course,'lesson'=>$lesson,'field'=>$field],admin_url('admin-post.php'));
+function sr_lms_media_url(string $course,string $lesson,string $field='videoUrl',?int $version=null): string {
+    $args=['action'=>'sr_lms_media','course'=>$course,'lesson'=>$lesson,'field'=>$field];
+    if($version!==null)$args['version']=$version;
+    return add_query_arg($args,admin_url('admin-post.php'));
 }
 function sr_lms_resource_url(string $course,int $index): string {return add_query_arg(['action'=>'sr_lms_media','course'=>$course,'resource'=>$index],admin_url('admin-post.php'));}
 function sr_lms_private_headers(): void {nocache_headers();header('Cache-Control: private, no-store, no-cache, must-revalidate, max-age=0');header('Vary: Cookie');header('X-Content-Type-Options: nosniff');header('X-Robots-Tag: noindex, nofollow');}
@@ -42,7 +44,15 @@ function sr_lms_media_handler(): void {
         $resource=$catalog[$course]['resources'][(int)$value]??null;$reference=$resource['url']??'';
     }else{
         $lesson=sr_lms_lesson($course,sr_lms_id(wp_unslash($_GET['lesson']??'')));$field=wp_unslash($_GET['field']??'videoUrl');
-        if(!is_string($field)||!in_array($field,['videoUrl','pdfUrl','solutionUrl'],true)){status_header(404);exit;}$reference=$lesson[$field]??'';
+        if(!$lesson){status_header(404);exit;}
+        if($field==='videoVersion'){
+            $version=wp_unslash($_GET['version']??'');
+            if(!is_string($version)||!ctype_digit($version)){status_header(404);exit;}
+            $reference=$lesson['videos'][(int)$version]['url']??'';
+        }else{
+            if(!is_string($field)||!in_array($field,['videoUrl','pdfUrl','solutionUrl'],true)){status_header(404);exit;}
+            $reference=$lesson[$field]??'';
+        }
     }
     $path=sr_lms_private_file($reference);if(!$path){status_header(404);exit('This course resource is unavailable.');}
     $mimes=['mp4'=>'video/mp4','webm'=>'video/webm','pdf'=>'application/pdf','jpg'=>'image/jpeg','jpeg'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp'];$ext=strtolower(pathinfo($path,PATHINFO_EXTENSION));
@@ -65,6 +75,7 @@ function sr_lms_student_state(int $user_id,string $course): array {
     $data=sr_lms_catalog()[$course];
     foreach($data['modules'] as &$module)foreach($module['lessons'] as &$lesson){
         foreach(['videoUrl','pdfUrl','solutionUrl'] as $field){$exists=(bool)sr_lms_private_file($lesson[$field]??'');$lesson[$field]=$exists?sr_lms_media_url($course,$lesson['id'],$field):'';if($field==='videoUrl')$lesson['videoAvailable']=$exists&&!empty($lesson['duration']);}
+        if(!empty($lesson['videos'])&&is_array($lesson['videos'])){foreach($lesson['videos'] as $index=>&$video){$available=(bool)sr_lms_private_file($video['url']??'');$video['available']=$available;$video['url']=$available?sr_lms_media_url($course,$lesson['id'],'videoVersion',(int)$index):'';if($available&&!empty($lesson['duration']))$lesson['videoAvailable']=true;}unset($video);}
     }unset($module,$lesson);
     foreach($data['resources'] as $index=>&$resource){$resource['available']=(bool)sr_lms_private_file($resource['url']??'');$resource['url']=$resource['available']?sr_lms_resource_url($course,$index):'';}unset($resource);
     $progress=sr_lms_progress($user_id,$course);foreach(sr_lms_lessons($data) as $lesson)if(isset($progress[$lesson['id']]))$progress[$lesson['id']]['complete']=!empty($lesson['videoAvailable'])&&sr_lms_lesson_complete($progress[$lesson['id']],(float)($lesson['duration']??0));
