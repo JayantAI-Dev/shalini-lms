@@ -611,13 +611,14 @@
             "videos": [
               {
                 "title": "Shopping Identity & Occasion-Based Dressing · Part 1",
-                "url": ""
+                "url": "assets/lms/videos/module-06-lesson-01-v1.mp4"
               },
               {
                 "title": "Shopping Identity & Occasion-Based Dressing · Part 2",
-                "url": ""
+                "url": "assets/lms/videos/module-06-lesson-01-v2.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-06-lesson-01-v1.mp4"
           },
           {
             "id": "module-6-lesson-2",
@@ -629,13 +630,14 @@
             "videos": [
               {
                 "title": "Ethnic Color, Fabric & Craft Choices · Part 1",
-                "url": ""
+                "url": "assets/lms/videos/module-06-lesson-02-v1.mp4"
               },
               {
                 "title": "Ethnic Color, Fabric & Craft Choices · Part 2",
-                "url": ""
+                "url": "assets/lms/videos/module-06-lesson-02-v2.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-06-lesson-02-v1.mp4"
           },
           {
             "id": "module-6-lesson-3",
@@ -647,9 +649,10 @@
             "videos": [
               {
                 "title": "Accessories & Mix-and-Match Styling · Part 1",
-                "url": ""
+                "url": "assets/lms/videos/module-06-lesson-03-v1.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-06-lesson-03-v1.mp4"
           },
           {
             "id": "module-6-lesson-4",
@@ -661,9 +664,10 @@
             "videos": [
               {
                 "title": "Outfit Confidence & Reflection · Part 1",
-                "url": ""
+                "url": "assets/lms/videos/module-06-lesson-04-v1.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-06-lesson-04-v1.mp4"
           }
         ]
       },
@@ -680,13 +684,14 @@
             "videos": [
               {
                 "title": "Decode Dress Codes & Read the Occasion · Part 1",
-                "url": ""
+                "url": "assets/lms/videos/module-07-lesson-01-v1.mp4"
               },
               {
                 "title": "Decode Dress Codes & Read the Occasion · Part 2",
-                "url": ""
+                "url": "assets/lms/videos/module-07-lesson-01-v2.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-07-lesson-01-v1.mp4"
           },
           {
             "id": "module-7-lesson-2",
@@ -698,13 +703,14 @@
             "videos": [
               {
                 "title": "Signature Outfits for Key Life Moments · Part 1",
-                "url": ""
+                "url": "assets/lms/videos/module-07-lesson-02-v1.mp4"
               },
               {
                 "title": "Signature Outfits for Key Life Moments · Part 2",
-                "url": ""
+                "url": "assets/lms/videos/module-07-lesson-02-v2.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-07-lesson-02-v1.mp4"
           },
           {
             "id": "module-7-lesson-3",
@@ -716,13 +722,14 @@
             "videos": [
               {
                 "title": "Body Language & Presence · Part 1",
-                "url": ""
+                "url": "assets/lms/videos/module-07-lesson-03-v1.mp4"
               },
               {
                 "title": "Body Language & Presence · Part 2",
-                "url": ""
+                "url": "assets/lms/videos/module-07-lesson-03-v2.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-07-lesson-03-v1.mp4"
           },
           {
             "id": "module-7-lesson-4",
@@ -734,19 +741,40 @@
             "videos": [
               {
                 "title": "Capsule Wardrobe & Confidence Integration · Part 1",
-                "url": ""
+                "url": "assets/lms/videos/module-07-lesson-04-v1.mp4"
               },
               {
                 "title": "Capsule Wardrobe & Confidence Integration · Part 2",
-                "url": ""
+                "url": "assets/lms/videos/module-07-lesson-04-v2.mp4"
               },
               {
                 "title": "Capsule Wardrobe & Confidence Integration · Part 3",
-                "url": ""
+                "url": "assets/lms/videos/module-07-lesson-04-v3.mp4"
               }
-            ]
+            ],
+            "videoUrl": "assets/lms/videos/module-07-lesson-04-v1.mp4"
           }
         ]
+      }
+    ],
+    "resources": [
+      {
+        "title": "Module 6 · Introduction",
+        "type": "video",
+        "url": "assets/lms/videos/module-06-intro.mp4",
+        "note": "Start Module 6 here"
+      },
+      {
+        "title": "Module 6 · Mini Practice",
+        "type": "video",
+        "url": "assets/lms/videos/module-06-mini-practice.mp4",
+        "note": "Additional Module 6 practice"
+      },
+      {
+        "title": "Module 7 · Course Outro",
+        "type": "video",
+        "url": "assets/lms/videos/module-07-outro.mp4",
+        "note": "Watch after Module 7"
       }
     ]
   },
