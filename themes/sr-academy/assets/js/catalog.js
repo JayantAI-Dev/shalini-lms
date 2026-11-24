@@ -104,7 +104,9 @@
     $('#lms-breadcrumb-name').textContent=slug==='speakathon'?'Communication Course':course.title;
     $('#lms-detail-summary').textContent=course.description;
     const privateCheckout = Boolean(document.querySelector('.sr-lms-purchase[data-live-check="1"]'));
-    $('#lms-detail-price').textContent=formatMoney(privateCheckout ? 1 : course.price);
+    const isEnrolled = $('#lms-enroll-cta').dataset.enrolled === '1';
+    const price = $('#lms-detail-price');
+    if (price) price.textContent=formatMoney(privateCheckout ? 1 : course.price);
     const total=flatten(course).length;
     $('#lms-detail-count').textContent=(slug==='speakathon'?'21 guided challenges':total+' course topics');
     const detailRating=$('#lms-detail-rating');
@@ -119,18 +121,12 @@
       detailSession.textContent='Free 1:1 session included';
       detailSession.hidden=false;
       detailMode.hidden=true;
-      detailNote.textContent='Continue to enrollment for available purchase and access options.';
     }
     $('#lms-detail-category').textContent=slug==='speakathon'?'21-DAY COMMUNICATION CHALLENGE':slug==='power-dressing'?'PERSONAL IMAGE & STYLE':slug==='dining-etiquette'?'DINING ETIQUETTE':'COMMUNICATION + STYLE BUNDLE';
     const image=$('#lms-detail-photo');
     image.src=courseImagePath;
     image.alt=course.title+' course preview image';
-    $('#lms-enroll-cta').href=updateUrl('lms-auth.html',slug);
     $('#lms-syllabus-player')?.setAttribute('href',updateUrl('lms-learn.html',slug));
-    const enrollmentUrl=window.SR_THEME.url('package-enroll.html?course='+encodeURIComponent(slug)+(privateCheckout?'&checkout_check=1':''));
-    $('#lms-enroll-cta').href=enrollmentUrl;
-    $('#lms-enroll-cta').textContent='Enroll in course';
-    $('#lms-certificate-cta')?.setAttribute('href',enrollmentUrl);
 
     const courseCheckoutModal = $('.sr-course-checkout-modal');
     if (courseCheckoutModal && !courseCheckoutModal.id) courseCheckoutModal.id = 'sr-course-checkout-modal';
@@ -153,7 +149,7 @@
       document.body.classList.remove('sr-course-checkout-open');
       courseCheckoutTrigger?.focus();
     };
-    document.querySelectorAll('#lms-enroll-cta,#lms-curriculum-enroll,#lms-certificate-cta').forEach(trigger => {
+    if (courseCheckoutDialog && !isEnrolled) document.querySelectorAll('#lms-enroll-cta,#lms-curriculum-enroll,#lms-certificate-cta').forEach(trigger => {
       trigger.setAttribute('aria-haspopup', 'dialog');
       trigger.setAttribute('aria-controls', 'sr-course-checkout-modal');
       trigger.addEventListener('click', openCourseCheckout);
@@ -237,7 +233,7 @@
         if(certificateGrid)certificateGrid.style.gridTemplateColumns='';
       }
       const certificateCta=$('#lms-certificate-cta');
-      if(certificateCta)certificateCta.innerHTML='Start Power Dressing / Styling <span aria-hidden="true">→</span>';
+      if(certificateCta && !isEnrolled)certificateCta.innerHTML='Start Power Dressing / Styling <span aria-hidden="true">→</span>';
       const previewSection=$('#lms-previews');
       const previewHeading=previewSection?.querySelector('.lms-section-heading h2');
       const previewDescription=previewSection?.querySelector('.lms-section-heading p');
@@ -267,13 +263,10 @@
       }
       const previewButton=$('.lms-buttons .lms-secondary');
       if(previewButton)previewButton.textContent='See course preview ↓';
-      const purchaseEyebrow=$('.lms-purchase-content > .lms-eyebrow');
       const purchaseDescription=$('.lms-purchase-content > p');
-      if(purchaseEyebrow)purchaseEyebrow.textContent='COURSE PRICE';
       if(purchaseDescription)purchaseDescription.textContent='Build a more versatile wardrobe with practical, self-paced style lessons.';
-      $('#lms-enroll-cta').textContent='Enroll in Course';
       detailRating.hidden=true;
-      detailNote.textContent='Self-paced course · Lesson recordings appear as they are published.';
+      if (!isEnrolled) detailNote.textContent='Self-paced course · Lesson recordings appear as they are published.';
       const takeaways=$('.lms-benefits-grid h2');
       const bonusTitle=$('.lms-bonus-panel h3');
       if(takeaways)takeaways.innerHTML='Build a more intentional <em>personal style</em>';

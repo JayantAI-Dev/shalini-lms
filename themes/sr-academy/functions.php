@@ -13,7 +13,9 @@ if (sr_theme_is_dynamic_checkout_request() && !defined('DONOTCACHEPAGE')) {
 }
 
 add_action('template_redirect', function (): void {
-    if (!sr_theme_is_dynamic_checkout_request()) { return; }
+    $personalized_catalog = is_page(['course', 'courses']) && is_user_logged_in();
+    if (!sr_theme_is_dynamic_checkout_request() && !$personalized_catalog) { return; }
+    if (!defined('DONOTCACHEPAGE')) { define('DONOTCACHEPAGE', true); }
     nocache_headers();
     header('Cache-Control: private, no-store, no-cache, must-revalidate, max-age=0');
     header('Vary: Cookie');
@@ -39,6 +41,13 @@ function sr_theme_url(string $source_filename): string {
 
 function sr_theme_asset(string $path): string {
     return trailingslashit(get_template_directory_uri()) . ltrim($path, '/');
+}
+
+function sr_theme_course_learning_url(string $course): string {
+    if (!function_exists('sr_lms_has_access') || !sr_lms_has_access(get_current_user_id(), $course)) {
+        return '';
+    }
+    return sr_theme_url('lms-learn.html?course=' . rawurlencode($course));
 }
 
 function sr_theme_slug(): string {
@@ -183,6 +192,7 @@ add_filter('template_include', function(string $template): string {
 function sr_theme_course_checkout_modal(): void {
     if (sr_theme_slug() !== 'course' || !isset($_GET['course']) || !is_string($_GET['course']) || !function_exists('sr_lms_offers') || !function_exists('sr_lms_payment_ready')) { return; }
     $offer = sanitize_key(wp_unslash($_GET['course']));
+    if (sr_theme_course_learning_url($offer)) { return; }
     $offers = sr_lms_offers();
     $settings = function_exists('sr_lms_payment_settings') ? sr_lms_payment_settings() : [];
     if (!isset($offers[$offer]) || !sr_lms_payment_ready() || !in_array($offer, (array) ($settings['offers'] ?? []), true)) { return; }
