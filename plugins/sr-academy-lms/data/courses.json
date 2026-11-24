@@ -432,21 +432,21 @@
           },
           {
             "id": "module-3-lesson-2",
-            "title": "Lesson 2 · Content pending",
-            "summary": "3 videos will be added after review.",
+            "title": "Lesson 2 · Creating Visual Balance and Proportions",
+            "summary": "Creating Visual Balance and Proportions",
             "practice": "",
             "source": "Power Dressing · Module 3",
             "videos": [
               {
-                "title": "Lesson 2 · Part 1",
+                "title": "Why Proportions matter in styling?",
                 "url": "assets/lms/videos/module-03-lesson-02-v1.mp4"
               },
               {
-                "title": "Lesson 2 · Part 2",
+                "title": "Rule of thirds x Body types",
                 "url": "assets/lms/videos/module-03-lesson-02-v2.mp4"
               },
               {
-                "title": "Lesson 2 · Part 3",
+                "title": "The power of Visual Weight",
                 "url": "assets/lms/videos/module-03-lesson-02-v3.mp4"
               }
             ],
