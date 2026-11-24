@@ -178,7 +178,7 @@
     const group = node('div', 'learn-week-block learn-extra-block'), head = node('div', 'learn-week-name', label), button = resourceOption(resource);
     group.append(head, button);outline.append(group);return button;
   }
-  let introButton = null;if (intro) introButton = resourceButton(intro, 'START HERE');
+  let introButton = null;
   const extraVideos = (course.resources || []).filter(item => item.type === 'video' && item !== intro && item !== closing);
   (course.modules || []).forEach((module, week) => {
     const group = node('div', 'learn-week-block');group.append(node('div', 'learn-week-name', module.title));
@@ -204,10 +204,11 @@
       group.append(lessonGroup);
     });
     const moduleExtras = extraVideos.filter(item => new RegExp('\\bModule\\s+' + (week + 1) + '\\b', 'i').test(item.title));
+    if (week === 4 && intro) moduleExtras.unshift(intro);
     if (moduleExtras.length) {
       const extraGroup = node('div', 'learn-week-block learn-extra-block');
       extraGroup.append(node('div', 'learn-week-name', 'MODULE ' + (week + 1) + ' RESOURCES'));
-      moduleExtras.forEach(item => extraGroup.append(resourceOption(item)));
+      moduleExtras.forEach(item => {const option = resourceOption(item);if (item === intro) introButton = option;extraGroup.append(option);});
       group.append(extraGroup);
     }
     outline.append(group);
