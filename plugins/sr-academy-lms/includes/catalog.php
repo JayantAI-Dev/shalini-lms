@@ -19,6 +19,16 @@ function sr_lms_validate_catalog($data) {
                 if(!is_array($lesson)||!sr_lms_id($lesson['id']??'')||isset($ids[$lesson['id']])||!is_string($lesson['title']??null))return new WP_Error('catalog','Every lesson requires a unique valid ID and title.');
                 $ids[$lesson['id']]=true;$l=['id'=>$lesson['id'],'title'=>sanitize_text_field($lesson['title']),'summary'=>sanitize_textarea_field($lesson['summary']??''),'practice'=>sanitize_textarea_field($lesson['practice']??''),'source'=>sanitize_text_field($lesson['source']??'')];
                 foreach(['videoUrl','pdfUrl','solutionUrl'] as $key){if(!empty($lesson[$key])){if(!sr_lms_validate_media_reference($lesson[$key]))return new WP_Error('catalog','Invalid private media reference for '.$slug.'/'.$lesson['id'].'. Use assets/lms/videos, pdfs or resources and a safe filename.');$l[$key]=$lesson[$key];}}
+                if(isset($lesson['videos'])){
+                    if(!is_array($lesson['videos'])||count($lesson['videos'])>20)return new WP_Error('catalog','Each lesson may contain up to 20 video versions.');
+                    $l['videos']=[];
+                    foreach($lesson['videos'] as $video){
+                        if(!is_array($video)||!is_string($video['title']??null)||!is_string($video['url']??''))return new WP_Error('catalog','Each lesson video needs a title and media path.');
+                        $url=$video['url']??'';
+                        if($url!==''&&!sr_lms_validate_media_reference($url))return new WP_Error('catalog','Invalid private video version reference for '.$slug.'/'.$lesson['id'].'.');
+                        $l['videos'][]=['title'=>sanitize_text_field($video['title']),'url'=>$url];
+                    }
+                }
                 // Duration is derived from local media metadata; JSON cannot supply a trusted value.
                 $m['lessons'][]=$l;
             }$out['modules'][]=$m;
@@ -48,7 +58,7 @@ function sr_lms_refresh_media_metadata(): array {
 /** Public catalog deliberately omits private paths. */
 function sr_lms_courses(): array {
     $catalog=sr_lms_catalog();
-    foreach($catalog as &$course){foreach($course['modules'] as &$module)foreach($module['lessons'] as &$lesson){$lesson['videoAvailable']=(bool)sr_lms_private_file($lesson['videoUrl']??'');$lesson['pdfAvailable']=(bool)sr_lms_private_file($lesson['pdfUrl']??'');unset($lesson['videoUrl'],$lesson['pdfUrl'],$lesson['solutionUrl']);}unset($module,$lesson);foreach($course['resources'] as &$resource){$resource['available']=(bool)sr_lms_private_file($resource['url']??'');unset($resource['url']);}unset($resource);}unset($course);return $catalog;
+    foreach($catalog as &$course){foreach($course['modules'] as &$module)foreach($module['lessons'] as &$lesson){$lesson['videoAvailable']=(bool)sr_lms_private_file($lesson['videoUrl']??'');if(!empty($lesson['videos'])&&is_array($lesson['videos'])){foreach($lesson['videos'] as &$video){$video['available']=(bool)sr_lms_private_file($video['url']??'');unset($video['url']);if($video['available'])$lesson['videoAvailable']=true;}unset($video);}$lesson['pdfAvailable']=(bool)sr_lms_private_file($lesson['pdfUrl']??'');unset($lesson['videoUrl'],$lesson['pdfUrl'],$lesson['solutionUrl']);}unset($module,$lesson);foreach($course['resources'] as &$resource){$resource['available']=(bool)sr_lms_private_file($resource['url']??'');unset($resource['url']);}unset($resource);}unset($course);return $catalog;
 }
 function sr_lms_offers(): array {
     $offers=[];foreach(sr_lms_catalog() as $slug=>$course)$offers[$slug]=['title'=>$course['title'],'price'=>$course['price'],'courses'=>sr_lms_grant_targets($slug,sr_lms_catalog())];
