@@ -71,10 +71,93 @@ function sr_lms_student_state(int $user_id,string $course): array {
     return ['slug'=>$course,'course'=>$data,'progress'=>$progress,'completion'=>sr_lms_completion($user_id,$course),'certificateUrl'=>add_query_arg(['action'=>'sr_lms_certificate','course'=>$course],admin_url('admin-post.php'))];
 }
 function sr_lms_certificate_handler(): void {
-    sr_lms_private_headers();$course=sr_lms_id(wp_unslash($_GET['course']??''));$user=get_current_user_id();
+    sr_lms_private_headers();
+    $course=sr_lms_id(wp_unslash($_GET['course']??''));
+    $user=get_current_user_id();
     if(!$user||!sr_lms_has_access($user,$course)){status_header(403);exit('Enrollment is required.');}
-    $completion=sr_lms_completion($user,$course);if(!$completion['eligible']){status_header(403);exit('Complete every required recording (90% watched coverage) and practice acknowledgement before receiving a certificate. Missing recordings block certificates.');}
-    $key='sr_lms_certificate_date_'.$course;$date=get_user_meta($user,$key,true);if(!$date){$date=sr_lms_course_completion_date(sr_lms_lessons(sr_lms_catalog()[$course]),sr_lms_progress($user,$course),gmdate('Y-m-d'));add_user_meta($user,$key,$date,true);$date=get_user_meta($user,$key,true);}
-    $student=get_userdata($user);$title=sr_lms_catalog()[$course]['title'];header('Content-Type: text/html; charset=utf-8');
-    ?><!doctype html><html lang="en"><head><meta charset="utf-8"><title>Certificate of Completion</title><style>body{font:20px Georgia,serif;text-align:center;color:#243026;margin:4rem}.certificate{border:8px double #778a4a;padding:5rem 3rem;max-width:900px;margin:auto}h1{font-size:3rem}h2{font-size:2.5rem}button{margin-top:2rem;padding:1rem 2rem}@media print{button{display:none}body{margin:1rem}.certificate{padding:3rem}}</style></head><body><main class="certificate"><p>SHALINI RATHOD · CONFIDENCE ACADEMY</p><h1>Certificate of Completion</h1><p>This certifies that</p><h2><?php echo esc_html($student->display_name); ?></h2><p>has completed the required lessons and practice for</p><h2><?php echo esc_html($title); ?></h2><p>Completed <?php echo esc_html(wp_date(get_option('date_format'),strtotime($date.' 12:00 UTC'))); ?></p><p>Certificate reference: SR-<?php echo esc_html($user.'-'.strtoupper(substr(hash('sha256',$user.'|'.$course.'|'.$date),0,10))); ?></p></main><button onclick="window.print()">Print / Save PDF</button></body></html><?php exit;
+    $completion=sr_lms_completion($user,$course);
+    if(!$completion['eligible']){status_header(403);exit('Complete every required recording (90% watched coverage) and practice acknowledgement before receiving a certificate. Missing recordings block certificates.');}
+    $key='sr_lms_certificate_date_'.$course;
+    $date=get_user_meta($user,$key,true);
+    if(!$date){
+        $date=sr_lms_course_completion_date(sr_lms_lessons(sr_lms_catalog()[$course]),sr_lms_progress($user,$course),gmdate('Y-m-d'));
+        add_user_meta($user,$key,$date,true);
+        $date=get_user_meta($user,$key,true);
+    }
+    $student=get_userdata($user);
+    $student_name=trim((string)$student->first_name.' '.(string)$student->last_name);
+    if($student_name==='')$student_name=(string)$student->display_name;
+    $title=sr_lms_catalog()[$course]['title'];
+    $formatted_date=wp_date(get_option('date_format'),strtotime($date.' 12:00 UTC'));
+    $reference='SR-'.$user.'-'.strtoupper(substr(hash('sha256',$user.'|'.$course.'|'.$date),0,10));
+    header('Content-Type: text/html; charset=utf-8');
+    ?><!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><?php echo esc_html($title); ?> · Certificate of Completion</title>
+<style>
+:root{color-scheme:light;--forest:#174b39;--deep:#12392e;--sage:#78916f;--gold:#bd9b55;--ink:#20362d;--muted:#68786e;--paper:#fffefa}
+*{box-sizing:border-box}
+body{margin:0;padding:32px 20px;background:#f1f4ee;color:var(--ink);font:16px/1.5 Arial,sans-serif}
+.certificate{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:660px;max-width:1100px;margin:0 auto;padding:68px 8%;overflow:hidden;background:var(--paper);text-align:center;border:1px solid #d9e2d5;box-shadow:0 22px 70px rgba(23,75,57,.12)}
+.certificate:before,.certificate:after{position:absolute;z-index:-1;content:"";inset:14px;border:1px solid #d3bd83;pointer-events:none}
+.certificate:after{inset:20px;border-color:#e8e3d2}
+.corner{position:absolute;width:110px;height:110px;border-color:var(--gold);opacity:.72}
+.corner-tl{top:25px;left:25px;border-top:2px solid;border-left:2px solid}
+.corner-tr{top:25px;right:25px;border-top:2px solid;border-right:2px solid}
+.corner-bl{bottom:25px;left:25px;border-bottom:2px solid;border-left:2px solid}
+.corner-br{right:25px;bottom:25px;border-right:2px solid;border-bottom:2px solid}
+.brand{margin:0;color:var(--forest);font-size:13px;font-weight:700;letter-spacing:.22em;text-transform:uppercase}
+.brand-mark{display:grid;place-items:center;width:42px;height:42px;margin:0 auto 13px;border:1px solid #c6ae70;border-radius:50%;color:var(--gold);font-size:21px}
+.eyebrow{margin:34px 0 7px;color:var(--sage);font-size:12px;font-weight:700;letter-spacing:.24em;text-transform:uppercase}
+h1{margin:0;color:var(--deep);font-family:Georgia,serif;font-size:clamp(34px,5vw,58px);font-weight:400;line-height:1.1}
+.lead{margin:27px 0 0;color:var(--muted);font-family:Georgia,serif;font-size:19px}
+.student-name{max-width:100%;margin:7px 0 8px;padding:0 12px;color:var(--forest);font-family:Georgia,serif;font-size:clamp(32px,5vw,54px);font-weight:700;line-height:1.18;overflow-wrap:anywhere}
+.rule{width:min(340px,60%);height:1px;margin:8px auto 17px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.course-copy{margin:0;color:var(--muted);font-size:16px}
+.course-title{max-width:850px;margin:5px 0 0;color:var(--deep);font-family:Georgia,serif;font-size:clamp(23px,3.5vw,36px);font-weight:700;line-height:1.2}
+.completion-seal{display:flex;align-items:center;gap:10px;margin:28px 0 0;padding:10px 17px;border:1px solid #d8e2d1;border-radius:99px;background:#f4f7f1;color:var(--forest);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.seal-star{color:var(--gold);font-size:16px}
+.footer{display:flex;justify-content:center;gap:70px;width:100%;margin-top:36px}
+.footer-item{min-width:160px;color:var(--ink);font-size:14px}
+.footer-label{display:block;margin-bottom:5px;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+.signature{font-family:Georgia,serif;font-size:20px;font-style:italic}
+.reference{margin:26px 0 0;color:#879187;font-size:10px;letter-spacing:.08em}
+.actions{display:flex;justify-content:center;gap:12px;margin:22px auto 0}
+.actions a,.actions button{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 21px;border:1px solid var(--forest);border-radius:6px;background:var(--forest);color:white;font:700 14px Arial,sans-serif;text-decoration:none;cursor:pointer}
+.actions a{background:transparent;color:var(--forest)}
+@media(max-width:600px){body{padding:12px 8px}.certificate{min-height:620px;padding:58px 9%}.corner{width:55px;height:55px}.footer{gap:24px}.footer-item{min-width:0;flex:1}.actions{flex-wrap:wrap}}
+@media print{
+ @page{size:landscape;margin:10mm}
+ body{padding:0;background:#fff}
+ .certificate{width:100%;max-width:none;min-height:180mm;height:180mm;padding:35px 8%;border:1px solid #d9e2d5;box-shadow:none;break-inside:avoid}
+ .actions{display:none}
+ *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<main class="certificate">
+<span class="corner corner-tl" aria-hidden="true"></span><span class="corner corner-tr" aria-hidden="true"></span>
+<span class="corner corner-bl" aria-hidden="true"></span><span class="corner corner-br" aria-hidden="true"></span>
+<p class="brand"><span class="brand-mark" aria-hidden="true">✦</span>Shalini Rathod · Confidence Academy</p>
+<p class="eyebrow">With pride and appreciation</p>
+<h1>Certificate<br>of Completion</h1>
+<p class="lead">This certificate is proudly presented to</p>
+<h2 class="student-name"><?php echo esc_html($student_name); ?></h2>
+<div class="rule" aria-hidden="true"></div>
+<p class="course-copy">for successfully completing the course</p>
+<h2 class="course-title"><?php echo esc_html($title); ?></h2>
+<div class="completion-seal"><span class="seal-star" aria-hidden="true">✦</span>All required lessons and practice completed<span class="seal-star" aria-hidden="true">✦</span></div>
+<div class="footer">
+<div class="footer-item"><span class="footer-label">Awarded on</span><?php echo esc_html($formatted_date); ?></div>
+<div class="footer-item"><span class="footer-label">Academy</span><span class="signature">Shalini Rathod</span></div>
+</div>
+<p class="reference">Certificate reference: <?php echo esc_html($reference); ?></p>
+</main>
+<div class="actions"><button type="button" onclick="window.print()">Print / Save as PDF</button><a href="<?php echo esc_url(sr_lms_page_url('dashboard',['dashboard_tab'=>'certificates'])); ?>">Back to certificates</a></div>
+</body>
+</html><?php exit;
 }
