@@ -17,7 +17,7 @@
   let pending = [], saveTimer = null, saving = false, saveAgain = false, restorePosition = 0;
   const params = new URLSearchParams(location.search);
   const node = (tag, className, text) => { const element = document.createElement(tag); if (className) element.className = className; if (text != null) element.textContent = text; return element; };
-  const lessonVideos = lesson => Array.isArray(lesson.videos) && lesson.videos.length ? lesson.videos : (lesson.videoUrl ? [{title: 'Video 1', url: lesson.videoUrl, available: Boolean(lesson.videoAvailable)}] : []);
+  const lessonVideos = lesson => Array.isArray(lesson.videos) && lesson.videos.length ? lesson.videos : (lesson.videoUrl ? [{title: 'Main recording', url: lesson.videoUrl, available: Boolean(lesson.videoAvailable)}] : []);
   const time = value => {value = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0; return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;};
   const setText = (id, value) => { if ($(id)) $(id).textContent = value; };
   const status = (message, ready = false) => {setText('completion-note', message); $('completion-note')?.classList.toggle('is-ready', ready);};
@@ -154,7 +154,7 @@
     document.querySelectorAll('.learn-video-version').forEach(button => button.setAttribute('aria-current', 'false'));
     document.querySelectorAll(`.learn-video-version[data-lesson-index="${index}"]`).forEach(button => {if (Number(button.dataset.videoIndex) === videoIndex) button.setAttribute('aria-current', 'true');});
     const caption = $('lesson-video-caption'); if (caption) {const isPlayingVideo = Boolean(activeVideo?.available && activeVideo.url);caption.textContent = isPlayingVideo ? `Now playing · ${activeVideo.title}` : '';caption.hidden = !isPlayingVideo;}
-    openVideo(activeVideo?.available && activeVideo.url ? activeVideo.url : (!choices.length && lesson.videoAvailable ? lesson.videoUrl : ''), 'lesson', progress[lesson.id]?.position || 0);
+    openVideo(activeVideo?.available && activeVideo.url ? activeVideo.url : (!choices.length && lesson.videoAvailable ? lesson.videoUrl : ''), 'lesson', requestedVideo === null ? (progress[lesson.id]?.position || 0) : 0);
     updateCompletion();updateOutline();
     const url = new URL(location.href);url.searchParams.set('course', slug);url.searchParams.set('lesson', String(index + 1));history.replaceState(null, '', url);
   }
