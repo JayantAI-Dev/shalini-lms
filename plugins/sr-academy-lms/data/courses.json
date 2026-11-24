@@ -265,12 +265,6 @@
         "type": "pdf",
         "url": "assets/lms/pdfs/25-gems.pdf",
         "note": "Freebie guide"
-      },
-      {
-        "title": "The End · Closing video",
-        "type": "video",
-        "url": "assets/lms/videos/closing.mp4",
-        "note": "Watch after completing Day 21"
       }
     ]
   },
