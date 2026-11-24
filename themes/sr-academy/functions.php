@@ -87,6 +87,12 @@ function sr_theme_enqueue(): void {
     $script_version = is_file($script_file) ? (string) filemtime($script_file) : $version;
     wp_enqueue_style('sr-fonts', sr_theme_asset('assets/fonts/fonts.css'), [], $version);
     wp_enqueue_style('sr-academy', get_stylesheet_uri(), ['sr-fonts'], $style_version);
+    if (sr_theme_slug() === 'learn') {
+        $learn_viewport_style = get_template_directory() . '/assets/css/learn-short-viewport.css';
+        if (is_file($learn_viewport_style)) {
+            wp_enqueue_style('sr-learn-short-viewport', sr_theme_asset('assets/css/learn-short-viewport.css'), ['sr-academy'], (string) filemtime($learn_viewport_style));
+        }
+    }
     if (sr_theme_slug() === 'enroll' && sr_theme_is_coaching_offer()) {
         $booking_style = get_template_directory() . '/assets/css/package-booking.css';
         $booking_style_version = is_file($booking_style) ? (string) filemtime($booking_style) : $version;
