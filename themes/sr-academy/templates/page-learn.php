@@ -29,6 +29,7 @@
           <button id="full-screen" class="learn-icon-button" type="button" aria-label="Full screen" title="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5"/></svg></button>
         </div>
         </div>
+        <p id="lesson-video-caption" class="learn-video-caption" hidden></p>
 
       </section>
 
