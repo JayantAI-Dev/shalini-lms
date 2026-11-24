@@ -373,17 +373,17 @@
           },
           {
             "id": "module-2-lesson-2",
-            "title": "Lesson 2 · Content pending",
-            "summary": "Two videos will be added after review.",
+            "title": "Lesson 2 · Finding Your Personal Color Palette",
+            "summary": "Finding Your Personal Color Palette",
             "practice": "",
             "source": "Power Dressing · Module 2",
             "videos": [
               {
-                "title": "Lesson 2 · Part 1",
+                "title": "Know your Personal Color palette",
                 "url": "assets/lms/videos/module-02-lesson-02-v1.mp4"
               },
               {
-                "title": "Lesson 2 · Part 2",
+                "title": "Right Color = Instant Radiance",
                 "url": "assets/lms/videos/module-02-lesson-02-v2.mp4"
               }
             ],
