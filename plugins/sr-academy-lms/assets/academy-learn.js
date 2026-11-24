@@ -170,11 +170,16 @@
   const outline = $('outline-list');outline.replaceChildren();
   const intro = (course.resources || []).find(item => item.type === 'video' && /introduction/i.test(item.title));
   const closing = (course.resources || []).find(item => item.type === 'video' && /closing|end/i.test(item.title));
+  function resourceOption(resource) {
+    const button = node('button', 'learn-extra-btn', resource.title);
+    button.type = 'button';button.addEventListener('click', () => extra(resource, button));return button;
+  }
   function resourceButton(resource, label) {
-    const group = node('div', 'learn-week-block learn-extra-block'), head = node('div', 'learn-week-name', label), button = node('button', 'learn-extra-btn', resource.title);
-    button.type = 'button';button.addEventListener('click', () => extra(resource, button));group.append(head, button);outline.append(group);return button;
+    const group = node('div', 'learn-week-block learn-extra-block'), head = node('div', 'learn-week-name', label), button = resourceOption(resource);
+    group.append(head, button);outline.append(group);return button;
   }
   let introButton = null;if (intro) introButton = resourceButton(intro, 'START HERE');
+  const extraVideos = (course.resources || []).filter(item => item.type === 'video' && item !== intro && item !== closing);
   (course.modules || []).forEach((module, week) => {
     const group = node('div', 'learn-week-block');group.append(node('div', 'learn-week-name', module.title));
     lessons.forEach((lesson, index) => {
@@ -197,7 +202,15 @@
         }
       }
       group.append(lessonGroup);
-    });outline.append(group);
+    });
+    const moduleExtras = extraVideos.filter(item => new RegExp('\\bModule\\s+' + (week + 1) + '\\b', 'i').test(item.title));
+    if (moduleExtras.length) {
+      const extraGroup = node('div', 'learn-week-block learn-extra-block');
+      extraGroup.append(node('div', 'learn-week-name', 'MODULE ' + (week + 1) + ' RESOURCES'));
+      moduleExtras.forEach(item => extraGroup.append(resourceOption(item)));
+      group.append(extraGroup);
+    }
+    outline.append(group);
   });
   if (closing) resourceButton(closing, 'AFTER YOUR LESSONS');
   const resources = (course.resources || []).filter(item => item.type !== 'video');
