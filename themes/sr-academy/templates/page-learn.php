@@ -16,7 +16,7 @@
     <div class="learn-layout learn-tablet-layout learn-mobile-layout">
       <section class="learn-video-column" aria-label="Video lesson">
         <div class="learn-video" id="video-stage">
-          <video id="lesson-media" tabindex="0" playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback" aria-label="Current Speakathon lesson video. Focus this player and press Space to play or pause."></video>
+          <video id="lesson-media" tabindex="0" playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback" aria-label="Current course lesson video. Focus this player and press Space to play or pause."></video>
           <button id="large-play" class="learn-big-play" type="button" aria-label="Play video"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 4.6a1 1 0 0 1 1.52-.85l10 7.4a1 1 0 0 1 0 1.7l-10 7.4A1 1 0 0 1 8 19.4Z"/></svg></button>
           <div id="video-missing" class="learn-media-missing" hidden><span aria-hidden="true">▶</span><strong>Video not uploaded</strong><p>This day's recording is not on the website yet.</p></div>
         <div class="learn-video-bar" role="group" aria-label="Video controls">
