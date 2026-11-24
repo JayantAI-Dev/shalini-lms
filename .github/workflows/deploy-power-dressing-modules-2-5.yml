@@ -1,0 +1,127 @@
+name: Deploy Power Dressing Modules 2 to 5 media
+
+on:
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "Module to transfer from Drive"
+        required: true
+        type: choice
+        options:
+          - "2"
+          - "3"
+          - "4"
+          - "5"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hostinger-private-lms-media
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Download and deploy selected module
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Check out deployment repository
+        uses: actions/checkout@v6
+
+      - name: Ensure the private media directory is protected
+        shell: bash
+        run: |
+          mkdir -p assets/lms/public-guard
+          cat > assets/lms/public-guard/.htaccess <<'EOF'
+          Options -Indexes
+          Require all denied
+          Deny from all
+          EOF
+
+      - name: Deploy the private media access rule
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          protocol: ftps
+          port: ${{ vars.HOSTINGER_FTP_PORT || 21 }}
+          local-dir: assets/lms/public-guard/
+          server-dir: wp-content/sr-academy-private-media/
+          state-name: .ftp-deploy-public-lms-media-guard-state.json
+          dangerous-clean-slate: false
+
+      - name: Download and verify Module ${{ inputs.module }} recordings from Drive
+        shell: bash
+        env:
+          MODULE: ${{ inputs.module }}
+        run: |
+          set -euo pipefail
+          mkdir -p assets/lms/videos
+          case "${MODULE}" in
+            2) cat > /tmp/power-dressing-module-2.tsv <<'EOF'
+            1rMFT2N9FgpIRP6QY4c0egUbkRUaAVt8o module-02-lesson-01-v1.mp4 656936146
+            1HyxEtot_exYnOEI1PXDNKgFK7joJgsJI module-02-lesson-01-v2.mp4 538159758
+            13QfKbifI3gp2QEeoVUQaCsZQPUbtqfgP module-02-lesson-02-v1.mp4 550174289
+            1IDN2qKu-slNi6Jj9ud3jurKa2mBWbCxf module-02-lesson-02-v2.mp4 688101017
+            170u3zPB25QSt5G-PjVQeKtjYC4Luc2-7 module-02-lesson-03-v1.mp4 448737108
+            1XyhgFQ9-USBmlZ2XpItiPXDYGQfX1nK5 module-02-lesson-03-v2.mp4 758113464
+            EOF
+              ;;
+            3) cat > /tmp/power-dressing-module-3.tsv <<'EOF'
+            16LHPfcufY1IhV3-FREV6apP7h02TAhwY module-03-lesson-01-v1.mp4 328898341
+            1PX3YWMnRf1ihtkVIAyg3xJln7q743CG_ module-03-lesson-01-v2.mp4 652402475
+            1mPYatBgYOYLwDapI58tA82EinoeTpszu module-03-lesson-02-v1.mp4 627380574
+            1OZ5Ik6ABxfW5YzharvzAZPenghHX7KP9 module-03-lesson-02-v2.mp4 487321720
+            1-SMR0ltttTy-fx4weNl27u_aR87-nCMx module-03-lesson-02-v3.mp4 602862800
+            1ABs8AaV28eYiijnlzEIvE5ukiy7y1lSG module-03-lesson-03-v1.mp4 578182077
+            1Vu2irlZxWHgM_v32MA8kC4VbiM0ZsJ6T module-03-lesson-03-v2.mp4 316152130
+            1Feg8ouHsZAFFSE67gciKS0Y2MaKatThn module-03-lesson-03-v3.mp4 347112985
+            1UwNaxeDaIuOJ-S6zrMtZ38Nf33JpTG1j module-03-lesson-04-v1.mp4 591269858
+            1lt_7AKDA-Lrwq2VRP6D0pYfdYxj0pieD module-03-lesson-04-v2.mp4 308421476
+            1hjK2I3ugjWoxT0e4X3cH5YEJr4oL-Ld_ module-03-lesson-04-v3.mp4 385013203
+            EOF
+              ;;
+            4) cat > /tmp/power-dressing-module-4.tsv <<'EOF'
+            1N2hBMTctQxjmyM7_CY4zu9PPL08k8eAH module-04-lesson-01-v1.mp4 572931355
+            1-HUgUa01bEN1Ke-ugP7TsUnjwjCx9dF7 module-04-lesson-01-v2.mp4 435125750
+            1xdjxWOi0xXqpZ8Gjh_Ps5ePSGVgYrs9Y module-04-lesson-02-v1.mp4 398837211
+            1TsdWX9vct9R1EOQYgj2Fb_HDyVsZ1Rcc module-04-lesson-02-v2.mp4 295663058
+            1cFzqoBWXGkcV5NKkNSdkD7V_Gca6ESu2 module-04-lesson-03-v1.mp4 394210688
+            1N0EKMXGH5erYVIuQeMtjmPnn6SrHH78x module-04-lesson-03-v2.mp4 532405874
+            EOF
+              ;;
+            5) cat > /tmp/power-dressing-module-5.tsv <<'EOF'
+            1BWkJMaqE0NT5dflBwAtommReIDl2-aQK module-05-intro.mp4 198056013
+            1WP3mJXedXgjYI8S4XMxk2qZh1ThErpZ3 module-05-lesson-01-v1.mp4 389732077
+            1wT_e6YOtGiFGnK8t7DOkpdG1GR5GrSCA module-05-lesson-01-v2.mp4 289200436
+            1jM-P1UwX0rAu-DF0hn2rDwtvsCNPQo4t module-05-lesson-02-v1.mp4 384407639
+            14YqOQ0OEaG_B1Oha_SKxpqRIe_sRxSld module-05-lesson-03-v1.mp4 303359583
+            1XZINWQC0S01USpXOgJ-K1rSwHJKqh6Hn module-05-practical-example.mp4 281611518
+            EOF
+              ;;
+            *) echo "Unsupported module: ${MODULE}"; exit 2 ;;
+          esac
+          while read -r file_id name expected_size; do
+            echo "Downloading ${name} (${expected_size} bytes) from Google Drive"
+            url="https://drive.usercontent.google.com/download?id=${file_id}&export=download&confirm=t"
+            curl --fail --silent --show-error --location --retry 3 --retry-delay 2 --continue-at - "${url}" --output "assets/lms/videos/${name}"
+            actual_size="$(wc -c < "assets/lms/videos/${name}" | tr -d ' ')"
+            test "${actual_size}" = "${expected_size}" || { echo "Download verification failed for ${name}: got ${actual_size} bytes"; exit 1; }
+          done < "/tmp/power-dressing-module-${MODULE}.tsv"
+          sha256sum assets/lms/videos/module-0${MODULE}-*.mp4
+          du -sh assets/lms/videos
+
+      - name: Deploy Module ${{ inputs.module }} recordings to private media
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          protocol: ftps
+          port: ${{ vars.HOSTINGER_FTP_PORT || 21 }}
+          local-dir: assets/lms/videos/
+          server-dir: wp-content/sr-academy-private-media/assets/lms/videos/
+          state-name: .ftp-deploy-power-dressing-module-${{ inputs.module }}-media-state.json
+          dangerous-clean-slate: false
