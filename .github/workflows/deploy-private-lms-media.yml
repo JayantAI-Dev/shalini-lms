@@ -95,8 +95,7 @@ jobs:
           while read -r file_id name expected_size; do
             echo "Downloading $name ($expected_size bytes) from Drive"
             url="https://drive.usercontent.google.com/download?id=${file_id}&export=download&confirm=t"
-            curl --fail --silent --show-error --location --retry 3 --retry-delay 2 --continue-at - \\
-              "${url}" --output "assets/lms/videos/${name}"
+            curl --fail --silent --show-error --location --retry 3 --retry-delay 2 --continue-at - "${url}" --output "assets/lms/videos/${name}"
             actual_size="$(wc -c < "assets/lms/videos/${name}" | tr -d ' ')"
             test "${actual_size}" = "${expected_size}" || { echo "Download verification failed for ${name}: got ${actual_size} bytes"; exit 1; }
           done < /tmp/power-dressing-modules-6-7.tsv
