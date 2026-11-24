@@ -46,7 +46,8 @@
       const done = Boolean(progress[lesson.id]?.complete) && lesson.videoAvailable;
       button.classList.toggle('is-completed', done); button.classList.toggle('is-missing-video', !lesson.videoAvailable);
       button.setAttribute('aria-current', mode === 'lesson' && current === index ? 'step' : 'false');
-      button.querySelector('.learn-day-bullet').textContent = done ? '✓' : String(index + 1).padStart(2, '0');
+      const lessonNumber = slug === 'power-dressing' ? lesson.moduleLessonIndex + 1 : index + 1;
+      button.querySelector('.learn-day-bullet').textContent = done ? '✓' : String(lessonNumber).padStart(2, '0');
       const choices = lessonVideos(lesson), available = choices.filter(item => item.available && item.url).length;
       button.querySelector('.learn-day-lock').textContent = slug === 'power-dressing' && choices.length ? `${available}/${choices.length} videos` : lesson.videoAvailable ? '' : 'No video';
     });
@@ -179,7 +180,8 @@
     lessons.forEach((lesson, index) => {
       if (lesson.week !== week) return;
       const button = node('button', 'learn-day-btn');button.type = 'button';button.dataset.day = String(index);
-      button.append(node('span', 'learn-day-bullet', String(index + 1).padStart(2, '0')), node('span', 'learn-day-title', lesson.title.replace(/^Day\s*\d+\s*[·:–-]\s*/i, '')), node('span', 'learn-day-lock'));
+      const lessonNumber = slug === 'power-dressing' ? lesson.moduleLessonIndex + 1 : index + 1;
+      button.append(node('span', 'learn-day-bullet', String(lessonNumber).padStart(2, '0')), node('span', 'learn-day-title', lesson.title.replace(/^Day\s*\d+\s*[·:–-]\s*/i, '')), node('span', 'learn-day-lock'));
       button.addEventListener('click', () => select(index));
       const lessonGroup = node('div', 'learn-lesson-group'); lessonGroup.append(button);
       if (slug === 'power-dressing') {
