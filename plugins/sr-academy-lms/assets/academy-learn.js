@@ -168,7 +168,7 @@
     openVideo(resource.url, 'extra');updateCompletion();updateOutline();
   }
   const outline = $('outline-list');outline.replaceChildren();
-  const intro = (course.resources || []).find(item => item.type === 'video' && /introduction/i.test(item.title));
+  const intro = slug === 'speakathon' ? (course.resources || []).find(item => item.type === 'video' && /^Welcome\s*[·:-]\s*Introduction video$/i.test(item.title)) : null;
   const closing = (course.resources || []).find(item => item.type === 'video' && /closing|end|course\s*outro/i.test(item.title));
   function resourceOption(resource) {
     const button = node('button', 'learn-extra-btn', resource.title);
@@ -182,7 +182,7 @@
   const extraVideos = (course.resources || []).filter(item => item.type === 'video' && item !== intro && item !== closing);
   const module5Example = extraVideos.find(item => /Module\s*5.*Practical Example/i.test(item.title));
   const module6Intro = extraVideos.find(item => /Module\s*6.*Introduction/i.test(item.title));
-  const module7Intro = extraVideos.find(item => /Module\\s*7.*Introduction/i.test(item.title)) || (course.resources || []).find(item => item.type === 'video' && /Module\\s*7.*Introduction/i.test(item.title));
+  const module7Intro = extraVideos.find(item => /Module\s*7.*Introduction/i.test(item.title)) || (course.resources || []).find(item => item.type === 'video' && /Module\s*7.*Introduction/i.test(item.title));
   (course.modules || []).forEach((module, week) => {
     const group = node('div', 'learn-week-block');group.append(node('div', 'learn-week-name', module.title));
     if (week === 0 && slug === 'speakathon' && intro) {introButton = resourceOption(intro);group.append(introButton);}
