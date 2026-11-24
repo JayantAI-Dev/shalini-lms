@@ -11793,8 +11793,10 @@ html[data-package-offer="comm-package"] .package-investment-price .package-price
 .fresh-learn .learn-icon-button svg{width:18px;height:18px}
 .fresh-learn .learn-duration{display:flex;gap:4px;white-space:nowrap;color:#45584b;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
 .fresh-learn .learn-duration-divider{color:#9aa79c}
-.fresh-learn .learn-playback-progress{height:4px;background:#e4e9dd;flex:1;border-radius:10px;overflow:hidden}
-.fresh-learn .learn-playback-progress span{display:block;width:0;height:100%;background:#82b45b}
+.fresh-learn .learn-playback-progress{position:relative;height:18px;flex:1;border-radius:10px;overflow:visible;cursor:pointer;touch-action:none;background:linear-gradient(transparent 7px,#e4e9dd 7px 11px,transparent 11px)}
+.fresh-learn .learn-playback-progress span{position:absolute;left:0;top:7px;display:block;width:0;height:4px;border-radius:10px;background:#82b45b;pointer-events:none}
+.fresh-learn .learn-playback-progress span:after{content:"";position:absolute;right:-5px;top:-4px;width:12px;height:12px;border-radius:50%;background:#82b45b;box-shadow:0 0 0 2px #f8faf5}
+.fresh-learn .learn-playback-progress:focus-visible{outline:2px solid #1d4d3c;outline-offset:2px}
 .fresh-learn .learn-lesson{padding:18px 0 0;min-width:0}
 .fresh-learn .learn-lesson-top{display:flex;align-items:center;gap:13px}
 .fresh-learn .learn-eyebrow{font-size:10px;letter-spacing:.12em;font-weight:800;color:#729765}
