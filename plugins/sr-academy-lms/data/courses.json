@@ -548,12 +548,53 @@
         ]
       },
       {
-        "title": "Module 5",
+        "title": "Module 5 · Smart and Intentional Shopping",
         "lessons": [
           {
             "id": "module-5-pending",
-            "title": "Module 5 · Content pending upload",
-            "summary": "Lessons will be added in the order shown in the Module 5 Drive folder."
+            "title": "Lesson 1 · Shopping Identity and Mindset",
+            "summary": "Explore why you shop, what triggers impulse buys, and how your personal style should guide each purchase.",
+            "practice": "Complete a shopping identity audit: note your shopping triggers, common wardrobe regrets, and what you want shopping to feel like.",
+            "source": "Power Dressing · Module 5",
+            "videos": [
+              {
+                "title": "Shopping Identity and Mindset · Part 1",
+                "url": ""
+              },
+              {
+                "title": "Shopping Identity and Mindset · Part 2",
+                "url": ""
+              }
+            ],
+            "duration": 0
+          },
+          {
+            "id": "module-5-lesson-2",
+            "title": "Lesson 2 · Plan Before You Shop",
+            "summary": "Use a realistic style budget and evaluate cost per wear, versatility, quality, and outfit options before buying.",
+            "practice": "Set your monthly clothing budget, estimate cost per wear, and check that a potential item works with three outfits.",
+            "source": "Power Dressing · Module 5",
+            "videos": [
+              {
+                "title": "Plan Before You Shop",
+                "url": ""
+              }
+            ],
+            "duration": 0
+          },
+          {
+            "id": "module-5-lesson-3",
+            "title": "Lesson 3 · Shop with Intention",
+            "summary": "Make thoughtful choices about fast fashion, thrifted pieces, and whether a purchase still feels right after the excitement fades.",
+            "practice": "Use the quality checklist on a piece you are considering, then review a recent purchase for wardrobe fit and satisfaction.",
+            "source": "Power Dressing · Module 5",
+            "videos": [
+              {
+                "title": "Shop with Intention",
+                "url": ""
+              }
+            ],
+            "duration": 0
           }
         ]
       },
