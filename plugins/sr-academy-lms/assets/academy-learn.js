@@ -114,7 +114,7 @@
   function updatePlayback() {
     setText('elapsed', time(video.currentTime));setText('duration', time(video.duration));
     const percent = Number.isFinite(video.duration) && video.duration ? video.currentTime / video.duration * 100 : 0;
-    $('watch-fill').style.width = `${percent}%`; $('watch-meter')?.setAttribute('aria-valuenow', String(Math.round(percent)));
+    $('watch-fill').style.width = `${percent}%`; $('watch-meter')?.setAttribute('aria-valuenow', String(Math.round(percent))); $('watch-meter')?.setAttribute('aria-valuetext', `${time(video.currentTime)} of ${time(video.duration)}`);
     const now = performance.now(), at = video.currentTime;
     if (mode === 'lesson' && !video.paused && !video.seeking && previous !== null && at > previous && at - previous <= 3 && at - previous <= (now - previousWall) / 1000 * Math.max(1, video.playbackRate) + 0.75) addRange(previous, at);
     if (!video.seeking) {previous = at; previousWall = now;}
@@ -200,6 +200,32 @@
   if (closing) resourceButton(closing, 'AFTER YOUR LESSONS');
   const resources = (course.resources || []).filter(item => item.type !== 'video');
   if (resources.length) {const group = node('div', 'learn-week-block');group.append(node('div', 'learn-week-name', 'STUDY RESOURCES'));for (const item of resources) {const link = node('a', 'sr-lms-resource-link', item.title + (item.available ? '' : ' · unavailable'));if (item.url) {link.href = item.url;link.addEventListener('click', event => {event.preventDefault();setText('worksheet-title', item.title);setText('worksheet-tag', 'STUDY RESOURCE');$('worksheet-frame').src = item.url;$('open-worksheet-tab').href = item.url;$('worksheet-error').hidden = true;$('worksheet-dialog').showModal();});} else link.setAttribute('aria-disabled', 'true');group.append(link);}outline.append(group);}
+  const seekBar = $('watch-meter');
+  if (seekBar) {
+    seekBar.setAttribute('role', 'slider'); seekBar.setAttribute('aria-label', 'Seek through video'); seekBar.setAttribute('tabindex', '0');
+    const seekTo = clientX => {
+      if (missing || !Number.isFinite(video.duration) || !video.duration) return;
+      const rect = seekBar.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      video.currentTime = ratio * video.duration;
+      updatePlayback();
+    };
+    seekBar.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || missing) return;
+      event.preventDefault(); seekBar.setPointerCapture(event.pointerId); seekTo(event.clientX);
+    });
+    seekBar.addEventListener('pointermove', event => {if (seekBar.hasPointerCapture(event.pointerId)) seekTo(event.clientX);});
+    seekBar.addEventListener('pointerup', event => {if (seekBar.hasPointerCapture(event.pointerId)) seekBar.releasePointerCapture(event.pointerId);});
+    seekBar.addEventListener('keydown', event => {
+      if (missing || !Number.isFinite(video.duration) || !video.duration) return;
+      const step = event.shiftKey ? 10 : 5; let target = null;
+      if (event.key === 'ArrowRight' || event.key === 'ArrowUp') target = video.currentTime + step;
+      else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') target = video.currentTime - step;
+      else if (event.key === 'Home') target = 0;
+      else if (event.key === 'End') target = video.duration;
+      if (target !== null) {event.preventDefault();video.currentTime = Math.max(0, Math.min(video.duration, target));updatePlayback();}
+    });
+  }
   const toggle = () => {if (missing) return;if (video.paused) video.play().catch(() => status('Press play to start the recording.'));else video.pause();};
   $('toggle-play').addEventListener('click', toggle);$('large-play').addEventListener('click', toggle);video.addEventListener('click', toggle);
   video.addEventListener('keydown', event => {if (event.code === 'Space' && !event.repeat) {event.preventDefault();toggle();}});
