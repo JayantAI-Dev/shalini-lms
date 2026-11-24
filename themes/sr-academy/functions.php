@@ -205,7 +205,7 @@ function sr_theme_course_checkout_modal(): void {
     $payments_version = is_file($payments_file) ? (string) filemtime($payments_file) : (defined('SR_LMS_VERSION') ? SR_LMS_VERSION : '1.0');
     wp_enqueue_script('sr-course-payments', plugins_url('assets/payments.js', WP_PLUGIN_DIR . '/sr-academy-lms/sr-academy-lms.php'), ['sr-course-razorpay'], $payments_version, true);
     $title = (string) $offers[$offer]['title'];
-    $live_check = $mode === 'live' && function_exists('sr_lms_live_payment_check_active') && sr_lms_live_payment_check_active();
+    $live_check = $mode === 'live' && function_exists('sr_lms_live_payment_check_active') && sr_lms_live_payment_check_active('course');
     $introduction = $mode === 'test'
         ? 'Enter your details to test checkout. Only approved, verified test accounts receive course access.'
         : 'Enter your details. New students receive a secure link to set their password after payment.';

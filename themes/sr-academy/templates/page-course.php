@@ -3,7 +3,7 @@ $sr_public_courses = function_exists('sr_lms_courses') ? sr_lms_courses() : [];
 $sr_course_slug = isset($_GET['course']) && is_string($_GET['course']) ? sanitize_key(wp_unslash($_GET['course'])) : 'speakathon';
 $sr_public_course = $sr_public_courses[$sr_course_slug] ?? [];
 $sr_learning_url = sr_theme_course_learning_url($sr_course_slug);
-$sr_live_check = function_exists('sr_lms_live_payment_check_active') && sr_lms_live_payment_check_active();
+$sr_live_check = function_exists('sr_lms_live_payment_check_active') && sr_lms_live_payment_check_active('course');
 $sr_course_action_url = $sr_learning_url ?: sr_theme_url('package-enroll.html?course=' . rawurlencode($sr_course_slug) . ($sr_live_check ? '&checkout_check=1' : ''));
 $sr_course_action_label = $sr_learning_url ? 'Continue learning' : 'Enroll in course';
 $sr_schema = ['@context'=>'https://schema.org','@type'=>'Course','name'=>$sr_public_course['title'] ?? 'Academy course','description'=>$sr_public_course['description'] ?? '', 'provider'=>['@type'=>'Organization','name'=>get_bloginfo('name'),'url'=>home_url('/')],'courseMode'=>'Online'];
@@ -13,7 +13,7 @@ $sr_schema = ['@context'=>'https://schema.org','@type'=>'Course','name'=>$sr_pub
         <span class="lms-eyebrow">ENROLLED</span>
     <?php } else { ?>
         <span class="lms-eyebrow">COURSE PRICE</span>
-        <strong id="lms-detail-price"><?php echo $sr_live_check ? '₹1' : '₹5,999'; ?></strong>
+        <strong id="lms-detail-price"<?php if ($sr_live_check) { ?> data-live-check="1"<?php } ?>>₹<?php echo esc_html($sr_live_check ? '1' : number_format_i18n((float) ($sr_public_course['price'] ?? 5999))); ?></strong>
     <?php } ?>
     <p>Communicate with confidence. Create opportunities. Transform your life.</p>
     <a id="lms-enroll-cta" href="<?php echo esc_url($sr_course_action_url); ?>" class="lms-primary full" data-enrolled="<?php echo $sr_learning_url ? '1' : '0'; ?>"><?php echo esc_html($sr_course_action_label); ?></a>

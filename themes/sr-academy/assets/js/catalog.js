@@ -103,10 +103,9 @@
     $('#lms-detail-title').textContent=course.title;
     $('#lms-breadcrumb-name').textContent=slug==='speakathon'?'Communication Course':course.title;
     $('#lms-detail-summary').textContent=course.description;
-    const privateCheckout = Boolean(document.querySelector('.sr-lms-purchase[data-live-check="1"]'));
     const isEnrolled = $('#lms-enroll-cta').dataset.enrolled === '1';
     const price = $('#lms-detail-price');
-    if (price) price.textContent=formatMoney(privateCheckout ? 1 : course.price);
+    if (price) price.textContent=formatMoney(price.dataset.liveCheck === '1' ? 1 : course.price);
     const total=flatten(course).length;
     $('#lms-detail-count').textContent=(slug==='speakathon'?'21 guided challenges':total+' course topics');
     const detailRating=$('#lms-detail-rating');
