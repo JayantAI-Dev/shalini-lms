@@ -67,8 +67,8 @@ jobs:
             1IDN2qKu-slNi6Jj9ud3jurKa2mBWbCxf module-02-lesson-02-v2.mp4 688101017
             170u3zPB25QSt5G-PjVQeKtjYC4Luc2-7 module-02-lesson-03-v1.mp4 448737108
             1XyhgFQ9-USBmlZ2XpItiPXDYGQfX1nK5 module-02-lesson-03-v2.mp4 758113464
-            EOF
-              ;;
+          EOF
+          ;;
             3) cat > /tmp/power-dressing-module-3.tsv <<'EOF'
             16LHPfcufY1IhV3-FREV6apP7h02TAhwY module-03-lesson-01-v1.mp4 328898341
             1PX3YWMnRf1ihtkVIAyg3xJln7q743CG_ module-03-lesson-01-v2.mp4 652402475
@@ -81,8 +81,8 @@ jobs:
             1UwNaxeDaIuOJ-S6zrMtZ38Nf33JpTG1j module-03-lesson-04-v1.mp4 591269858
             1lt_7AKDA-Lrwq2VRP6D0pYfdYxj0pieD module-03-lesson-04-v2.mp4 308421476
             1hjK2I3ugjWoxT0e4X3cH5YEJr4oL-Ld_ module-03-lesson-04-v3.mp4 385013203
-            EOF
-              ;;
+          EOF
+          ;;
             4) cat > /tmp/power-dressing-module-4.tsv <<'EOF'
             1N2hBMTctQxjmyM7_CY4zu9PPL08k8eAH module-04-lesson-01-v1.mp4 572931355
             1-HUgUa01bEN1Ke-ugP7TsUnjwjCx9dF7 module-04-lesson-01-v2.mp4 435125750
@@ -90,8 +90,8 @@ jobs:
             1TsdWX9vct9R1EOQYgj2Fb_HDyVsZ1Rcc module-04-lesson-02-v2.mp4 295663058
             1cFzqoBWXGkcV5NKkNSdkD7V_Gca6ESu2 module-04-lesson-03-v1.mp4 394210688
             1N0EKMXGH5erYVIuQeMtjmPnn6SrHH78x module-04-lesson-03-v2.mp4 532405874
-            EOF
-              ;;
+          EOF
+          ;;
             5) cat > /tmp/power-dressing-module-5.tsv <<'EOF'
             1BWkJMaqE0NT5dflBwAtommReIDl2-aQK module-05-intro.mp4 198056013
             1WP3mJXedXgjYI8S4XMxk2qZh1ThErpZ3 module-05-lesson-01-v1.mp4 389732077
@@ -99,8 +99,8 @@ jobs:
             1jM-P1UwX0rAu-DF0hn2rDwtvsCNPQo4t module-05-lesson-02-v1.mp4 384407639
             14YqOQ0OEaG_B1Oha_SKxpqRIe_sRxSld module-05-lesson-03-v1.mp4 303359583
             1XZINWQC0S01USpXOgJ-K1rSwHJKqh6Hn module-05-practical-example.mp4 281611518
-            EOF
-              ;;
+          EOF
+          ;;
             *) echo "Unsupported module: ${MODULE}"; exit 2 ;;
           esac
           while read -r file_id name expected_size; do
