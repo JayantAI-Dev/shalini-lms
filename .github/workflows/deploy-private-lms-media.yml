@@ -37,7 +37,7 @@ jobs:
           protocol: ftps
           port: ${{ vars.HOSTINGER_FTP_PORT || 21 }}
           local-dir: assets/lms/public-guard/
-          server-dir: ../sr-academy-private-media/
+          server-dir: wp-content/sr-academy-private-media/
           state-name: .ftp-deploy-public-lms-media-guard-state.json
           dangerous-clean-slate: false
 
@@ -102,6 +102,6 @@ jobs:
           protocol: ftps
           port: ${{ vars.HOSTINGER_FTP_PORT || 21 }}
           local-dir: assets/lms/videos/
-          server-dir: ../../sr-academy-private-media/assets/lms/videos/
+          server-dir: wp-content/sr-academy-private-media/assets/lms/videos/
           state-name: .ftp-deploy-private-lms-media-state.json
           dangerous-clean-slate: false
