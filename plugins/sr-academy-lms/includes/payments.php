@@ -38,6 +38,7 @@ function sr_lms_payment_settings(): array {return (array)get_option('sr_lms_paym
 
 /** Temporary private pricing for the production payment check. */
 const SR_LMS_LIVE_CHECK_EXPIRES = 1795544940; // 24 November 2026, 23:59 IST.
+const SR_LMS_LIVE_CHECK_WINDOW = 15 * 60;
 
 function sr_lms_live_check_token_valid($token): bool {
     return time() < SR_LMS_LIVE_CHECK_EXPIRES
@@ -47,10 +48,17 @@ function sr_lms_live_check_token_valid($token): bool {
 }
 
 function sr_lms_live_payment_check_active(): bool {
-    return sr_lms_live_check_token_valid($_COOKIE['sr_live_payment_check'] ?? null);
+    $session = $_COOKIE['sr_live_payment_check'] ?? null;
+    if (!is_string($session) || !preg_match('/^([0-9]{10})\.([a-f0-9]{64})$/D', $session, $parts)) return false;
+    return (int) $parts[1] > time()
+        && hash_equals(sr_lms_live_check_signature((int) $parts[1]), $parts[2]);
 }
 
-if ((isset($_GET['sr_live_payment_check']) || sr_lms_live_payment_check_active()) && !defined('DONOTCACHEPAGE')) {
+function sr_lms_live_check_signature(int $expires): string {
+    return hash_hmac('sha256', 'sr-lms-live-check:' . $expires, wp_salt('auth'));
+}
+
+if ((isset($_GET['sr_live_payment_check']) || isset($_COOKIE['sr_live_payment_check'])) && !defined('DONOTCACHEPAGE')) {
     define('DONOTCACHEPAGE', true);
 }
 
@@ -68,14 +76,18 @@ add_action('template_redirect', static function (): void {
         wp_die('This private checkout link is invalid or has expired.', 'Checkout link unavailable', ['response' => 403]);
     }
 
-    setcookie('sr_live_payment_check', $token, [
-        'expires' => SR_LMS_LIVE_CHECK_EXPIRES,
+    $expires = time() + SR_LMS_LIVE_CHECK_WINDOW;
+    setcookie('sr_live_payment_check', $expires . '.' . sr_lms_live_check_signature($expires), [
+        'expires' => $expires,
         'path' => '/',
         'secure' => true,
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
-    wp_safe_redirect(home_url('/services/'));
+    $destination = ($_GET['course'] ?? null) === 'speakathon'
+        ? add_query_arg('course', 'speakathon', home_url('/course/'))
+        : home_url('/services/');
+    wp_safe_redirect($destination);
     exit;
 }, 0);
 
