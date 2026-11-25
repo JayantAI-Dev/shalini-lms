@@ -12539,6 +12539,8 @@ html[data-package-offer="comm-package"] .package-investment-price .package-price
   }
   .fresh-learn .learn-inline-lesson {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "player" "content";
     gap: 16px;
     min-width: 0;
     margin: 4px 0 12px;
