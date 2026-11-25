@@ -268,6 +268,7 @@ body.package-enrollment-page .package-booking-package-option [data-purchased-lab
   inset: 0;
   z-index: 100000;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding: 24px;
   background: rgb(20 35 29 / 68%);
@@ -277,6 +278,11 @@ body.package-enrollment-page .package-booking-package-option [data-purchased-lab
 .package-confirmation-dialog {
   position: relative;
   width: min(100%, 620px);
+  box-sizing: border-box;
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  overscroll-behavior: contain;
   padding: clamp(32px, 6vw, 58px);
   border: 1px solid #d8e7d8;
   border-radius: 26px;
@@ -349,7 +355,18 @@ body.package-enrollment-page .package-booking-package-option [data-purchased-lab
   font-weight: 750;
   cursor: pointer;
 }
-@media (max-width: 560px) {
-  .package-confirmation-overlay { padding: 14px; }
-  .package-confirmation-dialog { padding: 52px 24px 28px; border-radius: 22px; }
+@media (max-width: 700px) {
+  .package-confirmation-overlay {
+    padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+      max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  }
+
+  .package-confirmation-dialog {
+    max-height: calc(100vh - 28px);
+    max-height: calc(100dvh - max(14px, env(safe-area-inset-top)) - max(14px, env(safe-area-inset-bottom)));
+    padding: 52px 24px 28px;
+    border-radius: 22px;
+  }
+
+  .package-confirmation-close { top: 12px; right: 12px; width: 44px; height: 44px; }
 }

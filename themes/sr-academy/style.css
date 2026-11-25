@@ -6943,7 +6943,9 @@ body.booking-open {
   z-index: 1;
   width: min(620px, calc(100vw - 32px));
   max-height: min(84vh, 760px);
+  max-height: min(84dvh, 760px);
   overflow: auto;
+  overscroll-behavior: contain;
   background: #fff;
   border: 1px solid #d7e3d2;
   border-radius: 15px;
@@ -7415,6 +7417,8 @@ body.booking-open {
   .booking-dialog {
     width: 100%;
     max-height: 92vh;
+    max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top)));
+    padding-bottom: env(safe-area-inset-bottom);
     border-radius: 18px 18px 0 0;
     border-left: 0;
     border-right: 0;
@@ -7423,11 +7427,12 @@ body.booking-open {
 
   .booking-dialog-header,
   .booking-step {
-    padding-left: 18px;
-    padding-right: 18px;
+    padding-left: max(18px, env(safe-area-inset-left));
+    padding-right: max(18px, env(safe-area-inset-right));
   }
 
   .booking-dialog-header {
+    gap: 12px;
     padding-top: 19px;
     padding-bottom: 17px;
   }
@@ -7436,10 +7441,25 @@ body.booking-open {
     font-size: 22px;
   }
 
+  .booking-close {
+    width: 44px;
+    height: 44px;
+  }
+
+  .booking-field :is(input, select, textarea) {
+    box-sizing: border-box;
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  .booking-field input[type="date"]::-webkit-date-and-time-value {
+    text-align: start;
+  }
+
   .booking-schedule-grid,
   .booking-contact-grid,
   .booking-duration-options {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .booking-summary-strip {
@@ -7468,6 +7488,8 @@ body.booking-open {
   .booking-confirm {
     width: 100%;
     min-width: 0;
+    min-height: 44px;
+    text-align: center;
   }
 
   .booking-step-two-footer {
@@ -7476,6 +7498,7 @@ body.booking-open {
 
   .booking-back {
     align-self: flex-start;
+    min-height: 44px;
   }
 }
 
@@ -9160,9 +9183,9 @@ body.services-page .curated-canva-carousel__dot[aria-current="true"] {
 .home-page .tedx-testimonial-attribution{margin:17px 0 0;color:#20372d;font-size:13px;font-weight:750;line-height:1.5}
 .home-page .tedx-testimonial-attribution span{display:block;margin-top:4px;color:#77857b;font-size:11px;font-weight:500;line-height:1.45}
 .tedx-enquiry-modal[hidden],.tedx-enquiry-form[hidden],.tedx-enquiry-success[hidden]{display:none!important}
-.tedx-enquiry-modal{position:fixed;z-index:100000;inset:0;display:grid;place-items:center;padding:24px;overflow:auto}
+.tedx-enquiry-modal{position:fixed;z-index:100000;inset:0;display:grid;place-items:center;padding:24px;grid-template-columns:minmax(0,1fr)}
 .tedx-enquiry-backdrop{position:fixed;inset:0;width:100%;height:100%;border:0;background:#10271fd1;backdrop-filter:blur(8px);cursor:pointer}
-.tedx-enquiry-dialog{position:relative;z-index:1;width:min(720px,100%);max-height:min(92vh,900px);overflow:auto;padding:42px;border:1px solid #dce8dc;border-radius:22px;background:#fff;color:#20372d;box-shadow:0 28px 90px #10271f45}
+.tedx-enquiry-dialog{position:relative;z-index:1;width:min(720px,100%);max-height:min(calc(100vh - 48px),900px);max-height:min(calc(100dvh - 48px),900px);overflow:auto;overscroll-behavior:contain;padding:42px;border:1px solid #dce8dc;border-radius:22px;background:#fff;color:#20372d;box-shadow:0 28px 90px #10271f45}
 .tedx-enquiry-close{position:absolute;top:18px;right:18px;width:42px;height:42px;border:0;border-radius:50%;background:#f0f5ef;color:#254b3b;font-size:28px;line-height:1;cursor:pointer}
 .tedx-enquiry-dialog .tedx-coaching-kicker{color:#578258}
 .tedx-enquiry-dialog h2{max-width:570px;color:#20372d;font-size:clamp(32px,5vw,44px)}
@@ -9184,8 +9207,49 @@ body.services-page .curated-canva-carousel__dot[aria-current="true"] {
 .tedx-enquiry-success h3{margin:0 0 10px;color:#20372d;font-size:28px;line-height:1.2}
 .tedx-enquiry-success p{max-width:500px;margin:0 auto 24px;color:#64746b;font-size:16px;line-height:1.65}
 body.tedx-enquiry-open{overflow:hidden}
-@media(max-width:700px){.home-page .tedx-coaching-section{padding:48px 20px}.home-page .tedx-coaching-inner{grid-template-columns:1fr;align-items:start;gap:26px}.home-page .tedx-coaching-cta{width:100%}.home-page .tedx-testimonial-placeholder{grid-template-columns:112px minmax(0,1fr)}.home-page .tedx-testimonial-placeholder>img{min-height:250px}.home-page .tedx-testimonial-copy{padding:19px 17px}.home-page .tedx-testimonial-placeholder blockquote{font-size:17px}.tedx-enquiry-modal{padding:12px}.tedx-enquiry-dialog{max-height:94vh;padding:34px 22px 26px;border-radius:18px}.tedx-enquiry-close{top:12px;right:12px}.tedx-enquiry-dialog .tedx-coaching-kicker{padding-right:42px}.tedx-enquiry-fields{grid-template-columns:1fr;gap:15px}.tedx-enquiry-fields .tedx-enquiry-phone,.tedx-enquiry-fields .tedx-enquiry-message{grid-column:auto}}
+@media(max-width:700px){.home-page .tedx-coaching-section{padding:48px 20px}.home-page .tedx-coaching-inner{grid-template-columns:1fr;align-items:start;gap:26px}.home-page .tedx-coaching-cta{width:100%}.home-page .tedx-testimonial-placeholder{grid-template-columns:112px minmax(0,1fr)}.home-page .tedx-testimonial-placeholder>img{min-height:250px}.home-page .tedx-testimonial-copy{padding:19px 17px}.home-page .tedx-testimonial-placeholder blockquote{font-size:17px}}
 
+
+@media (max-width: 700px) {
+  .tedx-enquiry-modal {
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
+
+  .tedx-enquiry-dialog {
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - max(12px, env(safe-area-inset-top)) - max(12px, env(safe-area-inset-bottom)));
+    padding: 34px 20px 24px;
+    border-radius: 18px;
+  }
+
+  .tedx-enquiry-close {
+    inset: 12px 12px auto auto;
+    width: 44px;
+    height: 44px;
+  }
+
+  .tedx-enquiry-dialog .tedx-coaching-kicker {
+    padding-right: 44px;
+  }
+
+  .tedx-enquiry-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 15px;
+  }
+
+  .tedx-enquiry-fields :is(input, textarea) {
+    min-width: 0;
+  }
+
+  .tedx-enquiry-fields :is(.tedx-enquiry-phone, .tedx-enquiry-message) {
+    grid-column: auto;
+  }
+
+  .tedx-enquiry-dialog .tedx-coaching-cta {
+    width: 100%;
+  }
+}
 
 /* Render publisher logos directly on the recognition marquee, without tile backgrounds. */
 .home-page .recognition-card,
