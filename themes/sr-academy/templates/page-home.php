@@ -170,13 +170,14 @@
       <p>If you need TEDx preparation or coaching, share your details and what you’re working on. The Academy will get back to you shortly.</p>
       <button class="btn tedx-coaching-cta" type="button" data-tedx-open>Enquire about TEDx coaching <svg aria-hidden="true" class="icon icon-arrow-right" viewBox="0 0 20 20"><path d="M3.5 10h13M11 4.5 16.5 10 11 15.5"></path></svg></button>
     </div>
-    <article class="tedx-testimonial-placeholder">
-      <img src="<?php echo esc_url(sr_theme_asset('assets/tedx-testimonial-placeholder.png')); ?>" alt="Illustrative placeholder portrait, not an actual client" loading="lazy" width="1122" height="1402">
+    <article class="tedx-testimonial">
+      <div class="tedx-testimonial-portrait">
+        <img src="<?php echo esc_url(sr_theme_asset('assets/priya-munjal-tedx.jpg')); ?>" alt="Priya Munjal in front of the TEDx CUH sign" loading="lazy" decoding="async" width="1122" height="1402">
+      </div>
       <div class="tedx-testimonial-copy">
-        <p class="tedx-testimonial-label">DEMO PLACEHOLDER · REPLACE BEFORE PUBLISHING</p>
         <span class="tedx-testimonial-quote-mark" aria-hidden="true">“</span>
-        <blockquote>Coaching helped me find the heart of my idea, shape it into a clear story, and deliver it with confidence.</blockquote>
-        <p class="tedx-testimonial-attribution">Placeholder client <span>Replace with the client’s approved name and testimonial</span></p>
+        <blockquote>I’ve stood on many stages, but TEDx was deeply personal. Shalini helped me turn my life journey into a powerful story while keeping my voice authentic. I didn’t just deliver a talk; I connected with the audience in a way I’ll never forget.</blockquote>
+        <p class="tedx-testimonial-attribution">— Priya Munjal <span>Mrs India Runner-Up | Mrs Universe Runner-Up | TEDx Speaker</span></p>
       </div>
     </article>
   </div>

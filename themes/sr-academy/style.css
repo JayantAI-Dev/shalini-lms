@@ -9174,12 +9174,12 @@ body.services-page .curated-canva-carousel__dot[aria-current="true"] {
 .home-page .tedx-coaching-cta:focus-visible,.tedx-enquiry-modal :focus-visible{outline:3px solid #8bbf75;outline-offset:3px}
 .home-page .tedx-coaching-cta .icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .home-page .tedx-coaching-copy .tedx-coaching-cta{margin-top:24px}
-.home-page .tedx-testimonial-placeholder{display:grid;grid-template-columns:150px minmax(0,1fr);overflow:hidden;border:1px solid #dbe9d8;border-radius:18px;background:#fff;color:#20372d;box-shadow:0 18px 50px #0d2b2040}
-.home-page .tedx-testimonial-placeholder>img{display:block;width:100%;height:100%;min-height:260px;object-fit:cover;object-position:center 30%}
+.home-page .tedx-testimonial{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);align-items:stretch;overflow:hidden;border:1px solid #dbe9d8;border-radius:18px;background:#fff;color:#20372d;box-shadow:0 18px 50px #0d2b2040}
+.home-page .tedx-testimonial-portrait{display:grid;place-items:center;background:#000}
+.home-page .tedx-testimonial-portrait img{display:block;width:100%;height:auto}
 .home-page .tedx-testimonial-copy{position:relative;padding:24px 24px 22px}
-.home-page .tedx-testimonial-label{margin:0 0 10px;color:#8a5f42;font-size:9px;font-weight:800;line-height:1.5;letter-spacing:.8px}
 .home-page .tedx-testimonial-quote-mark{display:block;height:27px;color:#5c8d56;font-family:Georgia,serif;font-size:54px;line-height:1}
-.home-page .tedx-testimonial-placeholder blockquote{margin:0;color:#273d32;font-family:var(--serif);font-size:19px;font-weight:500;line-height:1.42}
+.home-page .tedx-testimonial blockquote{margin:0;color:#273d32;font-family:var(--serif);font-size:19px;font-weight:500;line-height:1.42}
 .home-page .tedx-testimonial-attribution{margin:17px 0 0;color:#20372d;font-size:13px;font-weight:750;line-height:1.5}
 .home-page .tedx-testimonial-attribution span{display:block;margin-top:4px;color:#77857b;font-size:11px;font-weight:500;line-height:1.45}
 .tedx-enquiry-modal[hidden],.tedx-enquiry-form[hidden],.tedx-enquiry-success[hidden]{display:none!important}
@@ -9207,7 +9207,22 @@ body.services-page .curated-canva-carousel__dot[aria-current="true"] {
 .tedx-enquiry-success h3{margin:0 0 10px;color:#20372d;font-size:28px;line-height:1.2}
 .tedx-enquiry-success p{max-width:500px;margin:0 auto 24px;color:#64746b;font-size:16px;line-height:1.65}
 body.tedx-enquiry-open{overflow:hidden}
-@media(max-width:700px){.home-page .tedx-coaching-section{padding:48px 20px}.home-page .tedx-coaching-inner{grid-template-columns:1fr;align-items:start;gap:26px}.home-page .tedx-coaching-cta{width:100%}.home-page .tedx-testimonial-placeholder{grid-template-columns:112px minmax(0,1fr)}.home-page .tedx-testimonial-placeholder>img{min-height:250px}.home-page .tedx-testimonial-copy{padding:19px 17px}.home-page .tedx-testimonial-placeholder blockquote{font-size:17px}}
+@media (max-width: 900px) {
+  .home-page .tedx-coaching-inner{grid-template-columns:minmax(0,1fr);align-items:start;gap:26px}
+  .home-page .tedx-testimonial{width:min(100%,680px)}
+}
+
+@media (max-width: 700px) {
+  .home-page .tedx-coaching-section{padding:48px 20px}
+  .home-page .tedx-coaching-cta{width:100%}
+  .home-page .tedx-testimonial-copy{padding:22px 20px}
+  .home-page .tedx-testimonial blockquote{font-size:17px}
+}
+
+@media (max-width: 560px) {
+  .home-page .tedx-testimonial{grid-template-columns:minmax(0,1fr)}
+  .home-page .tedx-testimonial-portrait img{width:min(100%,320px)}
+}
 
 
 @media (max-width: 700px) {
