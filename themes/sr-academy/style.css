@@ -9537,8 +9537,8 @@ body.tedx-enquiry-open{overflow:hidden}
 }
 
 /* Site-wide announcement strip */
+:root { --sr-announcement-height: 64px; }
 .sr-announcement {
-  --sr-announcement-height: 64px;
   height: var(--sr-announcement-height);
   position: sticky;
   top: 0;
@@ -9619,10 +9619,8 @@ body.tedx-enquiry-open{overflow:hidden}
 }
 
 @media (max-width: 640px) {
+  :root { --sr-announcement-height: 96px; }
   .sr-announcement {
-    --sr-announcement-height: 96px;
-    min-height: var(--sr-announcement-height);
-    height: var(--sr-announcement-height);
     gap: 7px 10px;
     padding: 10px 12px;
     flex-wrap: wrap;
@@ -9647,13 +9645,6 @@ body.tedx-enquiry-open{overflow:hidden}
     font-size: 10px;
   }
 }
-
-/* The announcement remains sticky; the navbar below it scrolls normally. */
-.sr-announcement + .sr-header {
-  position: sticky;
-  top: var(--sr-announcement-height, 64px);
-}
-
 
 /* Services page 1:1 call cards carousel */
 body.services-page .calls-heading-controls {
@@ -9715,7 +9706,6 @@ body.services-page .calls-carousel > .call-card {
 
 
 /* Shared homepage header typography and sizing across every page. */
-:root { --sr-announcement-height: 64px; }
 html { scroll-padding-top: calc(var(--sr-announcement-height) + clamp(69px, 6.1vw, 125px)); }
 .sr-announcement,
 .sr-announcement :is(span, a),
@@ -9752,7 +9742,6 @@ html { scroll-padding-top: calc(var(--sr-announcement-height) + clamp(69px, 6.1v
 .sr-header .sr-mobile-book { background: #194c3b !important; color: #fff !important; font-size: 16px !important; }
 @media (max-width: 1380px) { .sr-header .sr-logo { font-size: clamp(23px, 2.5vw, 30px) !important; } }
 @media (max-width: 500px) {
-  :root { --sr-announcement-height: 96px; }
   .sr-header .sr-logo { font-size: clamp(19px, 6vw, 26px) !important; letter-spacing: .025em !important; }
   .sr-header .sr-mobile-link { font-size: 15px !important; }
 }
