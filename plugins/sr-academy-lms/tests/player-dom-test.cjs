@@ -5,9 +5,12 @@ const {JSDOM} = require(process.env.SR_LMS_JSDOM_PATH || 'jsdom');
 const template = path.resolve(__dirname, '../../../themes/sr-academy/templates/page-learn.php');
 const html = fs.readFileSync(template, 'utf8');
 const source = fs.readFileSync(path.resolve(__dirname, '../assets/academy-learn.js'), 'utf8');
-async function test() {
+async function test(mobile = false) {
   const dom = new JSDOM(html, {url: 'http://lms.local/learn/?course=speakathon&lesson=1', runScripts: 'outside-only'});
   const {window} = dom;
+  const viewport = new window.EventTarget();
+  viewport.matches = mobile;
+  window.matchMedia = () => viewport;
   let playCalls = 0;
   window.HTMLMediaElement.prototype.play = async () => { playCalls++; };
   window.HTMLMediaElement.prototype.pause = () => {};
@@ -16,7 +19,9 @@ async function test() {
   const progress = {};
   const completion = {completed: 0, total: 1, percent: 0, eligible: false};
   const lesson = {id: 'day-1', title: 'Day 1 · Fixture lesson', summary: 'Fixture summary', practice: 'Read the passage aloud.', duration: 100, videoAvailable: true, videoUrl: 'http://lms.local/wp-admin/admin-post.php?action=sr_lms_media&course=speakathon&lesson=day-1&field=videoUrl', pdfUrl: 'http://lms.local/wp-admin/admin-post.php?action=sr_lms_media&course=speakathon&lesson=day-1&field=pdfUrl'};
-  window.SR_LMS = {restUrl: 'http://lms.local/wp-json/sr-lms/v1/', nonce: 'test', state: {slug: 'speakathon', course: {title: 'Test Course', modules: [{title: 'Week 1', lessons: [lesson]}], resources: []}, progress, completion, certificateUrl: 'http://lms.local/wp-admin/admin-post.php?action=sr_lms_certificate'}};
+  const second = {...lesson, id:'day-2', title:'Day 2 · Second lesson', videoUrl:lesson.videoUrl.replace('day-1','day-2')};
+  const intro = {type:'video', title:'Welcome · Introduction video', url:'/intro.mp4'};
+  window.SR_LMS = {restUrl: 'http://lms.local/wp-json/sr-lms/v1/', nonce: 'test', state: {slug: 'speakathon', course: {title: 'Test Course', modules: [{title: 'Week 1', lessons: [lesson, second]}], resources: [intro]}, progress, completion, certificateUrl: 'http://lms.local/wp-admin/admin-post.php?action=sr_lms_certificate'}};
   window.fetch = async () => ({ok: true, json: async () => ({lesson: {ranges: [], position: 0, practice: false, complete: false}, completion})});
   assert.doesNotThrow(() => window.eval(source), 'player initializes against the real theme classroom DOM');
   await new Promise(resolve => setImmediate(resolve));
@@ -31,10 +36,42 @@ async function test() {
   window.document.getElementById('toggle-play').click();
   video.dispatchEvent(new window.KeyboardEvent('keydown', {code: 'Space', cancelable: true}));
   assert.equal(playCalls, 2, 'playback works with the custom button and keyboard');
-  assert.equal(window.document.querySelectorAll('.learn-day-btn').length, 1);
+  const [first, next] = window.document.querySelectorAll('.learn-day-btn');
+  assert.ok(next);
   assert.equal(window.document.querySelector('.sr-lms-certificate').hidden, true, 'ineligible certificate stays hidden');
   assert.equal(window.document.getElementById('sr-lms-practice').disabled, false);
+  if (mobile) {
+    const panel = () => window.document.getElementById(first.getAttribute('aria-controls'));
+    assert.equal(first.getAttribute('aria-expanded'), 'true', 'linked lesson opens inline on mobile');
+    assert.equal(first.nextElementSibling, panel());
+    assert.ok(panel().contains(video));
+    assert.ok(panel().contains(window.document.getElementById('open-worksheet')));
+    next.click();
+    assert.equal(first.getAttribute('aria-expanded'), 'false');
+    assert.equal(next.getAttribute('aria-expanded'), 'true');
+    assert.ok(next.nextElementSibling.contains(video));
+    assert.equal(video.src, second.videoUrl);
+    next.click();
+    assert.equal(next.getAttribute('aria-expanded'), 'false');
+    assert.equal(panel().hidden, true);
+    next.click();
+    assert.equal(panel().hidden, false);
+    assert.equal(video.src, second.videoUrl);
+    const introButton = window.document.querySelector('.learn-extra-btn');
+    introButton.click();
+    assert.equal(introButton.getAttribute('aria-expanded'), 'true');
+    assert.ok(introButton.nextElementSibling.contains(video));
+    viewport.matches = false;
+    viewport.dispatchEvent(new window.Event('change'));
+    assert.equal(window.document.querySelector('.learn-video-column').parentElement, window.document.querySelector('.learn-layout'));
+    assert.equal(first.hasAttribute('aria-expanded'), false);
+    assert.match(video.src, /intro\.mp4$/);
+  } else {
+    assert.equal(first.hasAttribute('aria-expanded'), false);
+    assert.equal(window.document.querySelector('.learn-video-column').parentElement, window.document.querySelector('.learn-layout'));
+  }
+  await new Promise(resolve => setTimeout(resolve, 120));
   dom.window.close();
-  console.log('PASS: classroom player DOM checks');
+  console.log(mobile ? 'PASS: mobile classroom accordion checks' : 'PASS: desktop classroom player DOM checks');
 }
-test().catch(error => {console.error(error);process.exitCode = 1;});
+test().then(() => test(true)).catch(error => {console.error(error);process.exitCode = 1;});

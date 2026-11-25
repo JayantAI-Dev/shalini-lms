@@ -8,6 +8,11 @@
   if (!video || !$('outline-list')) return;
   video.controls = false;
   const videoStage = $('video-stage');
+  const outline = $('outline-list');
+  const layout = outline.closest('.learn-layout');
+  const videoColumn = layout.querySelector('.learn-video-column');
+  const lessonContent = layout.querySelector('.learn-lesson');
+  const phoneLayout = window.matchMedia?.('(max-width: 690px)');
   (videoStage || video).addEventListener('contextmenu', event => event.preventDefault());
   const lessons = (course.modules || []).flatMap((module, week) => module.lessons.map((lesson, moduleLessonIndex) => ({...lesson, week, moduleLessonIndex, weekTitle: module.title})));
   if (!lessons.length) return;
@@ -17,6 +22,67 @@
   let pending = [], saveTimer = null, saving = false, saveAgain = false, restorePosition = 0;
   const params = new URLSearchParams(location.search);
   const node = (tag, className, text) => { const element = document.createElement(tag); if (className) element.className = className; if (text != null) element.textContent = text; return element; };
+  const panel = node('div', 'learn-inline-lesson');
+  panel.id = 'learn-inline-lesson';
+  panel.hidden = true;
+  panel.setAttribute('role', 'region');
+  panel.setAttribute('aria-labelledby', 'lesson-title');
+  let activeButton = null;
+  let expanded = true;
+
+  function updateAccordion(reveal = false) {
+    const mobile = Boolean(phoneLayout?.matches);
+    layout.classList.toggle('has-lesson-accordion', mobile);
+    for (const button of outline.querySelectorAll('.learn-day-btn, .learn-extra-btn')) {
+      if (mobile) {
+        button.setAttribute('aria-controls', panel.id);
+        button.setAttribute('aria-expanded', String(button === activeButton && expanded));
+      } else {
+        button.removeAttribute('aria-controls');
+        button.removeAttribute('aria-expanded');
+      }
+    }
+    if (!mobile) {
+      if (videoColumn.parentElement !== layout) layout.prepend(videoColumn, lessonContent);
+      panel.hidden = true;
+      return;
+    }
+    if (!activeButton) return;
+
+    const focusWasInPanel = panel.contains(document.activeElement);
+    const group = activeButton.classList.contains('learn-day-btn') ? activeButton.parentElement : null;
+    const anchor = group?.querySelector('.learn-lesson-videos') || activeButton;
+    if (anchor.nextElementSibling !== panel) anchor.after(panel);
+    if (videoColumn.parentElement !== panel) panel.append(videoColumn, lessonContent);
+    panel.hidden = !expanded;
+    if (reveal) {
+      if (focusWasInPanel) activeButton.focus({preventScroll: true});
+      const bounds = activeButton.getBoundingClientRect();
+      const headerBottom = document.querySelector('.sr-header')?.getBoundingClientRect().bottom || 0;
+      if (bounds.top < Math.max(0, headerBottom) || bounds.bottom > window.innerHeight) {
+        activeButton.scrollIntoView?.({block: 'start'});
+      }
+    }
+  }
+
+  function openAccordion(button, reveal) {
+    activeButton = button;
+    expanded = true;
+    updateAccordion(reveal);
+  }
+
+  function toggleAccordion(button) {
+    if (!phoneLayout?.matches || activeButton !== button) return false;
+    expanded = !expanded;
+    if (!expanded) {
+      video.pause();
+      save();
+    }
+    updateAccordion(expanded);
+    return true;
+  }
+
+  phoneLayout?.addEventListener('change', () => updateAccordion());
   const lessonVideos = lesson => Array.isArray(lesson.videos) && lesson.videos.length ? lesson.videos : (lesson.videoUrl ? [{title: 'Main recording', url: lesson.videoUrl, available: Boolean(lesson.videoAvailable)}] : []);
   const time = value => {value = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0; return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;};
   const setText = (id, value) => { if ($(id)) $(id).textContent = value; };
@@ -127,7 +193,7 @@
     if (url) {video.src = url; video.playbackRate = 1; video.load();}
     updatePlayback();syncPlayback();
   }
-  function select(index, requestedVideo = null) {
+  function select(index, requestedVideo = null, reveal = false) {
     if (index < 0 || index >= lessons.length) return;
     save(); current = index;const lesson = lessons[index], day = String(index + 1).padStart(2, '0');
     const choices = lessonVideos(lesson), availableIndex = choices.findIndex(item => item.available && item.url);
@@ -157,22 +223,24 @@
     const caption = $('lesson-video-caption'); if (caption) {const isPlayingVideo = Boolean(activeVideo?.available && activeVideo.url);caption.textContent = isPlayingVideo ? `Now playing · ${activeVideo.title}` : '';caption.hidden = !isPlayingVideo;}
     openVideo(activeVideo?.available && activeVideo.url ? activeVideo.url : (!choices.length && lesson.videoAvailable ? lesson.videoUrl : ''), 'lesson', requestedVideo === null ? (progress[lesson.id]?.position || 0) : 0);
     updateCompletion();updateOutline();
+    openAccordion(outline.querySelector(`.learn-day-btn[data-day="${index}"]`), reveal);
     const url = new URL(location.href);url.searchParams.set('course', slug);url.searchParams.set('lesson', String(index + 1));history.replaceState(null, '', url);
   }
-  function extra(resource, button) {
+  function extra(resource, button, reveal = false) {
     save();document.querySelector('.learn')?.classList.add('is-extra-video');
     document.querySelectorAll('.learn-extra-btn').forEach(item => item.setAttribute('aria-current', String(item === button)));
     setText('day-number', 'COURSE RESOURCE');setText('lesson-title', resource.title);setText('lesson-summary', resource.note || 'Additional course recording');$('lesson-video-caption').hidden = true;
     $('week-tag').hidden = true;$('lesson-practice').closest('.learn-practice').hidden = true;$('complete-and-next').closest('.learn-complete').hidden = true;
     $('open-worksheet').hidden = true;$('watch-example').hidden = true;if ($('skip-video-next')) $('skip-video-next').hidden = false;
     openVideo(resource.url, 'extra');updateCompletion();updateOutline();
+    openAccordion(button, reveal);
   }
-  const outline = $('outline-list');outline.replaceChildren();
+  outline.replaceChildren();
   const intro = slug === 'speakathon' ? (course.resources || []).find(item => item.type === 'video' && /^Welcome\s*[·:-]\s*Introduction video$/i.test(item.title)) : null;
   const closing = (course.resources || []).find(item => item.type === 'video' && /closing|end|course\s*outro/i.test(item.title));
   function resourceOption(resource) {
     const button = node('button', 'learn-extra-btn', resource.title);
-    button.type = 'button';button.addEventListener('click', () => extra(resource, button));return button;
+    button.type = 'button';button.addEventListener('click', () => {if (!toggleAccordion(button)) extra(resource, button, true);});return button;
   }
   function resourceButton(resource, label) {
     const group = node('div', 'learn-week-block learn-extra-block'), head = node('div', 'learn-week-name', label), button = resourceOption(resource);
@@ -194,7 +262,7 @@
       const button = node('button', 'learn-day-btn');button.type = 'button';button.dataset.day = String(index);
       const lessonNumber = slug === 'power-dressing' ? lesson.moduleLessonIndex + 1 : index + 1;
       button.append(node('span', 'learn-day-bullet', String(lessonNumber).padStart(2, '0')), node('span', 'learn-day-title', lesson.title.replace(/^Day\s*\d+\s*[·:–-]\s*/i, '')), node('span', 'learn-day-lock'));
-      button.addEventListener('click', () => select(index));
+      button.addEventListener('click', () => {if (!toggleAccordion(button)) select(index, null, true);});
       const lessonGroup = node('div', 'learn-lesson-group'); lessonGroup.append(button);
       if (slug === 'power-dressing') {
         const choices = lessonVideos(lesson);
@@ -260,8 +328,8 @@
   $('volume-toggle').addEventListener('click', () => {video.muted = !video.muted;$('volume-toggle').setAttribute('aria-label', video.muted ? 'Unmute video' : 'Mute video');});
   $('full-screen').addEventListener('click', async () => {try {if (document.fullscreenElement) await document.exitFullscreen();else if (videoStage?.requestFullscreen) await videoStage.requestFullscreen();else video.webkitEnterFullscreen?.();} catch (_) {status('Full screen is unavailable in this browser.');}});
   practiceInput.addEventListener('change', () => {if (practiceInput.checked) save(true);else practiceInput.checked = Boolean(progress[lessons[current].id]?.practice);});
-  $('complete-and-next').addEventListener('click', async () => {const index = current;if (await save()) {if (progress[lessons[index].id]?.complete && index < lessons.length - 1) select(index + 1);else updateCompletion();}});
-  $('previous-day').addEventListener('click', () => select(current - 1));$('skip-video-next')?.addEventListener('click', () => select(mode === 'extra' ? 0 : current + 1));
+  $('complete-and-next').addEventListener('click', async () => {const index = current;if (await save() && index === current && mode === 'lesson') {if (progress[lessons[index].id]?.complete && index < lessons.length - 1) select(index + 1, null, true);else updateCompletion();}});
+  $('previous-day').addEventListener('click', () => select(current - 1, null, true));$('skip-video-next')?.addEventListener('click', () => select(mode === 'extra' ? 0 : current + 1, null, true));
   $('watch-example').addEventListener('click', () => {if (mode === 'example') {select(current);return;}save();openVideo(lessons[current].solutionUrl, 'example');status('Example recording — return to your main lesson to complete the day.');$('complete-and-next').disabled = true;const label = $('watch-example').querySelector('span:nth-child(2)');if (label) label.textContent = 'Return to main lesson';});
   $('open-worksheet').addEventListener('click', () => {const lesson = lessons[current];if (!lesson.pdfUrl) return;setText('worksheet-title', lesson.title);setText('worksheet-tag', `WORKSHEET · LESSON ${current + 1}`);$('worksheet-frame').src = lesson.pdfUrl;$('open-worksheet-tab').href = lesson.pdfUrl;$('worksheet-error').hidden = true;$('worksheet-dialog').showModal();});
   const closeWorksheet = () => {$('worksheet-dialog').close();$('worksheet-frame').removeAttribute('src');};$('close-worksheet').addEventListener('click', closeWorksheet);$('worksheet-dialog').addEventListener('click', event => {if (event.target === $('worksheet-dialog')) closeWorksheet();});

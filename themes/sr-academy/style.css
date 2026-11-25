@@ -12534,6 +12534,60 @@ html[data-package-offer="comm-package"] .package-investment-price .package-price
   .fresh-learn .learn-day-title { overflow-wrap: anywhere; }
   .fresh-learn .learn-day-lock { flex: 0 0 auto; font-size: 10px; }
   .fresh-learn .learn-extra-btn { min-height: 48px; }
+  .fresh-learn .learn-layout.has-lesson-accordion {
+    grid-template-areas: "outline";
+  }
+  .fresh-learn .learn-inline-lesson {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+    margin: 4px 0 12px;
+    padding: 12px;
+    border: 1px solid #dfe9d8;
+    border-radius: 12px;
+    background: #f8faf6;
+  }
+  .fresh-learn .learn-inline-lesson .learn-lesson h1 {
+    font-size: clamp(21px, 6vw, 29px);
+  }
+  .fresh-learn .learn-inline-lesson .learn-video {
+    width: min(100%, 360px, calc(62svh * .5625));
+    min-width: min(100%, 240px);
+  }
+  .fresh-learn .learn-inline-lesson .learn-video-bar {
+    gap: 4px;
+    padding-inline: 8px;
+  }
+  .fresh-learn .learn-lesson-group > .learn-day-btn[aria-expanded="false"] + .learn-lesson-videos {
+    display: none;
+  }
+  .fresh-learn .has-lesson-accordion .learn-video-version {
+    min-height: 44px;
+    overflow-wrap: anywhere;
+  }
+  .fresh-learn .has-lesson-accordion :is(.learn-day-btn, .learn-extra-btn)[aria-expanded] {
+    scroll-margin-top: calc(var(--sr-announcement-height, 0px) + 76px);
+  }
+  .fresh-learn .has-lesson-accordion .learn-extra-btn[aria-expanded] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 9px;
+  }
+  .fresh-learn .has-lesson-accordion :is(.learn-day-btn, .learn-extra-btn)[aria-expanded]::after {
+    content: "";
+    flex: 0 0 7px;
+    width: 7px;
+    height: 7px;
+    margin: -3px 3px 0 0;
+    border: solid currentColor;
+    border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg);
+  }
+  .fresh-learn .has-lesson-accordion :is(.learn-day-btn, .learn-extra-btn)[aria-expanded="true"]::after {
+    margin-top: 3px;
+    transform: rotate(225deg);
+  }
   .fresh-learn #worksheet-frame { height: 72svh; }
   .fresh-learn #video-stage:fullscreen { width: 100vw; height: 100svh; max-height: none; }
 }
